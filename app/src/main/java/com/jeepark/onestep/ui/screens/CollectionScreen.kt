@@ -25,7 +25,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -69,38 +68,6 @@ private val BG_COLOR = Color(0xFFFDF8F0)
 private val CARD_BG  = Color(0xFFF5EFE4)
 private val PRIMARY  = Color(0xFF5A9848)
 
-private fun tierName(tier: Int): String = when (tier) {
-    0    -> "새싹"
-    1    -> "초보자"
-    2    -> "탐험가"
-    3    -> "모험가"
-    4    -> "용사"
-    5    -> "전사"
-    6    -> "챔피언"
-    else -> "전설"
-}
-
-private fun tierEmoji(tier: Int): String = when (tier) {
-    0    -> "🌱"
-    1    -> "🐾"
-    2    -> "🌿"
-    3    -> "⭐"
-    4    -> "🌟"
-    5    -> "💫"
-    6    -> "👑"
-    else -> "🏆"
-}
-
-private val TIER_BADGE_COLORS = listOf(
-    Color(0xFF9EBF8A),
-    Color(0xFF7DAF68),
-    Color(0xFF5A9848),
-    Color(0xFF3A8A30),
-    Color(0xFF2A7A20),
-    Color(0xFF1A6A10),
-    Color(0xFFD4A820),
-    Color(0xFFB8860B),
-)
 
 @Composable
 fun CollectionScreen(
@@ -259,7 +226,6 @@ private fun CollectionHeader(
     )
     LaunchedEffect(targetFraction) { animFraction = targetFraction }
 
-    val badgeColor = TIER_BADGE_COLORS.getOrElse(tier) { PRIMARY }
     val isMaxTier  = tier >= 7
 
     Column(
@@ -288,45 +254,32 @@ private fun CollectionHeader(
             )
         }
 
-        // 티어 뱃지 + 정보
+        // 티어 정보
         Row(
-            modifier          = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier              = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
         ) {
-            // 티어 뱃지 (원형)
-            Box(
-                modifier          = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(badgeColor),
-                contentAlignment  = Alignment.Center
-            ) {
-                Text(tierEmoji(tier), fontSize = 26.sp)
-            }
-
-            Spacer(Modifier.width(16.dp))
-
-            Column {
+            Text(
+                text       = "티어 ${tier}",
+                fontSize   = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color      = Color(0xFF2A2A2A)
+            )
+            if (isMaxTier) {
                 Text(
-                    text       = "티어 ${tier} · ${tierName(tier)}",
-                    fontSize   = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color      = Color(0xFF2A2A2A)
+                    text     = "   •   최고 티어 달성!",
+                    fontSize = 13.sp,
+                    color    = Color(0xFFD4A820)
                 )
-                Spacer(Modifier.height(4.dp))
-                if (isMaxTier) {
-                    Text(
-                        text     = "최고 티어 달성!",
-                        fontSize = 13.sp,
-                        color    = Color(0xFFD4A820)
-                    )
-                } else {
-                    Text(
-                        text     = "다음 티어까지 ${threshold - progress} XP",
-                        fontSize = 13.sp,
-                        color    = Color(0xFF888888)
-                    )
-                }
+            } else {
+                Text(
+                    text     = "   •   다음 티어까지 ${threshold - progress} XP",
+                    fontSize = 13.sp,
+                    color    = Color(0xFF888888)
+                )
             }
         }
 

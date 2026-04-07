@@ -143,23 +143,6 @@ private fun tierSkyColor(tier: Int): Color = when (tier) {
     else -> Color(0xFFF5E5A0) // 티어 6: 황금빛
 }
 
-private fun tierButtonSubtext(tier: Int): String = when (tier) {
-    0    -> "오늘도 한 걸음씩"
-    1    -> "강아지가 기다려요"
-    2    -> "병아리가 응원해요"
-    3    -> "고양이가 지켜봐요"
-    4    -> "토끼가 기다려요"
-    5    -> "여우가 함께해요"
-    else -> "모두가 함께해요"
-}
-
-private fun questDuration(level: Int): String = when (level) {
-    1    -> "약 10분"
-    2    -> "약 20분"
-    3    -> "약 30분"
-    4    -> "약 45분"
-    else -> "약 60분"
-}
 
 // ===== 메인 화면 =====
 
@@ -474,15 +457,9 @@ private fun QuestButton(tier: Int, onClick: () -> Unit) {
         shape = RoundedCornerShape(18.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5A9848)),
         border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.22f)),
-        contentPadding = PaddingValues(vertical = 14.dp, horizontal = 20.dp)
+        contentPadding = PaddingValues(vertical = 20.dp, horizontal = 20.dp)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text          = tierButtonSubtext(tier),
-                fontSize      = 9.sp,
-                color         = Color.White.copy(alpha = 0.7f),
-                letterSpacing = 1.4.sp
-            )
             Text(
                 text       = "새 퀘스트 받기",
                 fontSize   = 15.sp,
