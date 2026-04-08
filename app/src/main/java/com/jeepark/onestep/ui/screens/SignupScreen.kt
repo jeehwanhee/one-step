@@ -1,15 +1,25 @@
 package com.jeepark.onestep.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,7 +32,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jeepark.onestep.data.model.User
@@ -45,10 +59,12 @@ fun SignupScreen(
 ) {
     val context = LocalContext.current
 
-    var nickname by remember { mutableStateOf("") }
-    var age      by remember { mutableIntStateOf(0) }
-    var gender   by remember { mutableStateOf(true) }
-    val enabled  = nickname.isNotEmpty() && age != 0
+    var nickname       by remember { mutableStateOf("") }
+    var age            by remember { mutableIntStateOf(0) }
+    var gender         by remember { mutableStateOf(true) }
+    var agreeTerms     by remember { mutableStateOf(false) }
+    var agreePrivacy   by remember { mutableStateOf(false) }
+    val enabled  = nickname.isNotEmpty() && age != 0 && agreeTerms && agreePrivacy
 
     val nicknameRegex = "^[가-힣a-zA-Z0-9]*$".toRegex()
     val warning = if (!nickname.matches(nicknameRegex)) {
@@ -130,6 +146,24 @@ fun SignupScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
+            // 약관 동의
+            ConsentRow(
+                checked  = agreeTerms,
+                onToggle = { agreeTerms = !agreeTerms },
+                label    = "이용약관",
+                url      = "https://marmalade-locket-e42.notion.site/33c74db951cd80249c4dc61ed6817ba6?source=copy_link",
+                context  = context
+            )
+            Spacer(Modifier.height(8.dp))
+            ConsentRow(
+                checked  = agreePrivacy,
+                onToggle = { agreePrivacy = !agreePrivacy },
+                label    = "개인정보 처리방침",
+                url      = "https://marmalade-locket-e42.notion.site/33c74db951cd8022a9c2f5d195d648b7?source=copy_link",
+                context  = context
+            )
+            Spacer(Modifier.height(16.dp))
+
             BottomButton(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -149,6 +183,52 @@ fun SignupScreen(
                 enabled = enabled,
             )
         }
+    }
+}
+
+@Composable
+private fun ConsentRow(
+    checked: Boolean,
+    onToggle: () -> Unit,
+    label: String,
+    url: String,
+    context: android.content.Context
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier          = Modifier.fillMaxWidth()
+    ) {
+        Icon(
+            imageVector        = if (checked) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircle,
+            contentDescription = null,
+            tint               = if (checked) SIGNUP_PRIMARY else Color(0xFFCCCCCC),
+            modifier           = Modifier
+                .size(22.dp)
+                .clickable(
+                    indication        = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                    onClick           = onToggle
+                )
+        )
+        Spacer(Modifier.size(8.dp))
+        Text(
+            text = buildAnnotatedString {
+                append("(필수) ")
+                withStyle(SpanStyle(textDecoration = TextDecoration.Underline, color = SIGNUP_PRIMARY)) {
+                    append(label)
+                }
+                append("에 동의합니다.")
+            },
+            fontSize = 13.sp,
+            color    = Color(0xFF4A4A4A),
+            modifier = Modifier.clickable(
+                indication        = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick           = {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                }
+            )
+        )
     }
 }
 

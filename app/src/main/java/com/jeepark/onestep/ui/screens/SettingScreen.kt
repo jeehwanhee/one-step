@@ -1,6 +1,8 @@
 package com.jeepark.onestep.ui.screens
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -153,15 +155,16 @@ fun SettingScreen(
         Spacer(Modifier.height(36.dp))
 
         SettingCard {
-            PlainRow("로그아웃") { showLogout = true }
+            ArrowRow("이용약관 및 개인정보 처리방침") {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://marmalade-locket-e42.notion.site/33c74db951cd80f7a971c4c612982379?source=copy_link"))
+                context.startActivity(intent)
+            }
         }
 
         Spacer(Modifier.height(36.dp))
 
         SettingCard {
-            ArrowRow("이용약관 및 개인정보 처리방침") {
-                // TODO: 노션 URL 연결
-            }
+            PlainRow("로그아웃") { showLogout = true }
         }
 
         Spacer(Modifier.height(36.dp))

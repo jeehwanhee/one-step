@@ -79,12 +79,11 @@ class AuthViewModel : ViewModel() {
         Firebase.firestore.collection("users").document(uid)
             .delete()
             .addOnSuccessListener {
+                // Firestore 삭제 성공 → Auth 계정 삭제 시도 후 결과와 관계없이 로그아웃 처리
                 user.delete()
-                    .addOnSuccessListener {
-                        getGoogleSignInClient(context).signOut()
-                        onSuccess()
-                    }
-                    .addOnFailureListener { onFailure() }
+                auth.signOut()
+                getGoogleSignInClient(context).signOut()
+                onSuccess()
             }
             .addOnFailureListener { onFailure() }
     }
