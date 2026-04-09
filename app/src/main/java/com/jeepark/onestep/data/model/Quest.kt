@@ -15,5 +15,4 @@ data class PrevQuest(
     val confirmQuestion: String = "",
     val confirmAnswer: String = "",
     val doneDate: String = "",
-    val isInside: Boolean = false,
 )

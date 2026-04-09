@@ -163,7 +163,6 @@ fun MainScreen(
     val questList by vm.questList.collectAsState()
     val isLoadingQuests by vm.isLoadingQuests.collectAsState()
     val activeQuest by vm.activeQuest.collectAsState()
-    val activeIsInside by vm.activeIsInside.collectAsState()
     val tier = (user?.tier ?: 0).coerceIn(0, 7)
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -172,7 +171,6 @@ fun MainScreen(
     var showSuggestDialog by remember { mutableStateOf(false) }
     var showVerifyDialog  by remember { mutableStateOf(false) }
     var selectedMood      by remember { mutableStateOf(-1) }
-    var isInside          by remember { mutableStateOf(true) }
     var currentQuestIndex by remember { mutableStateOf(0) }
     var currentQuest      by remember { mutableStateOf<Quest?>(null) }
     var showTierUp        by remember { mutableStateOf(false) }
@@ -247,7 +245,6 @@ fun MainScreen(
             ) {
                 ActiveQuestCard(
                     quest      = quest,
-                    isInside   = activeIsInside,
                     onGiveUp   = { vm.saveGiveUpQuest(quest); vm.clearActiveQuest() },
                     onComplete = { showVerifyDialog = true }
                 )
@@ -289,13 +286,11 @@ fun MainScreen(
         QuestInputDialog(
             isLoading = isLoadingQuests,
             onDismiss = { if (!isLoadingQuests) showInputDialog = false },
-            onSearch  = { mood, inside ->
+            onSearch  = { mood ->
                 selectedMood = mood
-                isInside     = inside
                 vm.loadFilteredQuests(
-                    mood     = mood + 1,
-                    isInside = inside,
-                    onReady  = { quests ->
+                    mood    = mood + 1,
+                    onReady = { quests ->
                         showInputDialog   = false
                         currentQuestIndex = 0
                         currentQuest      = quests.firstOrNull()
@@ -323,7 +318,7 @@ fun MainScreen(
                 },
                 onAccept  = {
                     showSuggestDialog = false
-                    vm.startQuest(quest, isInside)
+                    vm.startQuest(quest)
                 }
             )
         }
@@ -336,10 +331,9 @@ fun MainScreen(
                 onDismiss = { showVerifyDialog = false },
                 onSubmit  = { answer ->
                     vm.saveCompletedQuest(
-                        quest     = quest,
-                        answer    = answer,
-                        isInside  = activeIsInside,
-                        onTierUp  = { showTierUp = true },
+                        quest    = quest,
+                        answer   = answer,
+                        onTierUp = { showTierUp = true },
                         onDone    = {
                             showVerifyDialog = false
                             vm.clearActiveQuest()
@@ -356,6 +350,18 @@ fun MainScreen(
 @Composable
 internal fun ParkBackground(tier: Int, modifier: Modifier = Modifier) {
     val density = LocalDensity.current
+
+    // 지상 동물 위치 — tier 바뀔 때만 새로 뽑음 (나무 위치 0.20f/0.80f 제외)
+    val groundXs = remember(tier) {
+        listOf(0.06f, 0.14f, 0.34f, 0.44f, 0.54f, 0.64f, 0.72f, 0.86f).shuffled()
+    }
+    // 지상·하늘 동물 Y 비율 (0f~1f) — Canvas 안에서 h에 곱해 실제 좌표 계산
+    val groundYFractions = remember(tier) { List(8) { Math.random().toFloat() } }
+    val skyYFractions    = remember(tier) { List(4) { Math.random().toFloat() } }
+    // 하늘 동물 위치
+    val skyXs = remember(tier) {
+        listOf(0.12f, 0.30f, 0.52f, 0.70f).shuffled()
+    }
 
     Canvas(modifier = modifier.fillMaxSize()) {
         val w = size.width
@@ -428,22 +434,38 @@ internal fun ParkBackground(tier: Int, modifier: Modifier = Modifier) {
         val horseH    = HORSE_PIXELS.size    * pxSz
         val dolphinH  = DOLPHIN_PIXELS.size  * pxSz
 
-        // 0: 병아리 — 항상 등장
-        drawPixelArt(CHICK_PIXELS,    CHICK_COLORS,    Offset(w * 0.72f, groundY - chickH),                             pxSz)
+        // 하늘: 화면 상단 1/3 (0 ~ h/3)
+        // 지상: 화면 하단 2/3 (h/3 ~ h*0.65f)
+        val skyZoneBottom   = h / 3f
+        val groundZoneTop   = h / 3f
+        val groundZoneBottom = h * 0.65f
+
+        // 비율로 실제 Y 계산 (스프라이트가 영역 안에 완전히 들어오도록 animalH 만큼 여유)
+        fun groundY(fraction: Float, animalH: Float): Float {
+            val range = (groundZoneBottom - animalH - groundZoneTop).coerceAtLeast(0f)
+            return groundZoneTop + fraction * range
+        }
+        fun skyY(fraction: Float, animalH: Float): Float {
+            val range = (skyZoneBottom - animalH).coerceAtLeast(0f)
+            return fraction * range
+        }
+
+        // 0: 병아리
+        drawPixelArt(CHICK_PIXELS,    CHICK_COLORS,    Offset(w * groundXs[0], groundY(groundYFractions[0], chickH)),    pxSz)
         // 1: 거북이
-        if (tier >= 1) drawPixelArt(TURTLE_PIXELS,   TURTLE_COLORS,   Offset(w * 0.10f, groundY - turtleH),             pxSz)
+        if (tier >= 1) drawPixelArt(TURTLE_PIXELS,   TURTLE_COLORS,   Offset(w * groundXs[1], groundY(groundYFractions[1], turtleH)),   pxSz)
         // 2: 고양이
-        if (tier >= 2) drawPixelArt(CAT_PIXELS,      CAT_COLORS,      Offset(w * 0.48f, groundY - catH),                pxSz)
+        if (tier >= 2) drawPixelArt(CAT_PIXELS,      CAT_COLORS,      Offset(w * groundXs[2], groundY(groundYFractions[2], catH)),      pxSz)
         // 3: 강아지
-        if (tier >= 3) drawPixelArt(DOG_PIXELS,      DOG_COLORS,      Offset(w * 0.62f, groundY - dogH),                pxSz)
-        // 4: 파랑새 — 하늘에 배치
-        if (tier >= 4) drawPixelArt(BLUEBIRD_PIXELS, BLUEBIRD_COLORS, Offset(w * 0.55f, groundY - with(density) { 90.dp.toPx() } - bluebirdH), pxSz)
+        if (tier >= 3) drawPixelArt(DOG_PIXELS,      DOG_COLORS,      Offset(w * groundXs[3], groundY(groundYFractions[3], dogH)),      pxSz)
+        // 4: 파랑새 — 하늘
+        if (tier >= 4) drawPixelArt(BLUEBIRD_PIXELS, BLUEBIRD_COLORS, Offset(w * skyXs[0],    skyY(skyYFractions[0], bluebirdH)),       pxSz)
         // 5: 곰
-        if (tier >= 5) drawPixelArt(BEAR_PIXELS,     BEAR_COLORS,     Offset(w * 0.05f, groundY - bearH),               pxSz)
+        if (tier >= 5) drawPixelArt(BEAR_PIXELS,     BEAR_COLORS,     Offset(w * groundXs[4], groundY(groundYFractions[4], bearH)),     pxSz)
         // 6: 말
-        if (tier >= 6) drawPixelArt(HORSE_PIXELS,    HORSE_COLORS,    Offset(w * 0.28f, groundY - horseH),              pxSz)
-        // 7: 돌고래 — 하늘에 배치
-        if (tier >= 7) drawPixelArt(DOLPHIN_PIXELS,  DOLPHIN_COLORS,  Offset(w * 0.18f, groundY - with(density) { 120.dp.toPx() } - dolphinH), pxSz)
+        if (tier >= 6) drawPixelArt(HORSE_PIXELS,    HORSE_COLORS,    Offset(w * groundXs[5], groundY(groundYFractions[5], horseH)),    pxSz)
+        // 7: 돌고래 — 하늘
+        if (tier >= 7) drawPixelArt(DOLPHIN_PIXELS,  DOLPHIN_COLORS,  Offset(w * skyXs[1],    skyY(skyYFractions[1], dolphinH)),        pxSz)
     }
 }
 
@@ -476,9 +498,8 @@ private fun QuestButton(tier: Int, onClick: () -> Unit) {
 private fun QuestInputDialog(
     isLoading: Boolean,
     onDismiss: () -> Unit,
-    onSearch: (mood: Int, isInside: Boolean) -> Unit
+    onSearch: (mood: Int) -> Unit
 ) {
-    var isInside      by remember { mutableStateOf(true) }
     var selectedMood  by remember { mutableStateOf(-1) }
     var visible       by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
@@ -509,17 +530,6 @@ private fun QuestInputDialog(
                     modifier   = androidx.compose.ui.Modifier.padding(bottom = 18.dp)
                 )
 
-                // 장소 섹션
-                Text("장소", fontSize = 10.sp, color = Color(0xFF8A7A60), letterSpacing = 1.2.sp,
-                    modifier = androidx.compose.ui.Modifier.padding(bottom = 7.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 18.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    LocationChip("실내",  isInside,  Modifier.weight(1f)) { if (!isLoading) isInside = true }
-                    LocationChip("실외", !isInside,  Modifier.weight(1f)) { if (!isLoading) isInside = false }
-                }
-
                 // 기분 섹션
                 Text("지금 기분", fontSize = 10.sp, color = Color(0xFF8A7A60), letterSpacing = 1.2.sp,
                     modifier = androidx.compose.ui.Modifier.padding(bottom = 7.dp))
@@ -534,7 +544,7 @@ private fun QuestInputDialog(
 
                 // 퀘스트 찾기 버튼
                 Button(
-                    onClick  = { if (selectedMood >= 0 && !isLoading) onSearch(selectedMood, isInside) },
+                    onClick  = { if (selectedMood >= 0 && !isLoading) onSearch(selectedMood) },
                     modifier = Modifier.fillMaxWidth(),
                     enabled  = selectedMood >= 0 && !isLoading,
                     shape    = RoundedCornerShape(14.dp),
@@ -581,20 +591,6 @@ private fun QuestInputDialog(
     }
 }
 
-@Composable
-private fun LocationChip(text: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) Color(0xFF6A9858) else Color(0xFFF0ECE0))
-            .border(1.dp, if (selected) Color(0xFF508040) else Color(0xFFD4CDB8), RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
-            .padding(10.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text, color = if (selected) Color.White else Color(0xFF8A7A60), fontSize = 13.sp)
-    }
-}
 
 @Composable
 private fun MoodChip(text: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
@@ -699,7 +695,6 @@ private fun QuestSuggestDialog(
 @Composable
 private fun ActiveQuestCard(
     quest: Quest,
-    isInside: Boolean,
     onGiveUp: () -> Unit,
     onComplete: () -> Unit
 ) {

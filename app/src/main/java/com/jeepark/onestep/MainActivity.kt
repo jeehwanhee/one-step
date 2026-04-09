@@ -1,15 +1,20 @@
 package com.jeepark.onestep
 
+import android.Manifest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -17,6 +22,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.FirebaseApp
+import com.jeepark.onestep.util.LocationHelper
 import com.jeepark.onestep.ui.screens.AuthScreen
 import com.jeepark.onestep.ui.screens.InitQuestionScreen
 import com.jeepark.onestep.ui.screens.InitScreen
@@ -53,7 +59,17 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MyNavGraph() {
+    val context     = LocalContext.current
     val navController = rememberNavController()
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) LocationHelper.updateLocation(context) {}
+    }
+    SideEffect {
+        locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
 
     NavHost(navController = navController, startDestination = "init") {
 

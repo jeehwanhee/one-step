@@ -40,9 +40,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _activeQuest = MutableStateFlow<Quest?>(null)
     val activeQuest: StateFlow<Quest?> = _activeQuest.asStateFlow()
 
-    private val _activeIsInside = MutableStateFlow(false)
-    val activeIsInside: StateFlow<Boolean> = _activeIsInside.asStateFlow()
-
     init {
         loadUser()
         loadActiveQuestFromPrefs()
@@ -57,7 +54,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadFilteredQuests(
         mood: Int,
-        isInside: Boolean,
         onReady: (List<Quest>) -> Unit,
         onError: (String) -> Unit
     ) {
@@ -76,7 +72,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     tier        = u?.tier ?: 0
                 )
 
-                val quests = questRepository.fetchFilteredQuests(ratios, isInside)
+                val quests = questRepository.fetchFilteredQuests(ratios)
                 _questList.value = quests
                 onReady(quests)
             } catch (e: Exception) {
@@ -91,7 +87,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun saveCompletedQuest(
         quest: Quest,
         answer: String,
-        isInside: Boolean,
         onTierUp: () -> Unit,
         onDone: () -> Unit
     ) {
@@ -120,8 +115,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             "difficulty"      to quest.difficulty,
             "confirmQuestion" to quest.confirmQuestion,
             "confirmAnswer"   to answer,
-            "doneDate"        to SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault()).format(Date()),
-            "isInside"        to isInside
+            "doneDate"        to SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault()).format(Date())
         )
 
         db.collection("users").document(uid).update(
@@ -130,7 +124,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 "tier"              to newTier,
                 "difficultyQueue"   to newDifficultyQueue,
                 "questResultsQueue" to newResultsQueue,
-                "prevQuests"          to FieldValue.arrayUnion(prevQuestMap)
+                "prevQuests"        to FieldValue.arrayUnion(prevQuestMap)
             )
         ).addOnSuccessListener {
             val newPrevQuest = PrevQuest(
@@ -139,31 +133,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 difficulty      = quest.difficulty,
                 confirmQuestion = quest.confirmQuestion,
                 confirmAnswer   = answer,
-                doneDate        = SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault()).format(Date()),
-                isInside        = isInside
+                doneDate        = SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault()).format(Date())
             )
             _user.value = currentUser.copy(
-                progress             = newProgress,
-                tier                 = newTier,
-                difficultyQueue  = newDifficultyQueue,
-                questResultsQueue     = newResultsQueue,
-                prevQuests           = currentUser.prevQuests + newPrevQuest
+                progress          = newProgress,
+                tier              = newTier,
+                difficultyQueue   = newDifficultyQueue,
+                questResultsQueue = newResultsQueue,
+                prevQuests        = currentUser.prevQuests + newPrevQuest
             )
             if (didTierUp) onTierUp()
             onDone()
         }
     }
 
-    fun startQuest(quest: Quest, isInside: Boolean) {
+    fun startQuest(quest: Quest) {
         _activeQuest.value = quest
-        _activeIsInside.value = isInside
         prefs.edit()
             .putInt("index", quest.index)
             .putString("questName", quest.questName)
             .putInt("difficulty", quest.difficulty)
             .putString("confirmQuestion", quest.confirmQuestion)
             .putInt("questEXP", quest.questEXP)
-            .putBoolean("isInside", isInside)
             .apply()
     }
 
@@ -181,7 +172,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             confirmQuestion = prefs.getString("confirmQuestion", "") ?: "",
             questEXP        = prefs.getInt("questEXP", 0)
         )
-        _activeIsInside.value = prefs.getBoolean("isInside", true)
     }
 
     fun saveGiveUpQuest(quest: Quest) {

@@ -13,13 +13,13 @@ import com.jeepark.onestep.data.model.Quest
 import kotlinx.coroutines.tasks.await
 import org.json.JSONArray
 import kotlin.math.roundToInt
+import com.jeepark.onestep.util.LocationHelper
 
 class QuestRepository {
     private val db = Firebase.firestore
 
     suspend fun fetchFilteredQuests(
-        ratios: List<Double>,
-        isInside: Boolean
+        ratios: List<Double>
     ): List<Quest> {
         // 1. Firestore quests 컬렉션 전체 로드
         val snapshot = try {
@@ -51,7 +51,7 @@ class QuestRepository {
 
         // 4. Gemini로 8개 선별 (실패 시 랜덤 8개 반환)
         return try {
-            selectWithGemini(sampled, isInside, weather, congestion)
+            selectWithGemini(sampled, weather, congestion)
         } catch (e: Exception) {
             sampled.shuffled().take(8)
         }
@@ -80,7 +80,7 @@ class QuestRepository {
     private suspend fun fetchSeoulData(): Pair<String, String> = try {
         val response = NetworkClient.apiService.getRealtimeCityData(
             apiKey = BuildConfig.SEOUL_API_KEY,
-            areaName = "건대입구역"
+            areaName = LocationHelper.currentAreaName
         )
         val w = response.CITYDATA?.WEATHER_STTS?.firstOrNull()
         val p = response.CITYDATA?.LIVE_PPLTN_STTS?.firstOrNull()
@@ -95,21 +95,18 @@ class QuestRepository {
 
     private suspend fun selectWithGemini(
         quests: List<Quest>,
-        isInside: Boolean,
         weather: String,
         congestion: String
     ): List<Quest> {
-        val placeStr = if (isInside) "실내" else "실외"
         val questsJson = quests.mapIndexed { i, q ->
             """{"id":$i,"index":${q.index},"name":"${q.questName}","difficulty":${q.difficulty}}"""
         }.joinToString(",", "[", "]")
 
         val prompt = """
-            아래 환경 데이터와 퀘스트 목록을 보고, 오늘 ${placeStr} 활동에 가장 적합한 퀘스트 8개를 골라줘.
+            아래 환경 데이터와 퀘스트 목록을 보고, 오늘 활동에 가장 적합한 퀘스트 8개를 골라줘.
 
             오늘 날씨: $weather
             혼잡도: $congestion
-            활동 장소: $placeStr
 
             퀘스트 목록(JSON):
             $questsJson
