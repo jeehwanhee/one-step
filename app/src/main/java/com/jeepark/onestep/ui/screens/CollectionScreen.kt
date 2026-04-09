@@ -30,6 +30,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -141,7 +142,7 @@ fun CollectionScreen(
         // 동물 도감 섹션 제목
         item {
             Text(
-                text       = "동물 도감",
+                text       = "해금된 동물들",
                 fontSize   = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color      = Color(0xFF3A3A3A),
@@ -360,7 +361,12 @@ private fun AnimalCard(index: Int, unlocked: Boolean) {
                         }
                     }
                 } else {
-                    Text("🔒", fontSize = 24.sp)
+                    Icon(
+                        imageVector = Icons.Outlined.Lock,
+                        contentDescription = "잠금",
+                        tint = Color(0xFFAAAAAA),
+                        modifier = Modifier.size(28.dp)
+                    )
                 }
             }
             Spacer(Modifier.height(4.dp))
