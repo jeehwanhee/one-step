@@ -124,7 +124,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 "tier"              to newTier,
                 "difficultyQueue"   to newDifficultyQueue,
                 "questResultsQueue" to newResultsQueue,
-                "prevQuests"        to FieldValue.arrayUnion(prevQuestMap)
+                "prevQuests"        to FieldValue.arrayUnion(prevQuestMap),
+                "isolatedCount"     to FieldValue.increment(1)
             )
         ).addOnSuccessListener {
             val newPrevQuest = PrevQuest(
@@ -140,7 +141,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 tier              = newTier,
                 difficultyQueue   = newDifficultyQueue,
                 questResultsQueue = newResultsQueue,
-                prevQuests        = currentUser.prevQuests + newPrevQuest
+                prevQuests        = currentUser.prevQuests + newPrevQuest,
+                isolatedCount     = currentUser.isolatedCount + 1
             )
             if (didTierUp) onTierUp()
             onDone()
@@ -174,16 +176,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
-    fun saveGiveUpQuest(quest: Quest) {
+    fun resetIsolatedCount() {
+        val uid = auth.currentUser?.uid ?: return
+        db.collection("users").document(uid).update("isolatedCount", 0)
+            .addOnSuccessListener {
+                _user.value = _user.value?.copy(isolatedCount = 0)
+            }
+    }
+
+    fun saveGiveUpQuest(quest: Quest, reason: Int) {
         val currentUser = _user.value ?: return
         val uid = auth.currentUser?.uid ?: return
 
         val newResultsQueue = (currentUser.questResultsQueue + 0).takeLast(10)
 
+        val giveUpEntry = mapOf(
+            "questName" to quest.questName,
+            "reason"    to reason
+        )
+
+        // users 문서: 실패 이력 + 포기 사유 추가
         db.collection("users").document(uid).update(
-            mapOf("questResultsQueue" to newResultsQueue)
+            mapOf(
+                "questResultsQueue" to newResultsQueue,
+                "giveUpReasons"     to FieldValue.arrayUnion(giveUpEntry)
+            )
         ).addOnSuccessListener {
             _user.value = currentUser.copy(questResultsQueue = newResultsQueue)
         }
+
+        // quests 문서: 해당 퀘스트의 포기 사유 추가
+        db.collection("quests")
+            .whereEqualTo("index", quest.index)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                snapshot.documents.firstOrNull()?.reference?.update(
+                    "giveUpReasons", FieldValue.arrayUnion(reason)
+                )
+            }
     }
 }

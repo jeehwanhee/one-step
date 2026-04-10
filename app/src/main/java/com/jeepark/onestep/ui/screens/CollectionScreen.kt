@@ -321,7 +321,7 @@ private fun AnimalGrid(
 
     LazyVerticalGrid(
         columns            = GridCells.Fixed(4),
-        modifier           = modifier.height(((allAnimals.size / 4 + 1) * 100).dp),
+        modifier           = modifier.height((((allAnimals.size + 3) / 4) * 100).dp),
         contentPadding     = PaddingValues(4.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -383,14 +383,6 @@ private fun AnimalCard(index: Int, unlocked: Boolean) {
 
 @Composable
 private fun CompletedQuestCard(quest: PrevQuest, modifier: Modifier = Modifier) {
-    val levelColor = when (quest.difficulty) {
-        1    -> Color(0xFF78C060)
-        2    -> Color(0xFF60A8E0)
-        3    -> Color(0xFFE0A030)
-        4    -> Color(0xFFE06060)
-        else -> Color(0xFF9060C8)
-    }
-
     Card(
         modifier  = modifier.fillMaxWidth(),
         shape     = RoundedCornerShape(12.dp),
@@ -399,38 +391,24 @@ private fun CompletedQuestCard(quest: PrevQuest, modifier: Modifier = Modifier) 
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
-                modifier          = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                modifier              = Modifier.fillMaxWidth(),
+                verticalAlignment     = Alignment.Top,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // 레벨 뱃지
-                Box(
-                    modifier         = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(levelColor.copy(alpha = 0.15f))
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                ) {
-                    Text(
-                        text       = "Lv.${quest.difficulty}",
-                        fontSize   = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color      = levelColor
-                    )
-                }
-                Spacer(Modifier.weight(1f))
+                Text(
+                    text       = quest.questName,
+                    fontSize   = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = Color(0xFF2A2A2A),
+                    modifier   = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(8.dp))
                 Text(
                     text     = quest.doneDate.take(10),
                     fontSize = 11.sp,
                     color    = Color(0xFFAAAAAA)
                 )
             }
-
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text       = quest.questName,
-                fontSize   = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color      = Color(0xFF2A2A2A)
-            )
 
             Spacer(Modifier.height(8.dp))
             Text(

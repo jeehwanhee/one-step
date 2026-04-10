@@ -53,7 +53,6 @@ import com.jeepark.onestep.ui.viewmodels.AuthViewModel
 private val S_BG      = Color(0xFFFDF8F0)
 private val S_CARD    = Color(0xFFFFFFFF)
 private val S_PRIMARY = Color(0xFF5A9848)
-private val S_DIVIDER = Color(0xFFF2EDE6)
 
 @Composable
 fun SettingScreen(

@@ -26,10 +26,8 @@ import com.jeepark.onestep.util.LocationHelper
 import com.jeepark.onestep.ui.screens.AuthScreen
 import com.jeepark.onestep.ui.screens.InitQuestionScreen
 import com.jeepark.onestep.ui.screens.InitScreen
-import com.jeepark.onestep.ui.screens.MainQuestScreen
 import com.jeepark.onestep.ui.screens.MainScreen
 import com.jeepark.onestep.ui.screens.CollectionScreen
-import com.jeepark.onestep.ui.screens.ReceiveQuestScreen
 import com.jeepark.onestep.ui.screens.SettingScreen
 import com.jeepark.onestep.ui.screens.SignupScreen
 import com.jeepark.onestep.ui.theme.OneStepTheme
@@ -149,11 +147,6 @@ fun MyNavGraph() {
             popEnterTransition = { EnterTransition.None }
         ) {
             MainScreen(
-                onNavigateToMainQuest = {
-                    navController.navigate("ReceiveQuest") {
-                        launchSingleTop = true
-                    }
-                },
                 onNavigateToProgress = {
                     navController.navigate("progress") {
                         launchSingleTop = true
@@ -163,25 +156,10 @@ fun MyNavGraph() {
                     navController.navigate("setting") {
                         launchSingleTop = true
                     }
-                }
-            )
-        }
-
-        composable(route = "ReceiveQuest") {
-            ReceiveQuestScreen(
-                onNavigateToQuest = {
-                    navController.navigate("mainQuest") {
-                        popUpTo("ReceiveQuest") { inclusive = true }
-                    }
-                }
-            )
-        }
-
-        composable(route = "mainQuest") {
-            MainQuestScreen(
-                onNavigateToMain = {
-                    navController.navigate("main") {
-                        popUpTo("mainQuest") { inclusive = true }
+                },
+                onNavigateToInitQuestion = {
+                    navController.navigate("InitQuestion") {
+                        launchSingleTop = true
                     }
                 }
             )

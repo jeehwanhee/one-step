@@ -48,7 +48,6 @@ import com.jeepark.onestep.util.FirestoreRepository
 
 private val SIGNUP_BG      = Color(0xFFFDF8F0)
 private val SIGNUP_PRIMARY = Color(0xFF5A9848)
-private val SIGNUP_CARD    = Color(0xFFF5EFE4)
 
 @Composable
 fun SignupScreen(

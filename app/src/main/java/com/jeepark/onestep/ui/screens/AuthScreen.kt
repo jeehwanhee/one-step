@@ -33,8 +33,7 @@ import com.jeepark.onestep.ui.theme.white
 import com.jeepark.onestep.ui.viewmodels.AuthViewModel
 import kotlinx.coroutines.launch
 
-private val BG_CREAM  = Color(0xFFFDF8F0)
-private val PRIMARY_G = Color(0xFF5A9848)
+private val BG_CREAM = Color(0xFFFDF8F0)
 
 @Composable
 fun AuthScreen(

@@ -36,6 +36,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -149,9 +150,9 @@ private fun tierSkyColor(tier: Int): Color = when (tier) {
 @Composable
 fun MainScreen(
     modifier: Modifier = Modifier,
-    onNavigateToMainQuest: () -> Unit,
     onNavigateToProgress: () -> Unit,
     onNavigateToSetting: () -> Unit,
+    onNavigateToInitQuestion: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val vm: MainViewModel = viewModel(
@@ -170,6 +171,7 @@ fun MainScreen(
     var showInputDialog   by remember { mutableStateOf(false) }
     var showSuggestDialog by remember { mutableStateOf(false) }
     var showVerifyDialog  by remember { mutableStateOf(false) }
+    var showGiveUpDialog  by remember { mutableStateOf(false) }
     var selectedMood      by remember { mutableStateOf(-1) }
     var currentQuestIndex by remember { mutableStateOf(0) }
     var currentQuest      by remember { mutableStateOf<Quest?>(null) }
@@ -183,6 +185,14 @@ fun MainScreen(
         if (showTierUp) {
             snackbarHostState.showSnackbar("새 친구가 나타났어요!")
             showTierUp = false
+        }
+    }
+
+    LaunchedEffect(user) {
+        val count = user?.isolatedCount ?: 0
+        if (count >= 10) {
+            vm.resetIsolatedCount()
+            onNavigateToInitQuestion()
         }
     }
 
@@ -233,7 +243,7 @@ fun MainScreen(
                     .padding(horizontal = 14.dp, vertical = 24.dp),
                 contentAlignment = Alignment.BottomCenter
             ) {
-                QuestButton(tier = tier) { showInputDialog = true }
+                QuestButton { showInputDialog = true }
             }
         }
 
@@ -245,7 +255,7 @@ fun MainScreen(
             ) {
                 ActiveQuestCard(
                     quest      = quest,
-                    onGiveUp   = { vm.saveGiveUpQuest(quest); vm.clearActiveQuest() },
+                    onGiveUp   = { showGiveUpDialog = true },
                     onComplete = { showVerifyDialog = true }
                 )
             }
@@ -342,6 +352,16 @@ fun MainScreen(
                 }
             )
         }
+        if (showGiveUpDialog) {
+            GiveUpReasonDialog(
+                onDismiss = { showGiveUpDialog = false },
+                onSubmit  = { reason ->
+                    vm.saveGiveUpQuest(quest, reason)
+                    vm.clearActiveQuest()
+                    showGiveUpDialog = false
+                }
+            )
+        }
     }
 }
 
@@ -351,17 +371,12 @@ fun MainScreen(
 internal fun ParkBackground(tier: Int, modifier: Modifier = Modifier) {
     val density = LocalDensity.current
 
-    // 지상 동물 위치 — tier 바뀔 때만 새로 뽑음 (나무 위치 0.20f/0.80f 제외)
-    val groundXs = remember(tier) {
-        listOf(0.06f, 0.14f, 0.34f, 0.44f, 0.54f, 0.64f, 0.72f, 0.86f).shuffled()
-    }
-    // 지상·하늘 동물 Y 비율 (0f~1f) — Canvas 안에서 h에 곱해 실제 좌표 계산
-    val groundYFractions = remember(tier) { List(8) { Math.random().toFloat() } }
-    val skyYFractions    = remember(tier) { List(4) { Math.random().toFloat() } }
-    // 하늘 동물 위치
-    val skyXs = remember(tier) {
-        listOf(0.12f, 0.30f, 0.52f, 0.70f).shuffled()
-    }
+    // 위치는 고정 — 자연스럽게 흩어진 느낌으로 직접 설계
+    // (x비율, groundZone내 y비율)  y=0.0 뒤쪽, y=1.0 앞쪽(하단)
+    // 앞줄: 병아리(좌) 곰(중) 강아지(우)
+    // 중간: 말(좌) 거북이(우)
+    // 뒷줄: 고양이(중앙왼쪽)
+    // 하늘: 돌고래(좌상) 파랑새(우중)
 
     Canvas(modifier = modifier.fillMaxSize()) {
         val w = size.width
@@ -370,7 +385,7 @@ internal fun ParkBackground(tier: Int, modifier: Modifier = Modifier) {
         val grass1  = h * 0.45f
         val grass2  = h * 0.62f
         val groundY = h * 0.58f
-        val pxSz    = with(density) { 4.5.dp.toPx() }
+        val pxSz    = with(density) { 3.5.dp.toPx() }
 
         // 하늘
         drawRect(tierSkyColor(tier), topLeft = Offset.Zero, size = Size(w, skyH))
@@ -435,10 +450,10 @@ internal fun ParkBackground(tier: Int, modifier: Modifier = Modifier) {
         val dolphinH  = DOLPHIN_PIXELS.size  * pxSz
 
         // 하늘: 화면 상단 1/3 (0 ~ h/3)
-        // 지상: 화면 하단 2/3 (h/3 ~ h*0.65f)
-        val skyZoneBottom   = h / 3f
-        val groundZoneTop   = h / 3f
-        val groundZoneBottom = h * 0.65f
+        // 지상: h/3 ~ h*0.88 (하단 버튼 바로 위까지)
+        val skyZoneBottom    = h / 3f
+        val groundZoneTop    = h / 3f
+        val groundZoneBottom = h * 0.88f
 
         // 비율로 실제 Y 계산 (스프라이트가 영역 안에 완전히 들어오도록 animalH 만큼 여유)
         fun groundY(fraction: Float, animalH: Float): Float {
@@ -450,29 +465,29 @@ internal fun ParkBackground(tier: Int, modifier: Modifier = Modifier) {
             return fraction * range
         }
 
-        // 0: 병아리
-        drawPixelArt(CHICK_PIXELS,    CHICK_COLORS,    Offset(w * groundXs[0], groundY(groundYFractions[0], chickH)),    pxSz)
-        // 1: 거북이
-        if (tier >= 1) drawPixelArt(TURTLE_PIXELS,   TURTLE_COLORS,   Offset(w * groundXs[1], groundY(groundYFractions[1], turtleH)),   pxSz)
-        // 2: 고양이
-        if (tier >= 2) drawPixelArt(CAT_PIXELS,      CAT_COLORS,      Offset(w * groundXs[2], groundY(groundYFractions[2], catH)),      pxSz)
-        // 3: 강아지
-        if (tier >= 3) drawPixelArt(DOG_PIXELS,      DOG_COLORS,      Offset(w * groundXs[3], groundY(groundYFractions[3], dogH)),      pxSz)
-        // 4: 파랑새 — 하늘
-        if (tier >= 4) drawPixelArt(BLUEBIRD_PIXELS, BLUEBIRD_COLORS, Offset(w * skyXs[0],    skyY(skyYFractions[0], bluebirdH)),       pxSz)
-        // 5: 곰
-        if (tier >= 5) drawPixelArt(BEAR_PIXELS,     BEAR_COLORS,     Offset(w * groundXs[4], groundY(groundYFractions[4], bearH)),     pxSz)
-        // 6: 말
-        if (tier >= 6) drawPixelArt(HORSE_PIXELS,    HORSE_COLORS,    Offset(w * groundXs[5], groundY(groundYFractions[5], horseH)),    pxSz)
-        // 7: 돌고래 — 하늘
-        if (tier >= 7) drawPixelArt(DOLPHIN_PIXELS,  DOLPHIN_COLORS,  Offset(w * skyXs[1],    skyY(skyYFractions[1], dolphinH)),        pxSz)
+        // 0: 병아리 — 앞줄 왼쪽
+        drawPixelArt(CHICK_PIXELS,    CHICK_COLORS,    Offset(w * 0.02f, groundY(0.82f, chickH)),    pxSz)
+        // 1: 거북이 — 중간 오른쪽
+        if (tier >= 1) drawPixelArt(TURTLE_PIXELS,   TURTLE_COLORS,   Offset(w * 0.58f, groundY(0.35f, turtleH)),   pxSz)
+        // 2: 고양이 — 뒷줄 중앙왼쪽
+        if (tier >= 2) drawPixelArt(CAT_PIXELS,      CAT_COLORS,      Offset(w * 0.28f, groundY(0.08f, catH)),      pxSz)
+        // 3: 강아지 — 앞줄 오른쪽
+        if (tier >= 3) drawPixelArt(DOG_PIXELS,      DOG_COLORS,      Offset(w * 0.66f, groundY(0.78f, dogH)),      pxSz)
+        // 4: 파랑새 — 하늘 오른쪽 중간
+        if (tier >= 4) drawPixelArt(BLUEBIRD_PIXELS, BLUEBIRD_COLORS, Offset(w * 0.52f, skyY(0.40f,  bluebirdH)),   pxSz)
+        // 5: 곰 — 앞줄 중앙
+        if (tier >= 5) drawPixelArt(BEAR_PIXELS,     BEAR_COLORS,     Offset(w * 0.38f, groundY(0.90f, bearH)),     pxSz)
+        // 6: 말 — 중간 왼쪽
+        if (tier >= 6) drawPixelArt(HORSE_PIXELS,    HORSE_COLORS,    Offset(w * 0.08f, groundY(0.42f, horseH)),    pxSz)
+        // 7: 돌고래 — 하늘 왼쪽 위
+        if (tier >= 7) drawPixelArt(DOLPHIN_PIXELS,  DOLPHIN_COLORS,  Offset(w * 0.10f, skyY(0.22f,  dolphinH)),   pxSz)
     }
 }
 
 // ===== 하단 퀘스트 버튼 =====
 
 @Composable
-private fun QuestButton(tier: Int, onClick: () -> Unit) {
+private fun QuestButton(onClick: () -> Unit) {
     Button(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -506,7 +521,7 @@ private fun QuestInputDialog(
     val scale by animateFloatAsState(if (visible) 1f else 0.94f, animationSpec = tween(200), label = "scale")
     val alpha by animateFloatAsState(if (visible) 1f else 0f,    animationSpec = tween(200), label = "alpha")
 
-    val moods = listOf("매우\n나쁨", "나쁨", "보통", "좋음", "매우\n좋음")
+    val moods = listOf("매우 나쁨", "나쁨", "보통", "좋음", "매우 좋음")
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Card(
@@ -527,18 +542,18 @@ private fun QuestInputDialog(
                     fontSize   = 16.sp,
                     fontWeight = FontWeight.Medium,
                     color      = Color(0xFF3A3228),
-                    modifier   = androidx.compose.ui.Modifier.padding(bottom = 18.dp)
+                    modifier   = Modifier.padding(bottom = 18.dp)
                 )
 
                 // 기분 섹션
                 Text("지금 기분", fontSize = 10.sp, color = Color(0xFF8A7A60), letterSpacing = 1.2.sp,
-                    modifier = androidx.compose.ui.Modifier.padding(bottom = 7.dp))
+                    modifier = Modifier.padding(bottom = 7.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     moods.forEachIndexed { i, mood ->
-                        MoodChip(mood, selectedMood == i, Modifier.weight(1f)) { if (!isLoading) selectedMood = i }
+                        MoodChip(mood, selectedMood == i) { if (!isLoading) selectedMood = i }
                     }
                 }
 
@@ -552,14 +567,12 @@ private fun QuestInputDialog(
                         containerColor         = Color(0xFF6A9858),
                         disabledContainerColor = Color(0xFFB8B0A0)
                     ),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(13.dp)
+                    contentPadding = PaddingValues(13.dp)
                 ) {
                     if (isLoading) {
-                        androidx.compose.material3.CircularProgressIndicator(
-                            modifier  = Modifier.then(androidx.compose.ui.Modifier.then(
-                                androidx.compose.ui.Modifier.size(18.dp)
-                            )),
-                            color     = Color.White,
+                        CircularProgressIndicator(
+                            modifier    = Modifier.size(18.dp),
+                            color       = Color.White,
                             strokeWidth = 2.dp
                         )
                     } else {
@@ -593,14 +606,14 @@ private fun QuestInputDialog(
 
 
 @Composable
-private fun MoodChip(text: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+private fun MoodChip(text: String, selected: Boolean, onClick: () -> Unit) {
     Box(
-        modifier = modifier
+        modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
             .background(if (selected) Color(0xFFD4EAD0) else Color(0xFFF0ECE0))
             .border(1.dp, if (selected) Color(0xFF7AB870) else Color(0xFFD4CDB8), RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
-            .padding(vertical = 7.dp),
+            .padding(horizontal = 12.dp, vertical = 7.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -608,7 +621,7 @@ private fun MoodChip(text: String, selected: Boolean, modifier: Modifier, onClic
             color      = if (selected) Color(0xFF2D5A2D) else Color(0xFF7A6E60),
             fontSize   = 10.sp,
             fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
-            textAlign  = TextAlign.Center
+            maxLines   = 1
         )
     }
 }
@@ -728,13 +741,6 @@ private fun ActiveQuestCard(
             }
 
             Row(
-                horizontalArrangement = Arrangement.spacedBy(7.dp),
-                modifier = Modifier.padding(bottom = 28.dp)
-            ) {
-                QuestBadge("Lv.${quest.difficulty}", Color(0xFFE8EAD4), Color(0xFF5A6030))
-            }
-
-            Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -757,14 +763,81 @@ private fun ActiveQuestCard(
     }
 }
 
+// ===== 퀘스트 포기 사유 다이얼로그 =====
+
 @Composable
-private fun QuestBadge(text: String, bgColor: Color, textColor: Color) {
-    Box(
-        modifier = Modifier
-            .background(bgColor, RoundedCornerShape(8.dp))
-            .padding(vertical = 5.dp, horizontal = 12.dp)
-    ) {
-        Text(text, fontSize = 12.sp, color = textColor)
+private fun GiveUpReasonDialog(
+    onDismiss: () -> Unit,
+    onSubmit: (Int) -> Unit
+) {
+    val reasons = listOf(
+        1 to "퀘스트가 어려워서",
+        2 to "현재 퀘스트를 진행할 상황이 아니라서",
+        3 to "퀘스트를 진행할 컨디션이 아니라서"
+    )
+    var selected by remember { mutableStateOf(-1) }
+
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Card(
+            modifier  = Modifier.padding(horizontal = 20.dp).fillMaxWidth(),
+            shape     = RoundedCornerShape(22.dp),
+            colors    = CardDefaults.cardColors(containerColor = Color(0xFFFAF7F1)),
+            elevation = CardDefaults.cardElevation(8.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text("포기 사유를 선택해주세요", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF3A3228))
+
+                reasons.forEach { (id, label) ->
+                    val isSelected = selected == id
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isSelected) Color(0xFFD4EAD0) else Color(0xFFF0ECE0))
+                            .border(1.dp, if (isSelected) Color(0xFF7AB870) else Color(0xFFD4CDB8), RoundedCornerShape(12.dp))
+                            .clickable(
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() }
+                            ) { selected = id }
+                            .padding(horizontal = 16.dp, vertical = 14.dp)
+                    ) {
+                        Text(
+                            text      = label,
+                            fontSize  = 13.sp,
+                            color     = if (isSelected) Color(0xFF2D5A2D) else Color(0xFF5A5248),
+                            fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
+                        )
+                    }
+                }
+
+                Button(
+                    onClick  = { if (selected >= 0) onSubmit(selected) },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled  = selected >= 0,
+                    shape    = RoundedCornerShape(14.dp),
+                    colors   = ButtonDefaults.buttonColors(
+                        containerColor         = Color(0xFF6A9858),
+                        disabledContainerColor = Color(0xFFB8B0A0)
+                    )
+                ) {
+                    Text("포기하기", color = Color.White, fontSize = 14.sp)
+                }
+
+                Text(
+                    "취소",
+                    modifier  = Modifier.fillMaxWidth().clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { onDismiss() },
+                    textAlign = TextAlign.Center,
+                    fontSize  = 12.sp,
+                    color     = Color(0xFFB0A890)
+                )
+            }
+        }
     }
 }
 
