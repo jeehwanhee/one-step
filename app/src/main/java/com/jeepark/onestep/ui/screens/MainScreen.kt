@@ -237,13 +237,14 @@ fun MainScreen(
 
         // 활성 퀘스트가 없을 때만 퀘스트 버튼 표시
         if (activeQuest == null) {
+            val limitReached = vm.isDailyLimitReached()
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 14.dp, vertical = 24.dp),
                 contentAlignment = Alignment.BottomCenter
             ) {
-                QuestButton { showInputDialog = true }
+                QuestButton(limitReached = limitReached) { if (!limitReached) showInputDialog = true }
             }
         }
 
@@ -487,23 +488,25 @@ internal fun ParkBackground(tier: Int, modifier: Modifier = Modifier) {
 // ===== 하단 퀘스트 버튼 =====
 
 @Composable
-private fun QuestButton(onClick: () -> Unit) {
+private fun QuestButton(limitReached: Boolean, onClick: () -> Unit) {
     Button(
-        onClick = onClick,
+        onClick  = onClick,
+        enabled  = !limitReached,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5A9848)),
-        border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.22f)),
+        shape    = RoundedCornerShape(18.dp),
+        colors   = ButtonDefaults.buttonColors(
+            containerColor         = Color(0xFF5A9848),
+            disabledContainerColor = Color(0xFFAAAAAA)
+        ),
+        border         = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.22f)),
         contentPadding = PaddingValues(vertical = 20.dp, horizontal = 20.dp)
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text       = "새 퀘스트 받기",
-                fontSize   = 15.sp,
-                color      = Color.White,
-                fontWeight = FontWeight.Medium
-            )
-        }
+        Text(
+            text       = if (limitReached) "오늘은 여기까지, 내일 시도해 주세요" else "새 퀘스트 받기",
+            fontSize   = 15.sp,
+            color      = Color.White,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 

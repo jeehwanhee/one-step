@@ -47,9 +47,44 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadUser() {
         repo.getUser(
-            onSuccess = { _user.value = it },
+            onSuccess = { user ->
+                _user.value = user
+                // 접속일 갱신
+                val uid = auth.currentUser?.uid ?: return@getUser
+                val now = System.currentTimeMillis()
+                db.collection("users").document(uid).update("lastAccessDate", now)
+                com.jeepark.onestep.util.NotificationHelper.saveLastAccess(getApplication())
+                // Firestore의 알림 동의 여부를 SharedPreferences에 동기화
+                val prefs = getApplication<android.app.Application>()
+                    .getSharedPreferences(com.jeepark.onestep.util.NotificationHelper.PREFS_NAME, android.content.Context.MODE_PRIVATE)
+                prefs.edit().putBoolean(com.jeepark.onestep.util.NotificationHelper.KEY_NOTIF, user.notificationAgreed).apply()
+            },
             onFailure = {}
         )
+    }
+
+    private fun todayDate() = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+
+    fun isDailyLimitReached(): Boolean {
+        val user = _user.value ?: return false
+        return user.dailyQuestDate == todayDate() && user.dailyQuestCount >= 15
+    }
+
+    private fun incrementDailyCount() {
+        val currentUser = _user.value ?: return
+        val uid = auth.currentUser?.uid ?: return
+        val today = todayDate()
+
+        val newCount = if (currentUser.dailyQuestDate == today) currentUser.dailyQuestCount + 1 else 1
+
+        db.collection("users").document(uid).update(
+            mapOf(
+                "dailyQuestCount" to newCount,
+                "dailyQuestDate"  to today
+            )
+        ).addOnSuccessListener {
+            _user.value = currentUser.copy(dailyQuestCount = newCount, dailyQuestDate = today)
+        }
     }
 
     fun loadFilteredQuests(
@@ -74,6 +109,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
                 val quests = questRepository.fetchFilteredQuests(ratios)
                 _questList.value = quests
+                incrementDailyCount()
                 onReady(quests)
             } catch (e: Exception) {
                 android.util.Log.e("QuestLoad", "퀘스트 로드 실패: ${e.message}", e)

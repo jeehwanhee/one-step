@@ -49,6 +49,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
 import com.jeepark.onestep.ui.viewmodels.AuthViewModel
+import com.jeepark.onestep.util.NotificationHelper
 
 private val S_BG      = Color(0xFFFDF8F0)
 private val S_CARD    = Color(0xFFFFFFFF)
@@ -138,9 +139,16 @@ fun SettingScreen(
             SwitchRow(
                 label           = "알림",
                 checked         = notifEnabled,
-                onCheckedChange = {
-                    notifEnabled = it
-                    prefs.edit().putBoolean("notification_enabled", it).apply()
+                onCheckedChange = { enabled ->
+                    notifEnabled = enabled
+                    prefs.edit().putBoolean(NotificationHelper.KEY_NOTIF, enabled).apply()
+                    val uid = Firebase.auth.currentUser?.uid
+                    if (uid != null) {
+                        Firebase.firestore.collection("users").document(uid)
+                            .update("notificationAgreed", enabled)
+                    }
+                    if (enabled) NotificationHelper.schedule(context)
+                    else NotificationHelper.cancel(context)
                 }
             )
         }

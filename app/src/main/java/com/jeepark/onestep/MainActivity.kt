@@ -1,6 +1,7 @@
 package com.jeepark.onestep
 
 import android.Manifest
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -23,6 +24,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.FirebaseApp
 import com.jeepark.onestep.util.LocationHelper
+import com.jeepark.onestep.util.NotificationHelper
 import com.jeepark.onestep.ui.screens.AuthScreen
 import com.jeepark.onestep.ui.screens.InitQuestionScreen
 import com.jeepark.onestep.ui.screens.InitScreen
@@ -36,6 +38,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         FirebaseApp.initializeApp(this)
+        NotificationHelper.createChannel(this)
         val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
         windowInsetsController.isAppearanceLightStatusBars = true
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -60,13 +63,29 @@ fun MyNavGraph() {
     val context     = LocalContext.current
     val navController = rememberNavController()
 
+    val prefs = context.getSharedPreferences(NotificationHelper.PREFS_NAME, android.content.Context.MODE_PRIVATE)
+
+    val notifPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted && prefs.getBoolean(NotificationHelper.KEY_NOTIF, true)) {
+            NotificationHelper.schedule(context)
+        }
+    }
+
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) LocationHelper.updateLocation(context) {}
     }
+
     SideEffect {
         locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else if (prefs.getBoolean(NotificationHelper.KEY_NOTIF, true)) {
+            NotificationHelper.schedule(context)
+        }
     }
 
     NavHost(navController = navController, startDestination = "init") {

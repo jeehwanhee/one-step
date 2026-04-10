@@ -22,4 +22,7 @@ data class User(
     val termAgreed: Boolean = true,
     val policyAgreed: Boolean = true,
     val agreedAt: Long = System.currentTimeMillis(),
+    val notificationAgreed: Boolean = true,
+    val dailyQuestCount: Int = 0,
+    val dailyQuestDate: String = "",
 )
