@@ -67,7 +67,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun isDailyLimitReached(): Boolean {
         val user = _user.value ?: return false
-        return user.dailyQuestDate == todayDate() && user.dailyQuestCount >= 15
+        return user.dailyQuestDate == todayDate() && user.dailyQuestCount >= 20
     }
 
     private fun incrementDailyCount() {
