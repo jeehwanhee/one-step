@@ -1,16 +1,48 @@
 package com.jeepark.onestep.ui.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.layout.onSizeChanged
+import kotlinx.coroutines.launch
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.jeepark.onestep.util.BEAR_COLORS
 import com.jeepark.onestep.util.BEAR_PIXELS
 import com.jeepark.onestep.util.BLUEBIRD_COLORS
@@ -27,6 +59,7 @@ import com.jeepark.onestep.util.HORSE_COLORS
 import com.jeepark.onestep.util.HORSE_PIXELS
 import com.jeepark.onestep.util.TURTLE_COLORS
 import com.jeepark.onestep.util.TURTLE_PIXELS
+import kotlinx.coroutines.delay
 
 // ===== 드로잉 헬퍼 =====
 
@@ -91,204 +124,354 @@ internal fun tierSkyColor(tier: Int): Color = when (tier) {
     else -> Color(0xFFF5E5A0)
 }
 
-// ===== 동물 배치 variant =====
-// groundY(fraction, animalH): fraction 0.0=뒤, 1.0=앞
-// skyY(fraction, animalH):    fraction 0.0=위, 1.0=아래
+// ===== 동물 데이터 =====
 
-private fun DrawScope.drawAnimalsVariant0(
-    tier: Int,
-    w: Float,
-    pxSz: Float,
-    groundY: (Float, Float) -> Float,
-    skyY: (Float, Float) -> Float
-) {
-    val chickH    = CHICK_PIXELS.size    * pxSz
-    val turtleH   = TURTLE_PIXELS.size   * pxSz
-    val catH      = CAT_PIXELS.size      * pxSz
-    val dogH      = DOG_PIXELS.size      * pxSz
-    val bluebirdH = BLUEBIRD_PIXELS.size * pxSz
-    val bearH     = BEAR_PIXELS.size     * pxSz
-    val horseH    = HORSE_PIXELS.size    * pxSz
-    val dolphinH  = DOLPHIN_PIXELS.size  * pxSz
+private data class AnimalSpec(
+    val idx: Int,
+    val unlockTier: Int,
+    val x: Float,        // 가로 비율 0..1
+    val y: Float,        // 영역 내 세로 비율 0..1
+    val isSky: Boolean,
+    val pixels: Array<IntArray>,
+    val colors: List<Color>
+)
 
-    drawPixelArt(CHICK_PIXELS,    CHICK_COLORS,    Offset(w * 0.68f, groundY(0.42f, chickH)),    pxSz)
-    if (tier >= 1) drawPixelArt(TURTLE_PIXELS,   TURTLE_COLORS,   Offset(w * 0.06f, groundY(0.64f, turtleH)),  pxSz)
-    if (tier >= 2) drawPixelArt(CAT_PIXELS,      CAT_COLORS,      Offset(w * 0.10f, groundY(0.15f, catH)),     pxSz)
-    if (tier >= 3) drawPixelArt(DOG_PIXELS,      DOG_COLORS,      Offset(w * 0.69f, groundY(0.75f, dogH)),     pxSz)
-    if (tier >= 4) drawPixelArt(BLUEBIRD_PIXELS, BLUEBIRD_COLORS, Offset(w * 0.25f, skyY(0.40f,  bluebirdH)), pxSz)
-    if (tier >= 5) drawPixelArt(BEAR_PIXELS,     BEAR_COLORS,     Offset(w * 0.40f, groundY(0.90f, bearH)),   pxSz)
-    if (tier >= 6) drawPixelArt(HORSE_PIXELS,    HORSE_COLORS,    Offset(w * 0.52f, groundY(0f,   horseH)),   pxSz)
-    if (tier >= 7) drawPixelArt(DOLPHIN_PIXELS,  DOLPHIN_COLORS,  Offset(w * 0.12f, groundY(0.45f, dolphinH)),pxSz)
-}
+private val variants = listOf(
+    // variant 0
+    listOf(
+        AnimalSpec(0, 0, 0.68f, 0.42f, false, CHICK_PIXELS,    CHICK_COLORS),
+        AnimalSpec(1, 1, 0.06f, 0.64f, false, TURTLE_PIXELS,   TURTLE_COLORS),
+        AnimalSpec(2, 2, 0.10f, 0.15f, false, CAT_PIXELS,      CAT_COLORS),
+        AnimalSpec(3, 3, 0.69f, 0.75f, false, DOG_PIXELS,      DOG_COLORS),
+        AnimalSpec(4, 4, 0.25f, 0.40f, true,  BLUEBIRD_PIXELS, BLUEBIRD_COLORS),
+        AnimalSpec(5, 5, 0.40f, 0.90f, false, BEAR_PIXELS,     BEAR_COLORS),
+        AnimalSpec(6, 6, 0.52f, 0.0f,  false, HORSE_PIXELS,    HORSE_COLORS),
+        AnimalSpec(7, 7, 0.12f, 0.45f, false, DOLPHIN_PIXELS,  DOLPHIN_COLORS),
+    ),
+    // variant 1
+    listOf(
+        AnimalSpec(0, 0, 0.48f, 0.58f, false, CHICK_PIXELS,    CHICK_COLORS),
+        AnimalSpec(1, 1, 0.66f, 0.83f, false, TURTLE_PIXELS,   TURTLE_COLORS),
+        AnimalSpec(2, 2, 0.12f, 0.70f, false, CAT_PIXELS,      CAT_COLORS),
+        AnimalSpec(3, 3, 0.69f, 0.15f, false, DOG_PIXELS,      DOG_COLORS),
+        AnimalSpec(4, 4, 0.55f, 0.70f, true,  BLUEBIRD_PIXELS, BLUEBIRD_COLORS),
+        AnimalSpec(5, 5, 0.36f, 0.10f, false, BEAR_PIXELS,     BEAR_COLORS),
+        AnimalSpec(6, 6, 0.12f, 0.0f,  false, HORSE_PIXELS,    HORSE_COLORS),
+        AnimalSpec(7, 7, 0.12f, 0.45f, false, DOLPHIN_PIXELS,  DOLPHIN_COLORS),
+    ),
+    // variant 2
+    listOf(
+        AnimalSpec(0, 0, 0.63f, 0.10f, false, CHICK_PIXELS,    CHICK_COLORS),
+        AnimalSpec(1, 1, 0.42f, 0.45f, false, TURTLE_PIXELS,   TURTLE_COLORS),
+        AnimalSpec(2, 2, 0.73f, 0.78f, false, CAT_PIXELS,      CAT_COLORS),
+        AnimalSpec(3, 3, 0.40f, 0.90f, false, DOG_PIXELS,      DOG_COLORS),
+        AnimalSpec(4, 4, 0.75f, 0.90f, true,  BLUEBIRD_PIXELS, BLUEBIRD_COLORS),
+        AnimalSpec(5, 5, 0.05f, 0.00f, false, BEAR_PIXELS,     BEAR_COLORS),
+        AnimalSpec(6, 6, 0.14f, 0.70f, false, HORSE_PIXELS,    HORSE_COLORS),
+        AnimalSpec(7, 7, 0.12f, 0.25f, false, DOLPHIN_PIXELS,  DOLPHIN_COLORS),
+    ),
+    // variant 3
+    listOf(
+        AnimalSpec(0, 0, 0.06f, 0.0f,  false, CHICK_PIXELS,    CHICK_COLORS),
+        AnimalSpec(1, 1, 0.06f, 0.64f, false, TURTLE_PIXELS,   TURTLE_COLORS),
+        AnimalSpec(2, 2, 0.70f, 0.15f, false, CAT_PIXELS,      CAT_COLORS),
+        AnimalSpec(3, 3, 0.40f, 0.40f, false, DOG_PIXELS,      DOG_COLORS),
+        AnimalSpec(4, 4, 0.40f, 0.80f, true,  BLUEBIRD_PIXELS, BLUEBIRD_COLORS),
+        AnimalSpec(5, 5, 0.64f, 0.64f, false, BEAR_PIXELS,     BEAR_COLORS),
+        AnimalSpec(6, 6, 0.32f, 0.90f, false, HORSE_PIXELS,    HORSE_COLORS),
+        AnimalSpec(7, 7, 0.12f, 0.25f, false, DOLPHIN_PIXELS,  DOLPHIN_COLORS),
+    ),
+)
 
-private fun DrawScope.drawAnimalsVariant1(
-    tier: Int,
-    w: Float,
-    pxSz: Float,
-    groundY: (Float, Float) -> Float,
-    skyY: (Float, Float) -> Float
-) {
-    val chickH    = CHICK_PIXELS.size    * pxSz
-    val turtleH   = TURTLE_PIXELS.size   * pxSz
-    val catH      = CAT_PIXELS.size      * pxSz
-    val dogH      = DOG_PIXELS.size      * pxSz
-    val bluebirdH = BLUEBIRD_PIXELS.size * pxSz
-    val bearH     = BEAR_PIXELS.size     * pxSz
-    val horseH    = HORSE_PIXELS.size    * pxSz
-    val dolphinH  = DOLPHIN_PIXELS.size  * pxSz
-
-    drawPixelArt(CHICK_PIXELS,    CHICK_COLORS,    Offset(w * 0.05f, groundY(0.85f, chickH)),    pxSz)
-    if (tier >= 1) drawPixelArt(TURTLE_PIXELS,   TURTLE_COLORS,   Offset(w * 0.42f, groundY(0.80f, turtleH)),  pxSz)
-    if (tier >= 2) drawPixelArt(CAT_PIXELS,      CAT_COLORS,      Offset(w * 0.68f, groundY(0.40f, catH)),     pxSz)
-    if (tier >= 3) drawPixelArt(DOG_PIXELS,      DOG_COLORS,      Offset(w * 0.72f, groundY(0.85f, dogH)),     pxSz)
-    if (tier >= 4) drawPixelArt(BLUEBIRD_PIXELS, BLUEBIRD_COLORS, Offset(w * 0.65f, skyY(0.15f,  bluebirdH)), pxSz)
-    if (tier >= 5) drawPixelArt(BEAR_PIXELS,     BEAR_COLORS,     Offset(w * 0.10f, groundY(0.30f, bearH)),   pxSz)
-    if (tier >= 6) drawPixelArt(HORSE_PIXELS,    HORSE_COLORS,    Offset(w * 0.20f, groundY(0.75f, horseH)),  pxSz)
-    if (tier >= 7) drawPixelArt(DOLPHIN_PIXELS,  DOLPHIN_COLORS,  Offset(w * 0.12f, skyY(0.35f,  dolphinH)), pxSz)
-}
-
-private fun DrawScope.drawAnimalsVariant2(
-    tier: Int,
-    w: Float,
-    pxSz: Float,
-    groundY: (Float, Float) -> Float,
-    skyY: (Float, Float) -> Float
-) {
-    val chickH    = CHICK_PIXELS.size    * pxSz
-    val turtleH   = TURTLE_PIXELS.size   * pxSz
-    val catH      = CAT_PIXELS.size      * pxSz
-    val dogH      = DOG_PIXELS.size      * pxSz
-    val bluebirdH = BLUEBIRD_PIXELS.size * pxSz
-    val bearH     = BEAR_PIXELS.size     * pxSz
-    val horseH    = HORSE_PIXELS.size    * pxSz
-    val dolphinH  = DOLPHIN_PIXELS.size  * pxSz
-
-    drawPixelArt(CHICK_PIXELS,    CHICK_COLORS,    Offset(w * 0.45f, groundY(0.88f, chickH)),    pxSz)
-    if (tier >= 1) drawPixelArt(TURTLE_PIXELS,   TURTLE_COLORS,   Offset(w * 0.62f, groundY(0.55f, turtleH)),  pxSz)
-    if (tier >= 2) drawPixelArt(CAT_PIXELS,      CAT_COLORS,      Offset(w * 0.30f, groundY(0.20f, catH)),     pxSz)
-    if (tier >= 3) drawPixelArt(DOG_PIXELS,      DOG_COLORS,      Offset(w * 0.08f, groundY(0.80f, dogH)),     pxSz)
-    if (tier >= 4) drawPixelArt(BLUEBIRD_PIXELS, BLUEBIRD_COLORS, Offset(w * 0.70f, skyY(0.30f,  bluebirdH)), pxSz)
-    if (tier >= 5) drawPixelArt(BEAR_PIXELS,     BEAR_COLORS,     Offset(w * 0.55f, groundY(0.10f, bearH)),   pxSz)
-    if (tier >= 6) drawPixelArt(HORSE_PIXELS,    HORSE_COLORS,    Offset(w * 0.35f, groundY(0.70f, horseH)),  pxSz)
-    if (tier >= 7) drawPixelArt(DOLPHIN_PIXELS,  DOLPHIN_COLORS,  Offset(w * 0.80f, skyY(0.20f,  dolphinH)), pxSz)
-}
-
-private fun DrawScope.drawAnimalsVariant3(
-    tier: Int,
-    w: Float,
-    pxSz: Float,
-    groundY: (Float, Float) -> Float,
-    skyY: (Float, Float) -> Float
-) {
-    val chickH    = CHICK_PIXELS.size    * pxSz
-    val turtleH   = TURTLE_PIXELS.size   * pxSz
-    val catH      = CAT_PIXELS.size      * pxSz
-    val dogH      = DOG_PIXELS.size      * pxSz
-    val bluebirdH = BLUEBIRD_PIXELS.size * pxSz
-    val bearH     = BEAR_PIXELS.size     * pxSz
-    val horseH    = HORSE_PIXELS.size    * pxSz
-    val dolphinH  = DOLPHIN_PIXELS.size  * pxSz
-
-    drawPixelArt(CHICK_PIXELS,    CHICK_COLORS,    Offset(w * 0.78f, groundY(0.70f, chickH)),    pxSz)
-    if (tier >= 1) drawPixelArt(TURTLE_PIXELS,   TURTLE_COLORS,   Offset(w * 0.20f, groundY(0.90f, turtleH)),  pxSz)
-    if (tier >= 2) drawPixelArt(CAT_PIXELS,      CAT_COLORS,      Offset(w * 0.58f, groundY(0.10f, catH)),     pxSz)
-    if (tier >= 3) drawPixelArt(DOG_PIXELS,      DOG_COLORS,      Offset(w * 0.42f, groundY(0.82f, dogH)),     pxSz)
-    if (tier >= 4) drawPixelArt(BLUEBIRD_PIXELS, BLUEBIRD_COLORS, Offset(w * 0.15f, skyY(0.25f,  bluebirdH)), pxSz)
-    if (tier >= 5) drawPixelArt(BEAR_PIXELS,     BEAR_COLORS,     Offset(w * 0.72f, groundY(0.50f, bearH)),   pxSz)
-    if (tier >= 6) drawPixelArt(HORSE_PIXELS,    HORSE_COLORS,    Offset(w * 0.05f, groundY(0.60f, horseH)),  pxSz)
-    if (tier >= 7) drawPixelArt(DOLPHIN_PIXELS,  DOLPHIN_COLORS,  Offset(w * 0.55f, skyY(0.10f,  dolphinH)), pxSz)
-}
+private val animalMessages = mapOf(
+    0 to listOf(
+        "오늘도 만나서 너무 좋아!",
+        "어디 있다 왔어?",
+        "나랑 친구할래?",
+        "보고 싶었어",
+        "오늘은 뭐 하고 놀까?",
+    ),
+    1 to listOf(
+        "조금 천천히 와도 돼",
+        "오늘은 살짝 졸린 날이야",
+        "쉬어가도 괜찮은걸",
+        "급할 거 하나도 없어",
+        "햇볕이 참 따뜻하지?",
+    ),
+    2 to listOf(
+        "흥, 왔어?",
+        "잠깐만 더 잘게",
+        "옆에 있어줄래?",
+        "별로 안 기다렸어",
+        "쓰다듬어줘도 좋아",
+    ),
+    3 to listOf(
+        "기다리고 있었어!",
+        "나랑 산책 갈래?",
+        "너만 보면 기분이 좋아져",
+        "꼬리 멈출 수가 없어",
+        "같이 있으면 행복해",
+    ),
+    4 to listOf(
+        "하늘 좀 봐, 예쁘지?",
+        "오늘은 어디 가볼까?",
+        "바람이 정말 좋아",
+        "위에서 내려다보면 다 작아",
+        "멀리 가도 길을 잃지 않아",
+    ),
+    5 to listOf(
+        "안아줄까?",
+        "오늘 많이 힘들었지?",
+        "옆에 있어줄게",
+        "푹 쉬어도 괜찮아",
+        "내가 든든하게 있어줄게",
+    ),
+    6 to listOf(
+        "함께 달려볼래?",
+        "내가 너를 데려다줄게",
+        "어디든 갈 수 있어",
+        "네 속도에 맞춰줄게",
+        "내 등에 타도 돼",
+    ),
+    7 to listOf(
+        "오늘 기분 좋아!",
+        "수영하러 갈래?",
+        "물속이 시원해",
+        "같이 놀자!",
+        "더 멀리 헤엄칠 수 있어",
+    ),
+)
 
 private val parkVariant = (0..3).random()
+
+// 말풍선 모양 (아래쪽 꼬리 포함)
+private class SpeechBubbleShape(
+    private val cornerRadius: Dp = 14.dp,
+    private val tailHeight: Dp = 8.dp,
+    private val tailWidth: Dp = 14.dp
+) : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline {
+        val cornerPx  = with(density) { cornerRadius.toPx() }
+        val tailHPx   = with(density) { tailHeight.toPx() }
+        val tailWPx   = with(density) { tailWidth.toPx() }
+        val bubbleH   = size.height - tailHPx
+        val tailCx    = size.width / 2f
+
+        val path = Path().apply {
+            // 본체 (둥근 사각형)
+            addRoundRect(
+                androidx.compose.ui.geometry.RoundRect(
+                    rect = Rect(0f, 0f, size.width, bubbleH),
+                    cornerRadius = CornerRadius(cornerPx, cornerPx)
+                )
+            )
+            // 꼬리 (아래로 향한 삼각형)
+            moveTo(tailCx - tailWPx / 2f, bubbleH)
+            lineTo(tailCx, size.height)
+            lineTo(tailCx + tailWPx / 2f, bubbleH)
+            close()
+        }
+        return Outline.Generic(path)
+    }
+}
+
+private fun calcAnimalY(spec: AnimalSpec, h: Float, pxSz: Float): Float {
+    val animalH = spec.pixels.size * pxSz
+    val skyZoneBottom    = h / 3f
+    val groundZoneTop    = h / 3f
+    val groundZoneBottom = h * 0.88f
+    return if (spec.isSky) {
+        val range = (skyZoneBottom - animalH).coerceAtLeast(0f)
+        spec.y * range
+    } else {
+        val range = (groundZoneBottom - animalH - groundZoneTop).coerceAtLeast(0f)
+        groundZoneTop + spec.y * range
+    }
+}
 
 // ===== 공원 배경 Canvas =====
 
 @Composable
 internal fun ParkBackground(tier: Int, modifier: Modifier = Modifier) {
     val density = LocalDensity.current
-    val variant = parkVariant
+    val animals = variants[parkVariant]
+    val pxSz    = with(density) { 3.5.dp.toPx() }
 
-    Canvas(modifier = modifier.fillMaxSize()) {
-        val w = size.width
-        val h = size.height
-        val skyH    = h * 0.35f
-        val grass1  = h * 0.45f
-        val grass2  = h * 0.62f
-        val groundY = h * 0.58f
-        val pxSz    = with(density) { 3.5.dp.toPx() }
+    var canvasSize    by remember { mutableStateOf(Size.Zero) }
+    var tappedIdx     by remember { mutableStateOf<Int?>(null) }
+    var bubbleText    by remember { mutableStateOf("") }
+    var tapTrigger    by remember { mutableStateOf(0) }
+    var lastTapTime   by remember { mutableStateOf(0L) }
+    var bubbleWidthPx by remember { mutableStateOf(0) }
+    val bounceY       = remember { Animatable(0f) }
+    val bubbleAlpha   = remember { Animatable(0f) }
+    val bubbleSlideY  = remember { Animatable(0f) }
+    val bouncePeak    = with(density) { 12.dp.toPx() }
+    val slideStartPx  = with(density) { 12.dp.toPx() }
 
-        // 하늘
-        drawRect(tierSkyColor(tier), topLeft = Offset.Zero, size = Size(w, skyH))
+    LaunchedEffect(tapTrigger) {
+        if (tapTrigger == 0) return@LaunchedEffect
+        val triggered = tapTrigger
+        bounceY.snapTo(0f)
+        bubbleAlpha.snapTo(0f)
+        bubbleSlideY.snapTo(slideStartPx)
 
-        // 잔디 3겹
-        drawRect(Color(0xFF6EB04A), topLeft = Offset(0f, skyH),  size = Size(w, grass1 - skyH))
-        drawRect(Color(0xFF56A038), topLeft = Offset(0f, grass1), size = Size(w, grass2 - grass1))
-        drawRect(Color(0xFF468028), topLeft = Offset(0f, grass2), size = Size(w, h - grass2))
+        launch {
+            bounceY.animateTo(-bouncePeak, animationSpec = tween(120))
+            bounceY.animateTo(0f, animationSpec = spring(dampingRatio = 0.5f))
+        }
+        launch { bubbleSlideY.animateTo(0f, animationSpec = tween(220)) }
+        bubbleAlpha.animateTo(1f, animationSpec = tween(220))
 
-        // 태양 (티어 3+)
-        if (tier >= 3) {
-            drawCircle(Color(0xFFF8E840), with(density) { 26.dp.toPx() }, Offset(w * 0.83f, skyH * 0.32f))
+        delay(2000)
+        if (tapTrigger == triggered) {
+            bubbleAlpha.animateTo(0f, animationSpec = tween(180))
+            if (tapTrigger == triggered) tappedIdx = null
+        }
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .onGloballyPositioned {
+                    canvasSize = Size(it.size.width.toFloat(), it.size.height.toFloat())
+                }
+                .pointerInput(parkVariant, tier) {
+                    detectTapGestures { offset ->
+                        val now = System.currentTimeMillis()
+                        if (now - lastTapTime < 1000L) return@detectTapGestures
+                        val w = size.width.toFloat()
+                        val h = size.height.toFloat()
+                        animals
+                            .filter { tier >= it.unlockTier }
+                            .firstOrNull { spec ->
+                                val animalH = spec.pixels.size * pxSz
+                                val animalW = (spec.pixels.firstOrNull()?.size ?: 0) * pxSz
+                                val xPx = w * spec.x
+                                val yPx = calcAnimalY(spec, h, pxSz)
+                                offset.x in xPx..(xPx + animalW) &&
+                                offset.y in yPx..(yPx + animalH)
+                            }?.let { spec ->
+                                lastTapTime = now
+                                tappedIdx   = spec.idx
+                                bubbleText  = animalMessages[spec.idx]?.random() ?: ""
+                                tapTrigger += 1
+                            }
+                    }
+                }
+        ) {
+            val w = size.width
+            val h = size.height
+            val skyH    = h * 0.35f
+            val grass1  = h * 0.45f
+            val grass2  = h * 0.62f
+            val groundY = h * 0.58f
+
+            // 하늘
+            drawRect(tierSkyColor(tier), topLeft = Offset.Zero, size = Size(w, skyH))
+
+            // 잔디 3겹
+            drawRect(Color(0xFF6EB04A), topLeft = Offset(0f, skyH),  size = Size(w, grass1 - skyH))
+            drawRect(Color(0xFF56A038), topLeft = Offset(0f, grass1), size = Size(w, grass2 - grass1))
+            drawRect(Color(0xFF468028), topLeft = Offset(0f, grass2), size = Size(w, h - grass2))
+
+            // 태양 (티어 3+)
+            if (tier >= 3) {
+                drawCircle(Color(0xFFF8E840), with(density) { 26.dp.toPx() }, Offset(w * 0.83f, skyH * 0.32f))
+            }
+
+            // 구름 (티어 3+)
+            if (tier >= 3) {
+                drawCloud(Offset(w * 0.20f, skyH * 0.22f), with(density) { 22.dp.toPx() })
+                drawCloud(Offset(w * 0.58f, skyH * 0.42f), with(density) { 16.dp.toPx() })
+            }
+
+            // 왼쪽 나무 (티어 1+)
+            if (tier >= 1) drawTree(w * 0.20f, groundY, density)
+
+            // 오른쪽 나무 (티어 2+)
+            if (tier >= 2) drawTree(w * 0.80f, groundY, density)
+
+            // 울타리 (티어 2+)
+            if (tier >= 2) drawFence(groundY + with(density) { 4.dp.toPx() }, w, density)
+
+            // 연못 (티어 4+)
+            if (tier >= 4) {
+                val cx = w * 0.28f
+                val cy = groundY + with(density) { 16.dp.toPx() }
+                val rx = with(density) { 70.dp.toPx() }
+                val ry = with(density) { 22.dp.toPx() }
+                drawOval(Color(0xFF70B8E0), topLeft = Offset(cx - rx, cy - ry), size = Size(rx * 2, ry * 2))
+                drawOval(Color(0xFF88C8F0), topLeft = Offset(cx - rx * 0.7f, cy - ry * 0.6f), size = Size(rx * 1.4f, ry * 1.2f))
+            }
+
+            // 꽃 (티어 5+)
+            if (tier >= 5) {
+                val flowerR = with(density) { 5.dp.toPx() }
+                val flowers = listOf(
+                    Offset(w * 0.10f, groundY - with(density) { 3.dp.toPx() }) to Color(0xFFE85858),
+                    Offset(w * 0.16f, groundY + with(density) { 7.dp.toPx() }) to Color(0xFFF09840),
+                    Offset(w * 0.36f, groundY + with(density) { 4.dp.toPx() }) to Color(0xFFD04878),
+                    Offset(w * 0.63f, groundY + with(density) { 3.dp.toPx() }) to Color(0xFFE85858),
+                    Offset(w * 0.87f, groundY - with(density) { 2.dp.toPx() }) to Color(0xFFF09840),
+                    Offset(w * 0.92f, groundY + with(density) { 8.dp.toPx() }) to Color(0xFFD04878),
+                )
+                flowers.forEach { (pos, color) -> drawCircle(color, flowerR, pos) }
+            }
+
+            // 동물 그리기 (탭한 동물은 점프)
+            animals
+                .filter { tier >= it.unlockTier }
+                .forEach { spec ->
+                    val xPx = w * spec.x
+                    val yPx = calcAnimalY(spec, h, pxSz)
+                    val offsetY = if (spec.idx == tappedIdx) bounceY.value else 0f
+                    drawPixelArt(spec.pixels, spec.colors, Offset(xPx, yPx + offsetY), pxSz)
+                }
         }
 
-        // 구름 (티어 3+)
-        if (tier >= 3) {
-            drawCloud(Offset(w * 0.20f, skyH * 0.22f), with(density) { 22.dp.toPx() })
-            drawCloud(Offset(w * 0.58f, skyH * 0.42f), with(density) { 16.dp.toPx() })
-        }
+        // 말풍선 오버레이
+        val tappedSpec = animals.firstOrNull { it.idx == tappedIdx }
+        if (tappedSpec != null && canvasSize.width > 0f) {
+            val w = canvasSize.width
+            val h = canvasSize.height
+            val animalW = (tappedSpec.pixels.firstOrNull()?.size ?: 0) * pxSz
+            val animalCenterX = w * tappedSpec.x + animalW / 2f
+            val animalTopY    = calcAnimalY(tappedSpec, h, pxSz) + bounceY.value
+            val bubbleShape   = remember { SpeechBubbleShape() }
 
-        // 왼쪽 나무 (티어 1+)
-        if (tier >= 1) drawTree(w * 0.20f, groundY, density)
-
-        // 오른쪽 나무 (티어 2+)
-        if (tier >= 2) drawTree(w * 0.80f, groundY, density)
-
-        // 울타리 (티어 2+)
-        if (tier >= 2) drawFence(groundY + with(density) { 4.dp.toPx() }, w, density)
-
-        // 연못 (티어 4+)
-        if (tier >= 4) {
-            val cx = w * 0.28f
-            val cy = groundY + with(density) { 16.dp.toPx() }
-            val rx = with(density) { 70.dp.toPx() }
-            val ry = with(density) { 22.dp.toPx() }
-            drawOval(Color(0xFF70B8E0), topLeft = Offset(cx - rx, cy - ry), size = Size(rx * 2, ry * 2))
-            drawOval(Color(0xFF88C8F0), topLeft = Offset(cx - rx * 0.7f, cy - ry * 0.6f), size = Size(rx * 1.4f, ry * 1.2f))
-        }
-
-        // 꽃 (티어 5+)
-        if (tier >= 5) {
-            val flowerR = with(density) { 5.dp.toPx() }
-            val flowers = listOf(
-                Offset(w * 0.10f, groundY - with(density) { 3.dp.toPx() }) to Color(0xFFE85858),
-                Offset(w * 0.16f, groundY + with(density) { 7.dp.toPx() }) to Color(0xFFF09840),
-                Offset(w * 0.36f, groundY + with(density) { 4.dp.toPx() }) to Color(0xFFD04878),
-                Offset(w * 0.63f, groundY + with(density) { 3.dp.toPx() }) to Color(0xFFE85858),
-                Offset(w * 0.87f, groundY - with(density) { 2.dp.toPx() }) to Color(0xFFF09840),
-                Offset(w * 0.92f, groundY + with(density) { 8.dp.toPx() }) to Color(0xFFD04878),
-            )
-            flowers.forEach { (pos, color) -> drawCircle(color, flowerR, pos) }
-        }
-
-        // 동물 배치 zones
-        val skyZoneBottom    = h / 3f
-        val groundZoneTop    = h / 3f
-        val groundZoneBottom = h * 0.88f
-
-        fun groundY(fraction: Float, animalH: Float): Float {
-            val range = (groundZoneBottom - animalH - groundZoneTop).coerceAtLeast(0f)
-            return groundZoneTop + fraction * range
-        }
-        fun skyY(fraction: Float, animalH: Float): Float {
-            val range = (skyZoneBottom - animalH).coerceAtLeast(0f)
-            return fraction * range
-        }
-
-        // 랜덤 배치 variant
-        when (variant) {
-            0 -> drawAnimalsVariant0(tier, w, pxSz, ::groundY, ::skyY)
-            1 -> drawAnimalsVariant1(tier, w, pxSz, ::groundY, ::skyY)
-            2 -> drawAnimalsVariant2(tier, w, pxSz, ::groundY, ::skyY)
-            3 -> drawAnimalsVariant3(tier, w, pxSz, ::groundY, ::skyY)
+            Box(
+                modifier = Modifier
+                    .offset {
+                        val edge = 8.dp.toPx().toInt()
+                        val halfW = bubbleWidthPx / 2
+                        val maxX  = (w.toInt() - bubbleWidthPx - edge).coerceAtLeast(edge)
+                        val rawX  = (animalCenterX.toInt() - halfW)
+                        val rawY  = (animalTopY - 70.dp.toPx() + bubbleSlideY.value).toInt()
+                        IntOffset(
+                            x = if (bubbleWidthPx == 0) -9999 else rawX.coerceIn(edge, maxX),
+                            y = rawY.coerceAtLeast(edge)
+                        )
+                    }
+                    .alpha(bubbleAlpha.value)
+                    .onSizeChanged { bubbleWidthPx = it.width }
+                    .shadow(elevation = 6.dp, shape = bubbleShape)
+                    .clip(bubbleShape)
+                    .background(Color.White)
+                    .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 18.dp)
+            ) {
+                Text(
+                    text       = bubbleText,
+                    fontSize   = 13.sp,
+                    color      = Color(0xFF2A2A2A),
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }

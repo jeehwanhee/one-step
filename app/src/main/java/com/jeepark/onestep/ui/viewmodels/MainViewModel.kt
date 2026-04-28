@@ -112,7 +112,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 incrementDailyCount()
                 onReady(quests)
             } catch (e: Exception) {
-                android.util.Log.e("QuestLoad", "퀘스트 로드 실패: ${e.message}", e)
                 onError(e.message ?: "퀘스트를 불러오지 못했어요")
             } finally {
                 _isLoadingQuests.value = false

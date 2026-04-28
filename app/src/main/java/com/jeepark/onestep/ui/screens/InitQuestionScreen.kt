@@ -76,6 +76,15 @@ fun InitQuestionScreen(
         "일이나 학업을\n하지 않은 기간 (월)",
         "주된 활동 시간\n0(새벽) 1(오전) 2(오후) 3(저녁)"
     )
+    // 각 문항의 (최솟값, 최댓값)
+    val ranges = listOf(
+        0 to 20,   // 동거인 수
+        0 to 10,   // 식사 횟수
+        0 to 24,   // 수면 시간
+        0 to 7,    // 외출 일 수
+        0 to 600,  // 미취업 기간 (월)
+        0 to 3     // 활동 시간대
+    )
 
     Box(modifier = Modifier.fillMaxSize().background(IQ_BG)) {
 
@@ -158,12 +167,14 @@ fun InitQuestionScreen(
                         }
                     }
 
+                    val (minVal, maxVal) = ranges[pageIndex]
                     TextInput(
                         modifier      = Modifier.focusRequester(focusRequester),
                         isDigit       = true,
                         placeholder   = "답변을 입력해주세요",
                         onValueChange = { newValue ->
-                            answers[pageIndex] = newValue.toIntOrNull() ?: -1
+                            val v = newValue.toIntOrNull()
+                            answers[pageIndex] = if (v == null) -1 else v.coerceIn(minVal, maxVal)
                         },
                         text = if (answers[pageIndex] == -1) "" else answers[pageIndex].toString(),
                     )

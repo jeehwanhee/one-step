@@ -2,7 +2,6 @@ package com.jeepark.onestep.ui.viewmodels
 
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -47,19 +46,15 @@ class AuthViewModel : ViewModel() {
                             if (doc.exists()) onExistingUser() else onNewUser()
                         }
                         .addOnFailureListener {
-                            Log.e("Auth", "Firestore 조회 실패: ${it.message}")
                             onNewUser()
                         }
                 }
                 .addOnFailureListener { e ->
-                    Log.e("Auth", "Firebase 로그인 실패: ${e.message}")
                     onError()
                 }
         } catch (e: ApiException) {
-            Log.e("Auth", "Google 로그인 취소 또는 실패: ${e.statusCode}")
             if (e.statusCode != 12501) onError() // 12501 = 사용자가 직접 취소
         } catch (e: Exception) {
-            Log.e("Auth", "로그인 예외: ${e.message}")
             onError()
         }
     }

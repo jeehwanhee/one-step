@@ -26,6 +26,7 @@ import com.google.firebase.FirebaseApp
 import com.jeepark.onestep.util.LocationHelper
 import com.jeepark.onestep.util.NotificationHelper
 import com.jeepark.onestep.ui.screens.AuthScreen
+import com.jeepark.onestep.ui.screens.CompletedQuestsScreen
 import com.jeepark.onestep.ui.screens.InitQuestionScreen
 import com.jeepark.onestep.ui.screens.InitScreen
 import com.jeepark.onestep.ui.screens.MainScreen
@@ -39,10 +40,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         FirebaseApp.initializeApp(this)
         NotificationHelper.createChannel(this)
-        val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
-        windowInsetsController.isAppearanceLightStatusBars = true
-        WindowCompat.setDecorFitsSystemWindows(window, false)
         enableEdgeToEdge()
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = true
+            isAppearanceLightNavigationBars = true
+        }
         setContent {
             OneStepTheme {
                 Surface(
@@ -171,6 +174,11 @@ fun MyNavGraph() {
                         launchSingleTop = true
                     }
                 },
+                onNavigateToCompleted = {
+                    navController.navigate("completed") {
+                        launchSingleTop = true
+                    }
+                },
                 onNavigateToSetting = {
                     navController.navigate("setting") {
                         launchSingleTop = true
@@ -190,6 +198,18 @@ fun MyNavGraph() {
             popExitTransition = { ExitTransition.None }
         ) {
             CollectionScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(
+            route = "completed",
+            enterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
+            CompletedQuestsScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 }

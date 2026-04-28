@@ -50,7 +50,6 @@ class FirestoreRepository {
                     if (user != null) onSuccess(user)
                     else onFailure(Exception("User null"))
                 } catch (e: Exception) {
-                    android.util.Log.e("FirestoreRepo", "toObject 실패: ${e.message}")
                     onFailure(e)
                 }
             }
@@ -85,13 +84,19 @@ class FirestoreRepository {
                 )
                 val result = Model_A.predict(inputData)
                 val score = (result * 100).toInt()
+                val now = System.currentTimeMillis()
+                val historyEntry = mapOf(
+                    "score" to score,
+                    "recordedAt" to now
+                )
 
                 db.collection("users").document(uid)
                     .update(
                         "initQuestions", data,
                         "isolated", score,
-                        "isolatedLastModified", System.currentTimeMillis(),
-                        "isolatedCount", FieldValue.increment(1)
+                        "isolatedLastModified", now,
+                        "isolatedCount", FieldValue.increment(1),
+                        "isolatedHistory", FieldValue.arrayUnion(historyEntry)
                     )
                     .addOnSuccessListener { onSuccess() }
                     .addOnFailureListener {

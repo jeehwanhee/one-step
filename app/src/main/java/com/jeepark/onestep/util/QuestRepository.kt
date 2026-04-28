@@ -25,22 +25,15 @@ class QuestRepository {
         val snapshot = try {
             db.collection("quests").get(Source.SERVER).await()
         } catch (e: Exception) {
-            android.util.Log.w("QuestRepo", "서버 접근 실패, 캐시 사용: ${e.message}")
             db.collection("quests").get(Source.CACHE).await()
-        }
-        android.util.Log.d("QuestRepo", "문서 수: ${snapshot.documents.size}")
-        snapshot.documents.take(3).forEach { doc ->
-            android.util.Log.d("QuestRepo", "문서[${doc.id}] 필드: ${doc.data}")
         }
         val allQuests = snapshot.documents.mapNotNull { doc ->
             try {
                 doc.toObject(Quest::class.java)
             } catch (e: Exception) {
-                android.util.Log.e("QuestRepo", "역직렬화 실패 [${doc.id}]: ${e.message}")
                 null
             }
         }.filter { it.questName.isNotEmpty() }
-        android.util.Log.d("QuestRepo", "역직렬화 성공: ${allQuests.size}개")
         if (allQuests.isEmpty()) throw Exception("quests 컬렉션이 비어 있습니다 (문서 수: ${snapshot.documents.size})")
 
         // 2. 비율에 맞게 20개 샘플링

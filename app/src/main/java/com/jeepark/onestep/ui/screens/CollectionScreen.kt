@@ -1,5 +1,6 @@
 package com.jeepark.onestep.ui.screens
 
+import android.R.attr.label
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -19,12 +20,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -59,14 +57,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jeepark.onestep.data.model.EXPAMOUNT
-import kotlinx.coroutines.launch
 import com.jeepark.onestep.data.model.PrevQuest
 import com.jeepark.onestep.ui.viewmodels.CollectionViewModel
 import com.jeepark.onestep.util.ANIMAL_NAMES
 import com.jeepark.onestep.util.PixelAnimalRenderer
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 private val BG_COLOR = Color(0xFFFDF8F0)
-private val CARD_BG  = Color(0xFFF5EFE4)
 private val PRIMARY  = Color(0xFF5A9848)
 
 
@@ -100,7 +100,7 @@ fun CollectionScreen(
                 .graphicsLayer { translationX = -screenWidthPx + dragOffset.value }
         )
 
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer { translationX = dragOffset.value }
@@ -111,7 +111,7 @@ fun CollectionScreen(
                         onDragCancel = { scope.launch { dragOffset.animateTo(0f, spring()) } },
                         onDragEnd    = {
                             scope.launch {
-                                if (dragOffset.value > screenWidthPx * 0.35f) {
+                                if (dragOffset.value > screenWidthPx * 0.18f) {
                                     dragOffset.animateTo(screenWidthPx, tween(200))
                                     onNavigateBack()
                                 } else {
@@ -126,87 +126,51 @@ fun CollectionScreen(
                             }
                         }
                     )
-                },
-            contentPadding = PaddingValues(bottom = 32.dp)
+                }
         ) {
-        // 헤더
-        item {
             CollectionHeader(
                 tier      = tier,
                 progress  = progress,
                 threshold = threshold,
                 onBack    = onNavigateBack
             )
-        }
 
-        // 동물 도감 섹션 제목
-        item {
             Text(
                 text       = "해금된 동물들",
-                fontSize   = 16.sp,
+                fontSize   = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color      = Color(0xFF3A3A3A),
-                modifier   = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                modifier   = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
             )
-        }
 
-        // 동물 그리드 (4열 고정 높이)
-        item {
             AnimalGrid(
                 unlockedAnimals = unlockedAnimals,
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
                     .fillMaxWidth()
             )
-        }
 
-        // 완료 퀘스트 섹션 제목
-        item {
-            Row(
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text       = "완료한 퀘스트",
-                    fontSize   = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color      = Color(0xFF3A3A3A)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text     = "${completedQuests.size}개",
-                    fontSize = 13.sp,
-                    color    = PRIMARY
-                )
-            }
-        }
+            Spacer(Modifier.height(8.dp))
 
-        if (completedQuests.isEmpty()) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text     = "아직 완료한 퀘스트가 없어요\n첫 퀘스트에 도전해 보세요!",
-                        fontSize = 14.sp,
-                        color    = Color(0xFFAAAAAA),
-                        lineHeight = 22.sp
-                    )
-                }
-            }
-        } else {
-            items(completedQuests) { quest ->
-                CompletedQuestCard(
-                    quest    = quest,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                )
-            }
+            RecoveryGraph(
+                history  = user?.isolatedHistory ?: emptyList(),
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            StatsColumn(
+                completedCount = completedQuests.size,
+                streakDays     = calcStreakDays(completedQuests),
+                maxStreakDays  = calcMaxStreakDays(completedQuests),
+                startDate      = calcStartDate(completedQuests),
+                dday           = calcDday(completedQuests),
+                totalExp       = calcTotalExp(completedQuests),
+                avgDifficulty  = calcAvgDifficulty(completedQuests),
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
         }
-        } // LazyColumn
-    } // outer Box
+    }
 }
 
 // ===== 헤더 =====
@@ -233,9 +197,8 @@ private fun CollectionHeader(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.White)
-            .padding(top = 8.dp, bottom = 20.dp)
+            .padding(top = 8.dp, bottom = 14.dp)
     ) {
-        // 뒤로가기 버튼 행
         Row(
             modifier          = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -248,58 +211,56 @@ private fun CollectionHeader(
                 )
             }
             Text(
-                text       = "도감",
+                text       = "진척도",
                 fontSize   = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color      = Color(0xFF2A2A2A)
             )
         }
 
-        // 티어 정보
         Row(
             modifier              = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 8.dp),
+                .padding(horizontal = 20.dp, vertical = 6.dp),
             verticalAlignment     = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start
         ) {
             Text(
                 text       = "티어 ${tier}",
-                fontSize   = 18.sp,
+                fontSize   = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color      = Color(0xFF2A2A2A)
             )
             if (isMaxTier) {
                 Text(
                     text     = "   •   최고 티어 달성!",
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     color    = Color(0xFFD4A820)
                 )
             } else {
                 Text(
                     text     = "   •   다음 티어까지 ${threshold - progress} XP",
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     color    = Color(0xFF888888)
                 )
             }
         }
 
-        // XP 진행 바
         if (!isMaxTier) {
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                 Row(
                     modifier          = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "$progress XP", fontSize = 12.sp, color = PRIMARY)
-                    Text(text = "$threshold XP", fontSize = 12.sp, color = Color(0xFFAAAAAA))
+                    Text(text = "$progress XP", fontSize = 11.sp, color = PRIMARY)
+                    Text(text = "$threshold XP", fontSize = 11.sp, color = Color(0xFFAAAAAA))
                 }
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(3.dp))
                 LinearProgressIndicator(
                     progress          = { animatedFraction },
                     modifier          = Modifier
                         .fillMaxWidth()
-                        .height(8.dp)
+                        .height(6.dp)
                         .clip(RoundedCornerShape(4.dp)),
                     color             = PRIMARY,
                     trackColor        = Color(0xFFE0E0E0),
@@ -317,14 +278,14 @@ private fun AnimalGrid(
     unlockedAnimals: List<Int>,
     modifier: Modifier = Modifier
 ) {
-    val allAnimals = ANIMAL_NAMES.indices.toList() // 0..6
+    val allAnimals = ANIMAL_NAMES.indices.toList()
 
     LazyVerticalGrid(
         columns            = GridCells.Fixed(4),
-        modifier           = modifier.height((((allAnimals.size + 3) / 4) * 100).dp),
+        modifier           = modifier.height((((allAnimals.size + 3) / 4) * 88).dp),
         contentPadding     = PaddingValues(4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         userScrollEnabled  = false
     ) {
         items(allAnimals) { index ->
@@ -337,8 +298,7 @@ private fun AnimalGrid(
 @Composable
 private fun AnimalCard(index: Int, unlocked: Boolean) {
     Card(
-        modifier = Modifier
-            .aspectRatio(1f),
+        modifier = Modifier.aspectRatio(1f),
         shape  = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (unlocked) Color.White else Color(0xFFEAEAEA)
@@ -351,7 +311,7 @@ private fun AnimalCard(index: Int, unlocked: Boolean) {
             verticalArrangement = Arrangement.Center
         ) {
             Box(
-                modifier          = Modifier.size(40.dp),
+                modifier          = Modifier.size(36.dp),
                 contentAlignment  = Alignment.Center
             ) {
                 if (unlocked) {
@@ -365,88 +325,178 @@ private fun AnimalCard(index: Int, unlocked: Boolean) {
                         imageVector = Icons.Outlined.Lock,
                         contentDescription = "잠금",
                         tint = Color(0xFFAAAAAA),
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(2.dp))
             Text(
                 text     = if (unlocked) ANIMAL_NAMES[index] else "???",
-                fontSize = 11.sp,
+                fontSize = 10.sp,
                 color    = if (unlocked) Color(0xFF4A4A4A) else Color(0xFFAAAAAA)
             )
         }
     }
 }
 
-// ===== 완료 퀘스트 카드 =====
+// ===== 통계 (Column 3개 항목) =====
 
 @Composable
-private fun CompletedQuestCard(quest: PrevQuest, modifier: Modifier = Modifier) {
-    Card(
-        modifier  = modifier.fillMaxWidth(),
-        shape     = RoundedCornerShape(12.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+private fun StatsColumn(
+    completedCount: Int,
+    streakDays: Int,
+    maxStreakDays: Int,
+    startDate: String,
+    dday: Int,
+    totalExp: Int,
+    avgDifficulty: Double,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier              = Modifier.fillMaxWidth(),
-                verticalAlignment     = Alignment.Top,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text       = quest.questName,
-                    fontSize   = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color      = Color(0xFF2A2A2A),
-                    modifier   = Modifier.weight(1f)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text     = quest.doneDate.take(10),
-                    fontSize = 11.sp,
-                    color    = Color(0xFFAAAAAA)
-                )
-            }
+        StatRow(label = "현재 연속 활동일",   value = "${streakDays}일")
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(Color(0xFFEAE3D2))
+        )
+        StatRow(label = "최장 연속 활동일", value = "${maxStreakDays}일")
+        StatRow(
+            label = "활동 시작일",
+            value = if (startDate.isNotEmpty()) "$startDate (D+$dday)" else "-"
+        )
 
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text     = "Q. ${quest.confirmQuestion}",
-                fontSize = 12.sp,
-                color    = Color(0xFF666666)
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text     = "A. ${quest.confirmAnswer}",
-                fontSize = 12.sp,
-                color    = Color(0xFF444444)
-            )
-
-            Spacer(Modifier.height(10.dp))
-            Row(
-                modifier          = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // difficulty 별점
-                repeat(5) { i ->
-                    Text(
-                        text     = "★",
-                        fontSize = 12.sp,
-                        color    = if (i < quest.difficulty) Color(0xFFF0C030) else Color(0xFFE0D8C8)
-                    )
-                }
-                Spacer(Modifier.weight(1f))
-                Text(
-                    text       = "+${quest.questEXP} XP",
-                    fontSize   = 12.sp,
-                    color      = PRIMARY,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
+        StatRow(label = "총 획득 경험치", value = "${totalExp} XP")
+        StatRow(label = "완료한 퀘스트", value = "${completedCount}개")
+        StatRow(
+            label = "평균 난이도",
+            value = if (avgDifficulty > 0) String.format(Locale.getDefault(), "%.1f", avgDifficulty) else "-"
+        )
     }
 }
+
+@Composable
+private fun StatRow(label: String, value: String) {
+    Row(
+        modifier              = Modifier.fillMaxWidth(),
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text     = label,
+            fontSize = 13.sp,
+            color    = Color(0xFF6A6058)
+        )
+        Text(
+            text       = value,
+            fontSize   = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color      = Color(0xFF2A2A2A)
+        )
+    }
+}
+
+// ===== 통계 계산 =====
+
+private fun calcStreakDays(quests: List<PrevQuest>): Int {
+    if (quests.isEmpty()) return 0
+    val parser = SimpleDateFormat("yyyy.MM.dd", Locale.getDefault())
+    val days = quests.mapNotNull { q ->
+        runCatching { parser.parse(q.doneDate.take(10))?.time }.getOrNull()
+    }.map { ts ->
+        val cal = Calendar.getInstance().apply {
+            timeInMillis = ts
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }
+        cal.timeInMillis
+    }.toSortedSet()
+    if (days.isEmpty()) return 0
+
+    val today = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+    }
+    val oneDay = 24L * 60 * 60 * 1000
+
+    // 오늘 또는 어제부터 시작 가능
+    var cursor = today.timeInMillis
+    if (cursor !in days && (cursor - oneDay) !in days) return 0
+    if (cursor !in days) cursor -= oneDay
+
+    var streak = 0
+    while (cursor in days) {
+        streak++
+        cursor -= oneDay
+    }
+    return streak
+}
+
+private fun calcAvgDifficulty(quests: List<PrevQuest>): Double =
+    if (quests.isEmpty()) 0.0
+    else quests.map { it.difficulty }.average()
+
+private fun calcMaxStreakDays(quests: List<PrevQuest>): Int {
+    if (quests.isEmpty()) return 0
+    val parser = SimpleDateFormat("yyyy.MM.dd", Locale.getDefault())
+    val days = quests.mapNotNull { q ->
+        runCatching { parser.parse(q.doneDate.take(10))?.time }.getOrNull()
+    }.map { ts ->
+        val cal = Calendar.getInstance().apply {
+            timeInMillis = ts
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }
+        cal.timeInMillis
+    }.toSortedSet().toList()
+    if (days.isEmpty()) return 0
+
+    val oneDay = 24L * 60 * 60 * 1000
+    var maxStreak = 1
+    var current = 1
+    for (i in 1 until days.size) {
+        if (days[i] - days[i - 1] == oneDay) {
+            current++
+            if (current > maxStreak) maxStreak = current
+        } else {
+            current = 1
+        }
+    }
+    return maxStreak
+}
+
+private fun calcStartDate(quests: List<PrevQuest>): String {
+    if (quests.isEmpty()) return ""
+    val parser = SimpleDateFormat("yyyy.MM.dd", Locale.getDefault())
+    val firstTs = quests.mapNotNull { q ->
+        runCatching { parser.parse(q.doneDate.take(10))?.time }.getOrNull()
+    }.minOrNull() ?: return ""
+    return parser.format(java.util.Date(firstTs))
+}
+
+private fun calcDday(quests: List<PrevQuest>): Int {
+    if (quests.isEmpty()) return 0
+    val parser = SimpleDateFormat("yyyy.MM.dd", Locale.getDefault())
+    val firstTs = quests.mapNotNull { q ->
+        runCatching { parser.parse(q.doneDate.take(10))?.time }.getOrNull()
+    }.minOrNull() ?: return 0
+    val today = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+    val oneDay = 24L * 60 * 60 * 1000
+    return ((today - firstTs) / oneDay).toInt().coerceAtLeast(0)
+}
+
+private fun calcTotalExp(quests: List<PrevQuest>): Int =
+    quests.sumOf { it.questEXP }
 
 @Preview(showBackground = true)
 @Composable

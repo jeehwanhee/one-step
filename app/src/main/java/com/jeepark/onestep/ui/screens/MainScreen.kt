@@ -2,6 +2,7 @@ package com.jeepark.onestep.ui.screens
 
 import android.widget.Toast
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -76,6 +77,7 @@ import kotlinx.coroutines.launch
 fun MainScreen(
     modifier: Modifier = Modifier,
     onNavigateToProgress: () -> Unit,
+    onNavigateToCompleted: () -> Unit = {},
     onNavigateToSetting: () -> Unit,
     onNavigateToInitQuestion: () -> Unit = {},
 ) {
@@ -113,6 +115,15 @@ fun MainScreen(
         }
     }
 
+    // 첫 실행 시 튜토리얼 오버레이 표시
+    var showTutorial by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        val prefs = context.getSharedPreferences("onboarding", android.content.Context.MODE_PRIVATE)
+        if (!prefs.getBoolean("swipe_hint_seen", false)) {
+            showTutorial = true
+        }
+    }
+
     LaunchedEffect(user) {
         val count = user?.isolatedCount ?: 0
         if (count >= 10) {
@@ -123,11 +134,17 @@ fun MainScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
 
-        // 스와이프 미리보기: CollectionScreen 배경색
+        // 스와이프 미리보기: 좌우 양쪽 모두 같은 배경색
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer { translationX = screenWidthPx + dragOffset.value }
+                .background(Color(0xFFFDF8F0))
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { translationX = -screenWidthPx + dragOffset.value }
                 .background(Color(0xFFFDF8F0))
         )
 
@@ -141,18 +158,23 @@ fun MainScreen(
                     onDragCancel = { scope.launch { dragOffset.animateTo(0f, spring()) } },
                     onDragEnd    = {
                         scope.launch {
-                            if (dragOffset.value < -screenWidthPx * 0.35f) {
-                                dragOffset.animateTo(-screenWidthPx, tween(200))
-                                onNavigateToProgress()
-                            } else {
-                                dragOffset.animateTo(0f, spring())
+                            when {
+                                dragOffset.value < -screenWidthPx * 0.18f -> {
+                                    dragOffset.animateTo(-screenWidthPx, tween(200))
+                                    onNavigateToProgress()
+                                }
+                                dragOffset.value > screenWidthPx * 0.18f -> {
+                                    dragOffset.animateTo(screenWidthPx, tween(200))
+                                    onNavigateToCompleted()
+                                }
+                                else -> dragOffset.animateTo(0f, spring())
                             }
                         }
                     },
                     onHorizontalDrag = { change, dragAmount ->
                         change.consume()
                         scope.launch {
-                            dragOffset.snapTo((dragOffset.value + dragAmount).coerceAtMost(0f))
+                            dragOffset.snapTo(dragOffset.value + dragAmount)
                         }
                     }
                 )
@@ -215,6 +237,14 @@ fun MainScreen(
             )
         }
     } // inner Box (draggable content)
+
+        if (showTutorial) {
+            SwipeTutorialOverlay(onDismiss = {
+                showTutorial = false
+                context.getSharedPreferences("onboarding", android.content.Context.MODE_PRIVATE)
+                    .edit().putBoolean("swipe_hint_seen", true).apply()
+            })
+        }
     }  // outer Box
 
     // ---- 다이얼로그 ----
@@ -744,5 +774,81 @@ private fun StarRating(level: Int, starSize: TextUnit = 16.sp) {
         repeat(5) { i ->
             Text("★", fontSize = starSize, color = if (i < level) Color(0xFFF0C030) else Color(0xFFE0D8C8))
         }
+    }
+}
+
+// ===== 첫 진입 스와이프 튜토리얼 =====
+
+@Composable
+private fun SwipeTutorialOverlay(onDismiss: () -> Unit) {
+    val infiniteTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "swipeHint")
+    val shift by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue  = 14f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = tween(800, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+        ),
+        label = "shift"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.72f))
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) { onDismiss() }
+    ) {
+        Text(
+            text       = "양옆으로 스와이프해보세요",
+            fontSize   = 18.sp,
+            fontWeight = FontWeight.Medium,
+            color      = Color.White,
+            modifier   = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 80.dp)
+        )
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text     = "←",
+                    fontSize = 56.sp,
+                    color    = Color.White,
+                    modifier = Modifier.graphicsLayer { translationX = -shift }
+                )
+                Spacer(Modifier.size(6.dp))
+                Text("완료한 퀘스트", fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f))
+            }
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text     = "→",
+                    fontSize = 56.sp,
+                    color    = Color.White,
+                    modifier = Modifier.graphicsLayer { translationX = shift }
+                )
+                Spacer(Modifier.size(6.dp))
+                Text("진척도", fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f))
+            }
+        }
+
+        Text(
+            text     = "화면을 탭하여 닫기",
+            fontSize = 12.sp,
+            color    = Color.White.copy(alpha = 0.6f),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 80.dp)
+        )
     }
 }

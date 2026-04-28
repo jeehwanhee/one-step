@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:marmalade-locket-e42.notion.site)"
+      "WebFetch(domain:marmalade-locket-e42.notion.site)",
+      "Bash(xargs basename:*)",
+      "Bash(python *)",
+      "Bash(git restore *)"
     ]
   }
 }

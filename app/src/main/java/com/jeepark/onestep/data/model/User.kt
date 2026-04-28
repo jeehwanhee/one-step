@@ -1,5 +1,10 @@
 package com.jeepark.onestep.data.model
 
+data class IsolatedRecord(
+    val score: Int = 0,
+    val recordedAt: Long = System.currentTimeMillis(),
+)
+
 data class User(
     val uid: String = "",
     val email: String = "",
@@ -11,6 +16,7 @@ data class User(
     val isolated: Int = 0,
     val isolatedLastModified: Long = System.currentTimeMillis(),
     val isolatedCount: Int = 0,
+    val isolatedHistory: List<IsolatedRecord> = emptyList(),
 
     val prevQuests: List<PrevQuest> = emptyList(),
     val difficultyQueue: List<Double> = emptyList(),  // 최근 10개 퀘스트 난이도
