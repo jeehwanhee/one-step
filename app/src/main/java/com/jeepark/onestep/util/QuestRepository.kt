@@ -12,6 +12,7 @@ import com.jeepark.onestep.data.model.NetworkClient
 import com.jeepark.onestep.data.model.Quest
 import kotlinx.coroutines.tasks.await
 import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.math.roundToInt
 import com.jeepark.onestep.util.LocationHelper
 
@@ -19,7 +20,8 @@ class QuestRepository {
     private val db = Firebase.firestore
 
     suspend fun fetchFilteredQuests(
-        ratios: List<Double>
+        ratios: List<Double>,
+        useGemini: Boolean = true
     ): List<Quest> {
         // 1. Firestore quests 컬렉션 전체 로드
         val snapshot = try {
@@ -39,10 +41,15 @@ class QuestRepository {
         // 2. 비율에 맞게 20개 샘플링
         val sampled = sampleByRatio(allQuests, ratios, 20)
 
-        // 3. 날씨 + 혼잡도 조회
+        // 3. 일일 한도 초과 시 Gemini 건너뛰고 무작위 8개 반환
+        if (!useGemini) {
+            return sampled.shuffled().take(8)
+        }
+
+        // 4. 날씨 + 혼잡도 조회
         val (weather, congestion) = fetchSeoulData()
 
-        // 4. Gemini로 8개 선별 (실패 시 랜덤 8개 반환)
+        // 5. Gemini로 8개 선별 (실패 시 랜덤 8개 반환)
         return try {
             selectWithGemini(sampled, weather, congestion)
         } catch (e: Exception) {
@@ -91,9 +98,17 @@ class QuestRepository {
         weather: String,
         congestion: String
     ): List<Quest> {
-        val questsJson = quests.mapIndexed { i, q ->
-            """{"id":$i,"index":${q.index},"name":"${q.questName}","difficulty":${q.difficulty}}"""
-        }.joinToString(",", "[", "]")
+        // JSONObject로 안전하게 직렬화 (퀘스트명에 ", \, 줄바꿈 등 있어도 깨지지 않음)
+        val questsJsonArr = JSONArray()
+        quests.forEachIndexed { i, q ->
+            questsJsonArr.put(JSONObject().apply {
+                put("id", i)
+                put("index", q.index)
+                put("name", q.questName)
+                put("difficulty", q.difficulty)
+            })
+        }
+        val questsJson = questsJsonArr.toString()
 
         val prompt = """
             아래 환경 데이터와 퀘스트 목록을 보고, 오늘 활동에 가장 적합한 퀘스트 8개를 골라줘.

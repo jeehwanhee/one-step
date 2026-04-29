@@ -19,12 +19,20 @@ class FirestoreRepository {
         onFailure: (Exception) -> Unit
     ) {
         val currentUser = Firebase.auth.currentUser
-        val uid = currentUser!!.uid
+        if (currentUser == null) {
+            onFailure(IllegalStateException("로그인된 사용자가 없습니다"))
+            return
+        }
+        val uid = currentUser.uid
         val email = currentUser.email
+        if (email == null) {
+            onFailure(IllegalStateException("사용자 이메일을 가져올 수 없습니다"))
+            return
+        }
 
         val user = User(
             uid= uid,
-            email= email!!,
+            email= email,
             nickname=nickname,
             age=age,
             gender=gender,
@@ -41,7 +49,11 @@ class FirestoreRepository {
         onSuccess: (User) -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        val uid = auth.currentUser?.uid ?: return
+        val uid = auth.currentUser?.uid
+        if (uid == null) {
+            onFailure(IllegalStateException("로그인된 사용자가 없습니다"))
+            return
+        }
 
         db.collection("users").document(uid).get()
             .addOnSuccessListener { document ->

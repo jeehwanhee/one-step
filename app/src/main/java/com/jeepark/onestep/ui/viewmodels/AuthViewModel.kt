@@ -46,7 +46,8 @@ class AuthViewModel : ViewModel() {
                             if (doc.exists()) onExistingUser() else onNewUser()
                         }
                         .addOnFailureListener {
-                            onNewUser()
+                            // 네트워크 실패를 신규 유저로 오판하지 않도록 onError 호출
+                            onError()
                         }
                 }
                 .addOnFailureListener { e ->
@@ -74,11 +75,19 @@ class AuthViewModel : ViewModel() {
         Firebase.firestore.collection("users").document(uid)
             .delete()
             .addOnSuccessListener {
-                // Firestore 삭제 성공 → Auth 계정 삭제 시도 후 결과와 관계없이 로그아웃 처리
+                // Firestore 삭제 성공 → Auth 계정 삭제 결과까지 확인
                 user.delete()
-                auth.signOut()
-                getGoogleSignInClient(context).signOut()
-                onSuccess()
+                    .addOnSuccessListener {
+                        auth.signOut()
+                        getGoogleSignInClient(context).signOut()
+                        onSuccess()
+                    }
+                    .addOnFailureListener {
+                        // Auth 삭제 실패(예: 최근 로그인 필요) → 데이터는 이미 삭제됨
+                        auth.signOut()
+                        getGoogleSignInClient(context).signOut()
+                        onFailure()
+                    }
             }
             .addOnFailureListener { onFailure() }
     }

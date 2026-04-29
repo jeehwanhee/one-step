@@ -36,7 +36,9 @@ class NotificationWorker(
     }
 
     private fun sendNotification(day: Int) {
-        val (title, content) = NotificationHelper.MESSAGES[day - 1]
+        // 메시지 개수 변동 대비 방어 코드
+        val idx = (day - 1).coerceIn(0, NotificationHelper.MESSAGES.size - 1)
+        val (title, content) = NotificationHelper.MESSAGES[idx]
 
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

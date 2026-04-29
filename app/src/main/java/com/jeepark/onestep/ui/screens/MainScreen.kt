@@ -184,14 +184,13 @@ fun MainScreen(
 
         // 활성 퀘스트가 없을 때만 퀘스트 버튼 표시
         if (activeQuest == null) {
-            val limitReached = vm.isDailyLimitReached()
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 14.dp, vertical = 24.dp),
                 contentAlignment = Alignment.BottomCenter
             ) {
-                QuestButton(limitReached = limitReached) { if (!limitReached) showInputDialog = true }
+                QuestButton(limitReached = false) { showInputDialog = true }
             }
         }
 

@@ -75,15 +75,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val uid = auth.currentUser?.uid ?: return
         val today = todayDate()
 
-        val newCount = if (currentUser.dailyQuestDate == today) currentUser.dailyQuestCount + 1 else 1
-
-        db.collection("users").document(uid).update(
-            mapOf(
-                "dailyQuestCount" to newCount,
-                "dailyQuestDate"  to today
-            )
-        ).addOnSuccessListener {
-            _user.value = currentUser.copy(dailyQuestCount = newCount, dailyQuestDate = today)
+        if (currentUser.dailyQuestDate == today) {
+            // 같은 날 → 원자적 증가 (race-free)
+            db.collection("users").document(uid).update(
+                "dailyQuestCount", FieldValue.increment(1)
+            ).addOnSuccessListener {
+                _user.value = currentUser.copy(
+                    dailyQuestCount = currentUser.dailyQuestCount + 1
+                )
+            }
+        } else {
+            // 날짜 바뀜 → 1로 리셋
+            db.collection("users").document(uid).update(
+                mapOf(
+                    "dailyQuestCount" to 1,
+                    "dailyQuestDate"  to today
+                )
+            ).addOnSuccessListener {
+                _user.value = currentUser.copy(dailyQuestCount = 1, dailyQuestDate = today)
+            }
         }
     }
 
@@ -107,9 +117,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     tier        = u?.tier ?: 0
                 )
 
-                val quests = questRepository.fetchFilteredQuests(ratios)
+                val useGemini = !isDailyLimitReached()
+                val quests = questRepository.fetchFilteredQuests(ratios, useGemini)
                 _questList.value = quests
-                incrementDailyCount()
+                if (useGemini) incrementDailyCount()  // Gemini 호출한 경우만 카운트
                 onReady(quests)
             } catch (e: Exception) {
                 onError(e.message ?: "퀘스트를 불러오지 못했어요")
@@ -181,6 +192,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             )
             if (didTierUp) onTierUp()
             onDone()
+        }.addOnFailureListener { e ->
+            android.util.Log.e("MainViewModel", "saveCompletedQuest failed", e)
+            // 다이얼로그가 영원히 멈추지 않도록 onDone 호출
+            onDone()
         }
     }
 
@@ -238,6 +253,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             )
         ).addOnSuccessListener {
             _user.value = currentUser.copy(questResultsQueue = newResultsQueue)
+        }.addOnFailureListener { e ->
+            android.util.Log.e("MainViewModel", "saveGiveUpQuest user update failed", e)
         }
 
         // quests 문서: 해당 퀘스트의 포기 사유 추가
@@ -247,7 +264,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             .addOnSuccessListener { snapshot ->
                 snapshot.documents.firstOrNull()?.reference?.update(
                     "giveUpReasons", FieldValue.arrayUnion(reason)
-                )
+                )?.addOnFailureListener { e ->
+                    android.util.Log.e("MainViewModel", "saveGiveUpQuest quest update failed", e)
+                }
+            }.addOnFailureListener { e ->
+                android.util.Log.e("MainViewModel", "saveGiveUpQuest quest query failed", e)
             }
     }
 }

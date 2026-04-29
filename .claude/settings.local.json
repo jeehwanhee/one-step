@@ -4,7 +4,10 @@
       "WebFetch(domain:marmalade-locket-e42.notion.site)",
       "Bash(xargs basename:*)",
       "Bash(python *)",
-      "Bash(git restore *)"
+      "Bash(git restore *)",
+      "Bash(pip install *)",
+      "Bash(python -c ' *)",
+      "Read(//tmp/**)"
     ]
   }
 }
