@@ -83,11 +83,27 @@ fun MyNavGraph() {
     }
 
     LaunchedEffect(Unit) {
-        locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        } else if (prefs.getBoolean(NotificationHelper.KEY_NOTIF, true)) {
-            NotificationHelper.schedule(context)
+        // 권한 요청 1회만 (회전·재구성 시 다이얼로그 반복 방지)
+        val alreadyRequested = prefs.getBoolean("perm_requested", false)
+        if (!alreadyRequested) {
+            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            prefs.edit().putBoolean("perm_requested", true).apply()
+        } else {
+            // 이미 한 번 요청한 경우 권한 상태에 맞춰 위치 갱신·알림 스케줄
+            LocationHelper.updateLocation(context) {}
+
+            val notifGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                androidx.core.content.ContextCompat.checkSelfPermission(
+                    context, Manifest.permission.POST_NOTIFICATIONS
+                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            } else true
+
+            if (notifGranted && prefs.getBoolean(NotificationHelper.KEY_NOTIF, true)) {
+                NotificationHelper.schedule(context)
+            }
         }
     }
 
@@ -103,11 +119,6 @@ fun MyNavGraph() {
                 onNavigateToMain = {
                     navController.navigate("main") {
                         popUpTo("init") { inclusive = true }
-                    }
-                },
-                onNavigateToSignup = {
-                    navController.navigate("signup") {
-                        popUpTo("auth") { inclusive = true }
                     }
                 },
                 onNavigateToInitQuestion = {

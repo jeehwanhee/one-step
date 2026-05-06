@@ -1,8 +1,6 @@
 package com.jeepark.onestep.util
 
-import com.google.firebase.Firebase
-import com.google.firebase.firestore.Source
-import com.google.firebase.firestore.firestore
+import android.content.Context
 import com.jeepark.onestep.BuildConfig
 import com.jeepark.onestep.data.model.GeminiClient
 import com.jeepark.onestep.data.model.GeminiContent
@@ -10,50 +8,90 @@ import com.jeepark.onestep.data.model.GeminiPart
 import com.jeepark.onestep.data.model.GeminiRequest
 import com.jeepark.onestep.data.model.NetworkClient
 import com.jeepark.onestep.data.model.Quest
-import kotlinx.coroutines.tasks.await
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.roundToInt
-import com.jeepark.onestep.util.LocationHelper
 
-class QuestRepository {
-    private val db = Firebase.firestore
+class QuestRepository(context: Context) {
+    private val appContext = context.applicationContext
+
+    private val questsCache = VersionedCache<Quest>(
+        context = appContext,
+        collection = "quests",
+        metaDocId = "quests_meta",
+    ) { doc -> try { doc.toObject(Quest::class.java) } catch (e: Exception) { null } }
 
     suspend fun fetchFilteredQuests(
         ratios: List<Double>,
         useGemini: Boolean = true
     ): List<Quest> {
-        // 1. Firestore quests 컬렉션 전체 로드
-        val snapshot = try {
-            db.collection("quests").get(Source.SERVER).await()
-        } catch (e: Exception) {
-            db.collection("quests").get(Source.CACHE).await()
-        }
-        val allQuests = snapshot.documents.mapNotNull { doc ->
-            try {
-                doc.toObject(Quest::class.java)
-            } catch (e: Exception) {
-                null
-            }
-        }.filter { it.questName.isNotEmpty() }
-        if (allQuests.isEmpty()) throw Exception("quests 컬렉션이 비어 있습니다 (문서 수: ${snapshot.documents.size})")
+        // 1. quests 컬렉션 로드 (버전 키 캐싱)
+        val allQuests = questsCache.load().filter { it.questName.isNotEmpty() }
+        if (allQuests.isEmpty()) throw Exception("quests 컬렉션이 비어 있습니다")
 
         // 2. 비율에 맞게 20개 샘플링
         val sampled = sampleByRatio(allQuests, ratios, 20)
 
-        // 3. 일일 한도 초과 시 Gemini 건너뛰고 무작위 8개 반환
+        // 3. {공원}/{도서관} 등 플레이스홀더를 사용자 위치 기반 실제 장소명으로 치환
+        val substituted = substitutePlaceholders(sampled)
+
+        // 4. 일일 한도 초과 시 Gemini 건너뛰고 무작위 8개 반환
         if (!useGemini) {
-            return sampled.shuffled().take(8)
+            return substituted.shuffled().take(8)
         }
 
-        // 4. 날씨 + 혼잡도 조회
-        val (weather, congestion) = fetchSeoulData()
+        // 5. 날씨 조회
+        val weather = fetchSeoulData()
 
-        // 5. Gemini로 8개 선별 (실패 시 랜덤 8개 반환)
+        // 6. Gemini로 8개 선별 (실패 시 랜덤 8개 반환)
         return try {
-            selectWithGemini(sampled, weather, congestion)
+            selectWithGemini(substituted, weather)
         } catch (e: Exception) {
-            sampled.shuffled().take(8)
+            // HttpException이면 응답 본문도 출력 (어떤 quota인지 확인용)
+            if (e is retrofit2.HttpException) {
+                val body = try { e.response()?.errorBody()?.string() } catch (_: Exception) { null }
+                android.util.Log.e("QuestRepo", "Gemini ${e.code()} body=$body")
+            } else {
+                android.util.Log.e("QuestRepo", "Gemini 호출 실패", e)
+            }
+            substituted.shuffled().take(8)
+        }
+    }
+
+    private val PLACEHOLDERS = mapOf(
+        "{공원}"          to "park",
+        "{도서관}"        to "library",
+        "{청년공간}"      to "youth_space",
+        "{정신건강센터}"  to "mental_center",
+        "{체육시설}"      to "gym",
+    )
+
+    private val FALLBACK_NAMES = mapOf(
+        "{공원}"          to "근처 공원",
+        "{도서관}"        to "근처 도서관",
+        "{청년공간}"      to "근처 청년공간",
+        "{정신건강센터}"  to "가까운 정신건강복지센터",
+        "{체육시설}"      to "근처 체육시설",
+    )
+
+    private suspend fun substitutePlaceholders(quests: List<Quest>): List<Quest> {
+        // 어떤 quest에라도 플레이스홀더가 있는 경우만 places 로드
+        val hasAny = quests.any { q -> PLACEHOLDERS.keys.any { it in q.questName || it in q.confirmQuestion } }
+        if (!hasAny) return quests
+
+        val allPlaces = try { PlaceRepository.loadAll(appContext) } catch (e: Exception) { return quests }
+
+        return quests.map { quest ->
+            var name = quest.questName
+            var question = quest.confirmQuestion
+            for ((placeholder, type) in PLACEHOLDERS) {
+                if (placeholder !in name && placeholder !in question) continue
+                val place = PlaceRepository.findNearestPlace(type, allPlaces)
+                val replacement = place?.name ?: (FALLBACK_NAMES[placeholder] ?: placeholder)
+                name = name.replace(placeholder, replacement)
+                question = question.replace(placeholder, replacement)
+            }
+            quest.copy(questName = name, confirmQuestion = question)
         }
     }
 
@@ -77,26 +115,23 @@ class QuestRepository {
         return result.take(total)
     }
 
-    private suspend fun fetchSeoulData(): Pair<String, String> = try {
+    private suspend fun fetchSeoulData(): String = try {
         val response = NetworkClient.apiService.getRealtimeCityData(
             apiKey = BuildConfig.SEOUL_API_KEY,
             areaName = LocationHelper.currentAreaName
         )
         val w = response.CITYDATA?.WEATHER_STTS?.firstOrNull()
-        val p = response.CITYDATA?.LIVE_PPLTN_STTS?.firstOrNull()
-        val weather = if (w != null)
-            "${w.WEATHER_MSG}, 기온 ${w.TEMP}°C, 강수 ${w.PCP_MSG}, 미세먼지 ${w.PM10}"
+        if (w != null)
+            "하늘 ${w.SKY_STTS}, 기온 ${w.TEMP}°C, ${w.PCP_MSG}, 미세먼지 ${w.PM10}"
         else "정보 없음"
-        val congestion = p?.AREA_CONGEST_LVL ?: "정보 없음"
-        Pair(weather, congestion)
     } catch (e: Exception) {
-        Pair("정보 없음", "정보 없음")
+        android.util.Log.e("QuestRepo", "서울 API 호출 실패", e)
+        "정보 없음"
     }
 
     private suspend fun selectWithGemini(
         quests: List<Quest>,
         weather: String,
-        congestion: String
     ): List<Quest> {
         // JSONObject로 안전하게 직렬화 (퀘스트명에 ", \, 줄바꿈 등 있어도 깨지지 않음)
         val questsJsonArr = JSONArray()
@@ -114,7 +149,6 @@ class QuestRepository {
             아래 환경 데이터와 퀘스트 목록을 보고, 오늘 활동에 가장 적합한 퀘스트 8개를 골라줘.
 
             오늘 날씨: $weather
-            혼잡도: $congestion
 
             퀘스트 목록(JSON):
             $questsJson
@@ -123,6 +157,8 @@ class QuestRepository {
             다른 텍스트, 마크다운 없이 JSON 배열만.
         """.trimIndent()
 
+        // 디버그: 어떤 키를 쓰는지 앞 8자만 로깅
+        android.util.Log.d("QuestRepo", "Gemini key prefix: ${BuildConfig.GEMINI_API_KEY.take(8)}...")
         val response = GeminiClient.service.generateContent(
             apiKey  = BuildConfig.GEMINI_API_KEY,
             request = GeminiRequest(listOf(GeminiContent(listOf(GeminiPart(prompt)))))

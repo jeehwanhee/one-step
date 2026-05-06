@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  서울시 열린데이터광장 API(8088 포트)는 HTTP만 지원하므로 해당 도메인만 cleartext 허용.
+  나머지 도메인은 기본 정책(HTTPS 강제) 유지.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">openapi.seoul.go.kr</domain>
+    </domain-config>
+</network-security-config>

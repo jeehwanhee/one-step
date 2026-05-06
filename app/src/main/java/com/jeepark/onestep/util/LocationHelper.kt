@@ -14,6 +14,10 @@ object LocationHelper {
     // 위치 권한 없을 때 기본 지역
     var currentAreaName: String = "강남역"
 
+    // 사용자 GPS 위경도 (퀘스트 장소 매칭용)
+    @Volatile var currentLat: Double? = null
+    @Volatile var currentLng: Double? = null
+
     // 서울시 실시간 도시데이터 API 주요 지역 목록 (지역명, 위도, 경도)
     private val SEOUL_AREAS = listOf(
         Triple("강남역",          37.4979, 127.0276),
@@ -60,12 +64,23 @@ object LocationHelper {
 
     @SuppressLint("MissingPermission")
     fun updateLocation(context: Context, onResult: (String) -> Unit) {
+        // 권한 체크 — 거부 상태에서 호출 시 SecurityException 방지
+        val granted = androidx.core.content.ContextCompat.checkSelfPermission(
+            context, android.Manifest.permission.ACCESS_FINE_LOCATION
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!granted) {
+            onResult(currentAreaName)
+            return
+        }
+
         val client = LocationServices.getFusedLocationProviderClient(context)
         val cts    = CancellationTokenSource()
 
         client.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cts.token)
             .addOnSuccessListener { location ->
                 if (location != null) {
+                    currentLat = location.latitude
+                    currentLng = location.longitude
                     currentAreaName = findNearestArea(location.latitude, location.longitude)
                 }
                 onResult(currentAreaName)

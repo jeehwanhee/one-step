@@ -8,6 +8,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -128,6 +130,7 @@ fun CollectionScreen(
                     )
                 }
         ) {
+            // 헤더는 고정 (스크롤 영향 없음)
             CollectionHeader(
                 tier      = tier,
                 progress  = progress,
@@ -135,40 +138,50 @@ fun CollectionScreen(
                 onBack    = onNavigateBack
             )
 
-            Text(
-                text       = "해금된 동물들",
-                fontSize   = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color      = Color(0xFF3A3A3A),
-                modifier   = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-            )
-
-            AnimalGrid(
-                unlockedAnimals = unlockedAnimals,
+            // 본문만 세로 스크롤
+            Column(
                 modifier = Modifier
-                    .padding(horizontal = 16.dp)
                     .fillMaxWidth()
-            )
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    text       = "해금된 동물들",
+                    fontSize   = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color(0xFF3A3A3A),
+                    modifier   = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                )
 
-            Spacer(Modifier.height(8.dp))
+                AnimalGrid(
+                    unlockedAnimals = unlockedAnimals,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth()
+                )
 
-            RecoveryGraph(
-                history  = user?.isolatedHistory ?: emptyList(),
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
+                Spacer(Modifier.height(8.dp))
 
-            Spacer(Modifier.height(10.dp))
+                RecoveryGraph(
+                    history  = user?.isolatedHistory ?: emptyList(),
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
 
-            StatsColumn(
-                completedCount = completedQuests.size,
-                streakDays     = calcStreakDays(completedQuests),
-                maxStreakDays  = calcMaxStreakDays(completedQuests),
-                startDate      = calcStartDate(completedQuests),
-                dday           = calcDday(completedQuests),
-                totalExp       = calcTotalExp(completedQuests),
-                avgDifficulty  = calcAvgDifficulty(completedQuests),
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
+                Spacer(Modifier.height(10.dp))
+
+                StatsColumn(
+                    completedCount = completedQuests.size,
+                    streakDays     = calcStreakDays(completedQuests),
+                    maxStreakDays  = calcMaxStreakDays(completedQuests),
+                    startDate      = calcStartDate(completedQuests),
+                    dday           = calcDday(completedQuests),
+                    totalExp       = calcTotalExp(completedQuests),
+                    avgDifficulty  = calcAvgDifficulty(completedQuests),
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+
+                Spacer(Modifier.height(24.dp))   // 하단 여백
+            }
         }
     }
 }

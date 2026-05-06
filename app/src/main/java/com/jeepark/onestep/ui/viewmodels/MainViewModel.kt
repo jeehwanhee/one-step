@@ -23,7 +23,7 @@ import java.util.Locale
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val repo = FirestoreRepository()
-    private val questRepository = com.jeepark.onestep.util.QuestRepository()
+    private val questRepository = com.jeepark.onestep.util.QuestRepository(application)
     private val db = Firebase.firestore
     private val auth = Firebase.auth
     private val prefs = application.getSharedPreferences("active_quest", Context.MODE_PRIVATE)

@@ -15,11 +15,9 @@ data class CityDataContents(
 // 3. 날씨 상세 정보
 data class WeatherStatus(
     val TEMP: String,            // 기온
-    val SENSIBLE_TEMP: String,   // 체감온도
-    val WEATHER_MSG: String,     // 날씨 메시지 (맑음, 흐림 등)
+    val SKY_STTS: String,        // 하늘 상태 (맑음, 구름많음, 흐림 등)
     val PCP_MSG: String,         // 강수 관련 메시지
     val PM10: String,            // 미세먼지
-    val UV_INDEX: String         // 자외선 지수
 )
 
 // 4. 인구 혼잡도

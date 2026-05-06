@@ -23,11 +23,15 @@ class CollectionViewModel : ViewModel() {
     private val _unlockedAnimals = MutableStateFlow<List<Int>>(emptyList())
     val unlockedAnimals: StateFlow<List<Int>> = _unlockedAnimals.asStateFlow()
 
+    private val _loadError = MutableStateFlow<String?>(null)
+    val loadError: StateFlow<String?> = _loadError.asStateFlow()
+
     init {
         loadUser()
     }
 
     fun loadUser() {
+        _loadError.value = null
         repo.getUser(
             onSuccess = { user ->
                 _user.value = user
@@ -37,7 +41,10 @@ class CollectionViewModel : ViewModel() {
                         if (user.tier >= requiredTier) idx else null
                     }
             },
-            onFailure = {}
+            onFailure = { e ->
+                android.util.Log.e("CollectionVM", "사용자 정보 로드 실패", e)
+                _loadError.value = e.message ?: "정보를 불러오지 못했어요"
+            }
         )
     }
 }

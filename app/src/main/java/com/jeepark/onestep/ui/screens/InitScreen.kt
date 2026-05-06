@@ -37,7 +37,6 @@ fun InitScreen(
     onNavigateToAuth: () -> Unit,
     onNavigateToMain: () -> Unit,
     onNavigateToInitQuestion: () -> Unit,
-    onNavigateToSignup: () -> Unit
 ) {
     LaunchedEffect(Unit) {
         val currentUser = Firebase.auth.currentUser
