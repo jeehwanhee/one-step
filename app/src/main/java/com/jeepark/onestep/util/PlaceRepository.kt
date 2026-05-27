@@ -14,11 +14,11 @@ object PlaceRepository {
     private data class PlacePolicy(val primaryRadius: Double, val fallbackRadius: Double)
 
     private val POLICIES = mapOf(
-        "park"          to PlacePolicy(3_000.0,  10_000.0),  // 공원: 도보 가능 거리
-        "library"       to PlacePolicy(2_000.0,   8_000.0),  // 도서관
+        "park"          to PlacePolicy(3_000.0,  12_000.0),  // 공원: 도보 가능 + 외곽 여유
+        "library"       to PlacePolicy(3_000.0,  12_000.0),  // 도서관
+        "gym"           to PlacePolicy(3_000.0,  15_000.0),  // 체육시설 (외곽 희소)
         "youth_space"   to PlacePolicy(10_000.0, 30_000.0),  // 청년공간 (희소)
         "mental_center" to PlacePolicy(15_000.0, 50_000.0),  // 정신건강센터
-        "gym"           to PlacePolicy(3_000.0,  10_000.0),  // 체육시설
     )
     private val DEFAULT_POLICY = PlacePolicy(5_000.0, 20_000.0)
 

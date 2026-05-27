@@ -157,8 +157,6 @@ class QuestRepository(context: Context) {
             다른 텍스트, 마크다운 없이 JSON 배열만.
         """.trimIndent()
 
-        // 디버그: 어떤 키를 쓰는지 앞 8자만 로깅
-        android.util.Log.d("QuestRepo", "Gemini key prefix: ${BuildConfig.GEMINI_API_KEY.take(8)}...")
         val response = GeminiClient.service.generateContent(
             apiKey  = BuildConfig.GEMINI_API_KEY,
             request = GeminiRequest(listOf(GeminiContent(listOf(GeminiPart(prompt)))))

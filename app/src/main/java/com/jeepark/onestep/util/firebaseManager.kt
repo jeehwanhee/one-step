@@ -84,15 +84,16 @@ class FirestoreRepository {
         }
         getUser(
             onSuccess = { user ->
+                // 학습 분포 범위를 벗어난 입력은 경계값으로 clamp (외삽 방지)
                 val inputData = doubleArrayOf(
-                    user.age.toDouble(),                 // 0: age
-                    if (user.gender) 0.0 else 1.0,       // 1: gender (True:남자=0.0, False:여자=1.0) *학습 기준에 맞춤
-                    data.member.toDouble(),              // 2: roommates
-                    outFreqScaled,                       // 3: out_freq
-                    data.activeTime.toDouble(),          // 4: active_time
-                    data.hiki.toDouble(),                // 5: hiki_period
-                    data.sleepTime.toDouble(),           // 6: sleep_hours
-                    data.meal.toDouble()                 // 7: meal_count
+                    user.age.toDouble().coerceIn(19.0, 38.0),    // 0: age (학습 19~38)
+                    if (user.gender) 0.0 else 1.0,               // 1: gender (남=0.0, 여=1.0)
+                    data.shower.toDouble().coerceIn(0.0, 7.0),   // 2: shower (주간 0~7)
+                    outFreqScaled,                               // 3: out_freq (매핑상 0~4)
+                    data.activeTime.toDouble().coerceIn(0.0, 3.0), // 4: active_time (0~3)
+                    data.hiki.toDouble().coerceIn(0.0, 240.0),   // 5: hiki_period (0~240개월)
+                    data.sleepTime.toDouble().coerceIn(2.0, 20.0), // 6: sleep_hours (2~20)
+                    data.meal.toDouble().coerceIn(0.0, 4.0)      // 7: meal_count (0~4)
                 )
                 val result = Model_A.predict(inputData)
                 val score = (result * 100).toInt()

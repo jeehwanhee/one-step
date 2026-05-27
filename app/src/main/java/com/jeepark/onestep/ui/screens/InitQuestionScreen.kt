@@ -69,18 +69,18 @@ fun InitQuestionScreen(
     val scope      = rememberCoroutineScope()
     val pagerState = rememberPagerState(pageCount = { 6 })
     val questions  = listOf(
-        "동거인 수",
         "어제 식사 횟수",
         "어제 수면 시간",
+        "지난 일주일 동안의\n샤워 횟수",
         "지난 일주일 동안\n밖에 나간 일 수",
         "일이나 학업을\n하지 않은 기간 (월)",
         "주된 활동 시간\n0(새벽) 1(오전) 2(오후) 3(저녁)"
     )
     // 각 문항의 (최솟값, 최댓값)
     val ranges = listOf(
-        0 to 20,   // 동거인 수
         0 to 10,   // 식사 횟수
         0 to 24,   // 수면 시간
+        0 to 7,   // 샤워 횟수
         0 to 7,    // 외출 일 수
         0 to 600,  // 미취업 기간 (월)
         0 to 3     // 활동 시간대
@@ -278,9 +278,9 @@ fun onClickSubmit(
     repository: FirestoreRepository
 ) {
     val initQ = InitQuestions(
-        member     = answers[0],
-        meal       = answers[1],
-        sleepTime  = answers[2],
+        meal       = answers[0],
+        sleepTime  = answers[1],
+        shower     = answers[2],
         outside    = answers[3],
         hiki       = answers[4],
         activeTime = answers[5],
