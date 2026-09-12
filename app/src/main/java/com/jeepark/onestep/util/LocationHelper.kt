@@ -62,6 +62,40 @@ object LocationHelper {
         }?.first ?: "강남역"
     }
 
+    /**
+     * 위경도 → 기상청 격자 좌표(nx, ny) 변환 (LCC DFS, 기상청 표준 공식)
+     * 전국 어디든 변환 가능 (서울·경기 모두 커버)
+     */
+    fun latLngToGrid(lat: Double, lng: Double): Pair<Int, Int> {
+        val RE = 6371.00877; val GRID = 5.0
+        val SLAT1 = 30.0; val SLAT2 = 60.0
+        val OLON = 126.0; val OLAT = 38.0
+        val XO = 43.0; val YO = 136.0
+        val DEGRAD = Math.PI / 180.0
+
+        val re = RE / GRID
+        val slat1 = SLAT1 * DEGRAD; val slat2 = SLAT2 * DEGRAD
+        val olon = OLON * DEGRAD; val olat = OLAT * DEGRAD
+
+        var sn = Math.tan(Math.PI * 0.25 + slat2 * 0.5) / Math.tan(Math.PI * 0.25 + slat1 * 0.5)
+        sn = Math.log(Math.cos(slat1) / Math.cos(slat2)) / Math.log(sn)
+        var sf = Math.tan(Math.PI * 0.25 + slat1 * 0.5)
+        sf = Math.pow(sf, sn) * Math.cos(slat1) / sn
+        var ro = Math.tan(Math.PI * 0.25 + olat * 0.5)
+        ro = re * sf / Math.pow(ro, sn)
+
+        var ra = Math.tan(Math.PI * 0.25 + lat * DEGRAD * 0.5)
+        ra = re * sf / Math.pow(ra, sn)
+        var theta = lng * DEGRAD - olon
+        if (theta > Math.PI) theta -= 2.0 * Math.PI
+        if (theta < -Math.PI) theta += 2.0 * Math.PI
+        theta *= sn
+
+        val nx = (ra * Math.sin(theta) + XO + 0.5).toInt()
+        val ny = (ro - ra * Math.cos(theta) + YO + 0.5).toInt()
+        return Pair(nx, ny)
+    }
+
     @SuppressLint("MissingPermission")
     fun updateLocation(context: Context, onResult: (String) -> Unit) {
         // 권한 체크 — 거부 상태에서 호출 시 SecurityException 방지

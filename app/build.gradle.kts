@@ -29,6 +29,8 @@ android {
         buildConfigField("String", "SEOUL_API_KEY", "\"$seoulKey\"")
         val geminiKey = properties.getProperty("GEMINI_API_KEY") ?: ""
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
+        val kmaKey = properties.getProperty("KMA_API_KEY") ?: ""
+        buildConfigField("String", "KMA_API_KEY", "\"$kmaKey\"")
     }
     
     buildTypes {

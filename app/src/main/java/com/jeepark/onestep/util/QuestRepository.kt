@@ -40,8 +40,8 @@ class QuestRepository(context: Context) {
             return substituted.shuffled().take(8)
         }
 
-        // 5. 날씨 조회
-        val weather = fetchSeoulData()
+        // 5. 날씨 조회 (기상청 — 전국 커버)
+        val weather = fetchWeather()
 
         // 6. Gemini로 8개 선별 (실패 시 랜덤 8개 반환)
         return try {
@@ -115,17 +115,42 @@ class QuestRepository(context: Context) {
         return result.take(total)
     }
 
-    private suspend fun fetchSeoulData(): String = try {
-        val response = NetworkClient.apiService.getRealtimeCityData(
-            apiKey = BuildConfig.SEOUL_API_KEY,
-            areaName = LocationHelper.currentAreaName
-        )
-        val w = response.CITYDATA?.WEATHER_STTS?.firstOrNull()
-        if (w != null)
-            "하늘 ${w.SKY_STTS}, 기온 ${w.TEMP}°C, ${w.PCP_MSG}, 미세먼지 ${w.PM10}"
-        else "정보 없음"
+    private suspend fun fetchWeather(): String = try {
+        val lat = LocationHelper.currentLat
+        val lng = LocationHelper.currentLng
+        if (lat == null || lng == null) {
+            "정보 없음"
+        } else {
+            val (nx, ny) = LocationHelper.latLngToGrid(lat, lng)
+
+            // 초단기실황 base_time: 매시 정시 발표(약 40분 지연) → 안전하게 1시간 전 정시 사용
+            val cal = java.util.Calendar.getInstance().apply {
+                add(java.util.Calendar.HOUR_OF_DAY, -1)
+            }
+            val baseDate = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.KOREA).format(cal.time)
+            val baseTime = java.text.SimpleDateFormat("HH00", java.util.Locale.KOREA).format(cal.time)
+
+            val resp = NetworkClient.kmaService.getUltraSrtNcst(
+                serviceKey = BuildConfig.KMA_API_KEY,
+                baseDate = baseDate, baseTime = baseTime, nx = nx, ny = ny
+            )
+            val items = resp.response?.body?.items?.item ?: emptyList()
+            val temp = items.firstOrNull { it.category == "T1H" }?.obsrValue
+            val pty  = items.firstOrNull { it.category == "PTY" }?.obsrValue
+            val ptyMsg = when (pty) {
+                "0" -> "강수 없음"
+                "1" -> "비"
+                "2" -> "비/눈"
+                "3" -> "눈"
+                "5" -> "빗방울"
+                "6" -> "빗방울/눈날림"
+                "7" -> "눈날림"
+                else -> "강수 정보 없음"
+            }
+            if (temp != null) "기온 ${temp}°C, $ptyMsg" else "정보 없음"
+        }
     } catch (e: Exception) {
-        android.util.Log.e("QuestRepo", "서울 API 호출 실패", e)
+        android.util.Log.e("QuestRepo", "기상청 API 호출 실패", e)
         "정보 없음"
     }
 
