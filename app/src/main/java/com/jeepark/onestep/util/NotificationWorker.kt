@@ -25,21 +25,28 @@ class NotificationWorker(
         if (!notifEnabled) return Result.success()
 
         val lastAccess = prefs.getLong(NotificationHelper.KEY_LAST_ACCESS, 0L)
-        val daysSince  = TimeUnit.MILLISECONDS.toDays(System.currentTimeMillis() - lastAccess)
-
-        when {
-            daysSince in 1..7 -> sendNotification(daysSince.toInt())
-            daysSince > 7     -> NotificationHelper.cancel(context)
+        if (lastAccess == 0L) {
+            // 메인 화면에 도달한 적 없는 사용자에게는 안부를 보내지 않는다
+            NotificationHelper.cancel(context)
+            return Result.success()
         }
 
+        val daysSince = TimeUnit.MILLISECONDS
+            .toDays(System.currentTimeMillis() - lastAccess).toInt()
+        val lastSentMark = prefs.getInt(NotificationHelper.KEY_LAST_CHECKIN_MARK, 0)
+
+        val mark = CheckInPolicy.latestDueMark(daysSince, lastSentMark)
+            ?: return Result.success()
+        val message = CheckInPolicy.MESSAGES[mark] ?: return Result.success()
+
+        sendNotification(message)
+        prefs.edit().putInt(NotificationHelper.KEY_LAST_CHECKIN_MARK, mark).apply()
+
+        if (mark == CheckInPolicy.FINAL_MARK) NotificationHelper.cancel(context)
         return Result.success()
     }
 
-    private fun sendNotification(day: Int) {
-        // 메시지 개수 변동 대비 방어 코드
-        val idx = (day - 1).coerceIn(0, NotificationHelper.MESSAGES.size - 1)
-        val (title, content) = NotificationHelper.MESSAGES[idx]
-
+    private fun sendNotification(message: CheckInPolicy.Message) {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
@@ -50,8 +57,8 @@ class NotificationWorker(
 
         val notification = NotificationCompat.Builder(context, NotificationHelper.CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(title)
-            .setContentText(content)
+            .setContentTitle(message.title)
+            .setContentText(message.content)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
