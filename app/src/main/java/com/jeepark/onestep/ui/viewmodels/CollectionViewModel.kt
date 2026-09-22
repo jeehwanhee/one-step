@@ -3,7 +3,7 @@ package com.jeepark.onestep.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import com.jeepark.onestep.data.model.PrevQuest
 import com.jeepark.onestep.data.model.User
-import com.jeepark.onestep.util.FirestoreRepository
+import com.jeepark.onestep.data.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 private val UNLOCK_TIER = listOf(0, 1, 2, 3, 4, 5, 6, 7)
 
 class CollectionViewModel : ViewModel() {
-    private val repo = FirestoreRepository()
+    private val repo = UserRepository()
 
     private val _user = MutableStateFlow<User?>(null)
     val user: StateFlow<User?> = _user.asStateFlow()

@@ -1,13 +1,15 @@
-package com.jeepark.onestep.util
+package com.jeepark.onestep.data.repository
 
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.firestore
 import com.jeepark.onestep.data.model.InitQuestions
 import com.jeepark.onestep.data.model.User
+import com.jeepark.onestep.util.Model_A
 
-class FirestoreRepository {
+class UserRepository {
     private val db = Firebase.firestore
     private val auth = Firebase.auth
 
@@ -118,5 +120,97 @@ class FirestoreRepository {
             },
             onFailure = { onFailure(it) }
         )
+    }
+
+    /** 캐시가 아닌 서버에서 강제 조회 (신규/기존 사용자 판별처럼 최신 상태가 중요한 경우 사용). */
+    fun getUserFromServer(
+        uid: String,
+        onResult: (User?) -> Unit,
+        onError: () -> Unit
+    ) {
+        db.collection("users").document(uid)
+            .get(Source.SERVER)
+            .addOnSuccessListener { doc ->
+                val user = try {
+                    if (doc.exists()) doc.toObject(User::class.java) else null
+                } catch (e: Exception) {
+                    null
+                }
+                onResult(user)
+            }
+            .addOnFailureListener { onError() }
+    }
+
+    fun updateLastAccessDate(uid: String, timestamp: Long) {
+        db.collection("users").document(uid).update("lastAccessDate", timestamp)
+    }
+
+    fun incrementDailyQuestCount(
+        uid: String,
+        sameDayAsLast: Boolean,
+        today: String,
+        onSuccess: () -> Unit
+    ) {
+        val update: Map<String, Any> = if (sameDayAsLast) {
+            mapOf("dailyQuestCount" to FieldValue.increment(1))
+        } else {
+            mapOf("dailyQuestCount" to 1, "dailyQuestDate" to today)
+        }
+        db.collection("users").document(uid).update(update)
+            .addOnSuccessListener { onSuccess() }
+    }
+
+    fun applyQuestCompletion(
+        uid: String,
+        progress: Int,
+        tier: Int,
+        difficultyQueue: List<Double>,
+        resultsQueue: List<Int>,
+        prevQuestMap: Map<String, Any>,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        db.collection("users").document(uid).update(
+            mapOf(
+                "progress" to progress,
+                "tier" to tier,
+                "difficultyQueue" to difficultyQueue,
+                "questResultsQueue" to resultsQueue,
+                "prevQuests" to FieldValue.arrayUnion(prevQuestMap),
+                "isolatedCount" to FieldValue.increment(1)
+            )
+        ).addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onFailure(it) }
+    }
+
+    fun resetIsolatedCount(uid: String, onSuccess: () -> Unit) {
+        db.collection("users").document(uid).update("isolatedCount", 0)
+            .addOnSuccessListener { onSuccess() }
+    }
+
+    fun applyGiveUp(
+        uid: String,
+        resultsQueue: List<Int>,
+        giveUpEntry: Map<String, Any>,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        db.collection("users").document(uid).update(
+            mapOf(
+                "questResultsQueue" to resultsQueue,
+                "giveUpReasons" to FieldValue.arrayUnion(giveUpEntry)
+            )
+        ).addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onFailure(it) }
+    }
+
+    fun updateNotificationAgreed(uid: String, agreed: Boolean) {
+        db.collection("users").document(uid).update("notificationAgreed", agreed)
+    }
+
+    fun deleteUser(uid: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        db.collection("users").document(uid).delete()
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onFailure(it) }
     }
 }

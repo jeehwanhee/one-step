@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.sp
 import com.jeepark.onestep.data.model.InitQuestions
 import com.jeepark.onestep.ui.components.PagerNavigationButton
 import com.jeepark.onestep.ui.components.TextInput
-import com.jeepark.onestep.util.FirestoreRepository
+import com.jeepark.onestep.data.repository.UserRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -59,7 +59,7 @@ fun InitQuestionScreen(
     modifier: Modifier = Modifier,
     onNavigateToMain: () -> Unit,
     onNavigateToInit: () -> Unit,
-    repository: FirestoreRepository = remember { FirestoreRepository() }
+    repository: UserRepository = remember { UserRepository() }
 ) {
     // 뒤로가기 완전 차단 — 설문 완료 전까지 이탈 불가
     BackHandler { /* 막기 */ }
@@ -275,7 +275,7 @@ fun onClickSubmit(
     onNavigateToMain: () -> Unit,
     onNavigateToInit: () -> Unit,
     answers: List<Int>,
-    repository: FirestoreRepository
+    repository: UserRepository
 ) {
     val initQ = InitQuestions(
         meal       = answers[0],

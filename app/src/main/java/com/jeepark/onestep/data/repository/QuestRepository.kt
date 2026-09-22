@@ -1,6 +1,9 @@
-package com.jeepark.onestep.util
+package com.jeepark.onestep.data.repository
 
 import android.content.Context
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.firestore
 import com.jeepark.onestep.BuildConfig
 import com.jeepark.onestep.data.model.GeminiClient
 import com.jeepark.onestep.data.model.GeminiContent
@@ -8,12 +11,14 @@ import com.jeepark.onestep.data.model.GeminiPart
 import com.jeepark.onestep.data.model.GeminiRequest
 import com.jeepark.onestep.data.model.NetworkClient
 import com.jeepark.onestep.data.model.Quest
+import com.jeepark.onestep.util.LocationHelper
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.roundToInt
 
 class QuestRepository(context: Context) {
     private val appContext = context.applicationContext
+    private val db = Firebase.firestore
 
     private val questsCache = VersionedCache<Quest>(
         context = appContext,
@@ -203,5 +208,17 @@ class QuestRepository(context: Context) {
         } catch (e: Exception) {
             quests.shuffled().take(8)
         }
+    }
+
+    /** 해당 퀘스트 문서에 포기 사유를 기록 (통계용, 실패해도 유저 쪽 기록에는 영향 없음). */
+    fun recordGiveUp(questIndex: Int, reason: Int, onFailure: (Exception) -> Unit = {}) {
+        db.collection("quests")
+            .whereEqualTo("index", questIndex)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                snapshot.documents.firstOrNull()?.reference?.update(
+                    "giveUpReasons", FieldValue.arrayUnion(reason)
+                )?.addOnFailureListener { onFailure(it) }
+            }.addOnFailureListener { onFailure(it) }
     }
 }

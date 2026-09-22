@@ -44,7 +44,7 @@ import com.jeepark.onestep.ui.components.BottomButton
 import com.jeepark.onestep.ui.components.InputWithWarning
 import com.jeepark.onestep.ui.components.SelectButton
 import com.jeepark.onestep.ui.components.TextInput
-import com.jeepark.onestep.util.FirestoreRepository
+import com.jeepark.onestep.data.repository.UserRepository
 
 private val SIGNUP_BG      = Color(0xFFFDF8F0)
 private val SIGNUP_PRIMARY = Color(0xFF5A9848)
@@ -54,7 +54,7 @@ fun SignupScreen(
     modifier: Modifier = Modifier,
     onNavigateToInitQuestion: () -> Unit,
     onNavigateToInit: () -> Unit,
-    repository: FirestoreRepository = remember { FirestoreRepository() }
+    repository: UserRepository = remember { UserRepository() }
 ) {
     val context = LocalContext.current
 
@@ -235,7 +235,7 @@ fun saveUserInFirebase(
     nickname: String,
     age: Int,
     gender: Boolean,
-    repository: FirestoreRepository,
+    repository: UserRepository,
     onNavigateToInitQuestion: () -> Unit,
     onNavigateToInit: () -> Unit,
     context: android.content.Context

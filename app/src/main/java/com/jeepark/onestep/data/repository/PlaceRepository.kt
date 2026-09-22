@@ -1,7 +1,8 @@
-package com.jeepark.onestep.util
+package com.jeepark.onestep.data.repository
 
 import android.content.Context
 import com.jeepark.onestep.data.model.Place
+import com.jeepark.onestep.util.LocationHelper
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow

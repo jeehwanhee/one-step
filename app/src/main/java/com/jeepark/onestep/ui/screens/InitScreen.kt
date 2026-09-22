@@ -27,9 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
-import com.google.firebase.firestore.Source
-import com.google.firebase.firestore.firestore
-import com.jeepark.onestep.data.model.User
+import com.jeepark.onestep.data.repository.UserRepository
 import kotlinx.coroutines.delay
 
 @Composable
@@ -37,6 +35,7 @@ fun InitScreen(
     onNavigateToAuth: () -> Unit,
     onNavigateToMain: () -> Unit,
     onNavigateToInitQuestion: () -> Unit,
+    repository: UserRepository = remember { UserRepository() }
 ) {
     LaunchedEffect(Unit) {
         val currentUser = Firebase.auth.currentUser
@@ -47,17 +46,17 @@ fun InitScreen(
             return@LaunchedEffect
         }
 
-        Firebase.firestore.collection("users").document(currentUser.uid)
-            .get(Source.SERVER)
-            .addOnSuccessListener { doc ->
-                val user = if (doc.exists()) doc.toObject(User::class.java) else null
+        repository.getUserFromServer(
+            uid = currentUser.uid,
+            onResult = { user ->
                 when {
-                    user == null                                        -> onNavigateToAuth()
-                    user.prevQuests.size / 10 >= user.isolatedCount     -> onNavigateToInitQuestion()
-                    else                                                -> onNavigateToMain()
+                    user == null                                    -> onNavigateToAuth()
+                    user.prevQuests.size / 10 >= user.isolatedCount -> onNavigateToInitQuestion()
+                    else                                            -> onNavigateToMain()
                 }
-            }
-            .addOnFailureListener { onNavigateToAuth() }
+            },
+            onError = { onNavigateToAuth() }
+        )
     }
 
     val alpha = remember { Animatable(0f) }

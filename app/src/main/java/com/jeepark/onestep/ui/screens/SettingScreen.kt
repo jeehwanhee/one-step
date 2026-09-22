@@ -47,7 +47,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
-import com.google.firebase.firestore.firestore
+import com.jeepark.onestep.data.repository.UserRepository
 import com.jeepark.onestep.ui.viewmodels.AuthViewModel
 import com.jeepark.onestep.util.NotificationHelper
 
@@ -61,7 +61,8 @@ fun SettingScreen(
     onNavigateToMain: () -> Unit,
     onNavigateToInitQuestion: () -> Unit,
     onNavigateBack: () -> Unit,
-    authVm: AuthViewModel = viewModel()
+    authVm: AuthViewModel = viewModel(),
+    repository: UserRepository = remember { UserRepository() }
 ) {
     val context = LocalContext.current
     val prefs   = remember { context.getSharedPreferences("app_settings", Context.MODE_PRIVATE) }
@@ -73,11 +74,11 @@ fun SettingScreen(
     var showDelete    by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        val currentUser = Firebase.auth.currentUser
-        email = currentUser?.email ?: ""
-        val uid = currentUser?.uid ?: return@LaunchedEffect
-        Firebase.firestore.collection("users").document(uid).get()
-            .addOnSuccessListener { doc -> nickname = doc.getString("nickname") ?: "" }
+        email = Firebase.auth.currentUser?.email ?: ""
+        repository.getUser(
+            onSuccess = { user -> nickname = user.nickname },
+            onFailure = {}
+        )
     }
 
     Column(
@@ -142,10 +143,8 @@ fun SettingScreen(
                 onCheckedChange = { enabled ->
                     notifEnabled = enabled
                     prefs.edit().putBoolean(NotificationHelper.KEY_NOTIF, enabled).apply()
-                    val uid = Firebase.auth.currentUser?.uid
-                    if (uid != null) {
-                        Firebase.firestore.collection("users").document(uid)
-                            .update("notificationAgreed", enabled)
+                    Firebase.auth.currentUser?.uid?.let { uid ->
+                        repository.updateNotificationAgreed(uid, enabled)
                     }
                     if (enabled) NotificationHelper.schedule(context)
                     else NotificationHelper.cancel(context)

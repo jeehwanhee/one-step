@@ -10,12 +10,12 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.Firebase
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
-import com.google.firebase.firestore.Source
-import com.google.firebase.firestore.firestore
 import com.jeepark.onestep.R
+import com.jeepark.onestep.data.repository.UserRepository
 
 class AuthViewModel : ViewModel() {
     private val auth = Firebase.auth
+    private val userRepository = UserRepository()
 
     fun getGoogleSignInClient(context: Context): GoogleSignInClient {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -40,15 +40,12 @@ class AuthViewModel : ViewModel() {
                 .addOnSuccessListener {
                     val uid = auth.currentUser?.uid ?: run { onError(); return@addOnSuccessListener }
                     // isNewUser 대신 Firestore 문서 존재 여부로 신규 유저 판별
-                    Firebase.firestore.collection("users").document(uid)
-                        .get(Source.SERVER)
-                        .addOnSuccessListener { doc ->
-                            if (doc.exists()) onExistingUser() else onNewUser()
-                        }
-                        .addOnFailureListener {
-                            // 네트워크 실패를 신규 유저로 오판하지 않도록 onError 호출
-                            onError()
-                        }
+                    userRepository.getUserFromServer(
+                        uid = uid,
+                        onResult = { user -> if (user != null) onExistingUser() else onNewUser() },
+                        // 네트워크 실패를 신규 유저로 오판하지 않도록 onError 호출
+                        onError = { onError() }
+                    )
                 }
                 .addOnFailureListener { e ->
                     onError()
@@ -72,9 +69,9 @@ class AuthViewModel : ViewModel() {
     ) {
         val user = auth.currentUser ?: run { onFailure(); return }
         val uid  = user.uid
-        Firebase.firestore.collection("users").document(uid)
-            .delete()
-            .addOnSuccessListener {
+        userRepository.deleteUser(
+            uid = uid,
+            onSuccess = {
                 // Firestore 삭제 성공 → Auth 계정 삭제 결과까지 확인
                 user.delete()
                     .addOnSuccessListener {
@@ -88,7 +85,8 @@ class AuthViewModel : ViewModel() {
                         getGoogleSignInClient(context).signOut()
                         onFailure()
                     }
-            }
-            .addOnFailureListener { onFailure() }
+            },
+            onFailure = { onFailure() }
+        )
     }
 }
