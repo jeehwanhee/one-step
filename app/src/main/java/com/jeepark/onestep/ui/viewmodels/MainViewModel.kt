@@ -38,12 +38,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _activeQuest = MutableStateFlow<Quest?>(null)
     val activeQuest: StateFlow<Quest?> = _activeQuest.asStateFlow()
 
+    private val _isSavingQuest = MutableStateFlow(false)
+    val isSavingQuest: StateFlow<Boolean> = _isSavingQuest.asStateFlow()
+
+    private val _loadError = MutableStateFlow<String?>(null)
+    val loadError: StateFlow<String?> = _loadError.asStateFlow()
+
     init {
         loadUser()
         loadActiveQuestFromPrefs()
     }
 
     fun loadUser() {
+        _loadError.value = null
         repo.getUser(
             onSuccess = { user ->
                 _user.value = user
@@ -57,7 +64,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     .getSharedPreferences(com.jeepark.onestep.util.NotificationHelper.PREFS_NAME, android.content.Context.MODE_PRIVATE)
                 prefs.edit().putBoolean(com.jeepark.onestep.util.NotificationHelper.KEY_NOTIF, user.notificationAgreed).apply()
             },
-            onFailure = {}
+            onFailure = { e ->
+                android.util.Log.e("MainViewModel", "사용자 정보 로드 실패", e)
+                _loadError.value = e.message ?: "정보를 불러오지 못했어요"
+            }
         )
     }
 
@@ -121,10 +131,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         quest: Quest,
         answer: String,
         onTierUp: () -> Unit,
-        onDone: () -> Unit
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
     ) {
         val currentUser = _user.value ?: return
         val uid = auth.currentUser?.uid ?: return
+
+        _isSavingQuest.value = true
 
         var newProgress = currentUser.progress + quest.questEXP
         var newTier = currentUser.tier
@@ -175,13 +188,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     prevQuests        = currentUser.prevQuests + newPrevQuest,
                     isolatedCount     = currentUser.isolatedCount + 1
                 )
+                _isSavingQuest.value = false
                 if (didTierUp) onTierUp()
-                onDone()
+                onSuccess()
             },
             onFailure = { e ->
                 android.util.Log.e("MainViewModel", "saveCompletedQuest failed", e)
-                // 다이얼로그가 영원히 멈추지 않도록 onDone 호출
-                onDone()
+                _isSavingQuest.value = false
+                // activeQuest를 지우지 않아 재시도 가능하게 유지
+                onError("저장하지 못했어요. 다시 시도해주세요")
             }
         )
     }
@@ -220,7 +235,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun saveGiveUpQuest(quest: Quest, reason: Int) {
+    fun saveGiveUpQuest(
+        quest: Quest,
+        reason: Int,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
         val currentUser = _user.value ?: return
         val uid = auth.currentUser?.uid ?: return
 
@@ -231,20 +251,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             "reason"    to reason
         )
 
-        // users 문서: 실패 이력 + 포기 사유 추가
+        // users 문서: 실패 이력 + 포기 사유 추가 (이게 성공해야 activeQuest를 지움)
         repo.applyGiveUp(
             uid          = uid,
             resultsQueue = newResultsQueue,
             giveUpEntry  = giveUpEntry,
             onSuccess = {
                 _user.value = currentUser.copy(questResultsQueue = newResultsQueue)
+                onSuccess()
             },
             onFailure = { e ->
                 android.util.Log.e("MainViewModel", "saveGiveUpQuest user update failed", e)
+                onError("저장하지 못했어요. 다시 시도해주세요")
             }
         )
 
-        // quests 문서: 해당 퀘스트의 포기 사유 추가
+        // quests 문서: 해당 퀘스트의 포기 사유 추가 (통계용, 실패해도 위 흐름과 무관)
         questRepository.recordGiveUp(quest.index, reason) { e ->
             android.util.Log.e("MainViewModel", "saveGiveUpQuest quest update failed", e)
         }

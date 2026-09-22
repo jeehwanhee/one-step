@@ -34,6 +34,10 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -81,15 +85,27 @@ fun CollectionScreen(
     val user             by vm.user.collectAsState()
     val completedQuests  by vm.completedQuests.collectAsState()
     val unlockedAnimals  by vm.unlockedAnimals.collectAsState()
+    val loadError        by vm.loadError.collectAsState()
 
     val tier     = (user?.tier ?: 0).coerceIn(0, 7)
     val progress = user?.progress ?: 0
     val threshold = if (tier < EXPAMOUNT.size) EXPAMOUNT[tier] else EXPAMOUNT.last()
 
     val scope         = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
     val dragOffset    = remember { Animatable(0f) }
     val screenWidthPx = with(LocalDensity.current) {
         LocalConfiguration.current.screenWidthDp.dp.toPx()
+    }
+
+    LaunchedEffect(loadError) {
+        if (loadError != null) {
+            val result = snackbarHostState.showSnackbar(
+                message     = loadError ?: "정보를 불러오지 못했어요",
+                actionLabel = "다시 시도"
+            )
+            if (result == SnackbarResult.ActionPerformed) vm.loadUser()
+        }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -182,6 +198,19 @@ fun CollectionScreen(
 
                 Spacer(Modifier.height(24.dp))   // 하단 여백
             }
+        }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp)
+        ) { data ->
+            Snackbar(
+                snackbarData = data,
+                containerColor = Color(0xFF5A9848),
+                contentColor = Color.White
+            )
         }
     }
 }

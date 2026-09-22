@@ -38,6 +38,7 @@ import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -91,6 +92,8 @@ fun MainScreen(
     val questList by vm.questList.collectAsState()
     val isLoadingQuests by vm.isLoadingQuests.collectAsState()
     val activeQuest by vm.activeQuest.collectAsState()
+    val isSavingQuest by vm.isSavingQuest.collectAsState()
+    val loadError by vm.loadError.collectAsState()
     val tier = (user?.tier ?: 0).coerceIn(0, 7)
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -112,6 +115,16 @@ fun MainScreen(
         if (showTierUp) {
             snackbarHostState.showSnackbar("새 친구가 나타났어요!")
             showTierUp = false
+        }
+    }
+
+    LaunchedEffect(loadError) {
+        if (loadError != null) {
+            val result = snackbarHostState.showSnackbar(
+                message    = loadError ?: "정보를 불러오지 못했어요",
+                actionLabel = "다시 시도"
+            )
+            if (result == SnackbarResult.ActionPerformed) vm.loadUser()
         }
     }
 
@@ -293,15 +306,21 @@ fun MainScreen(
         if (showVerifyDialog) {
             QuestVerifyDialog(
                 quest     = quest,
+                isSaving  = isSavingQuest,
                 onDismiss = { showVerifyDialog = false },
                 onSubmit  = { answer ->
                     vm.saveCompletedQuest(
-                        quest    = quest,
-                        answer   = answer,
-                        onTierUp = { showTierUp = true },
-                        onDone    = {
+                        quest     = quest,
+                        answer    = answer,
+                        onTierUp  = { showTierUp = true },
+                        onSuccess = {
                             showVerifyDialog = false
                             vm.clearActiveQuest()
+                        },
+                        onError = { msg ->
+                            // activeQuest는 그대로 유지 → 카드가 남아있어 다시 시도 가능
+                            showVerifyDialog = false
+                            scope.launch { snackbarHostState.showSnackbar(msg) }
                         }
                     )
                 }
@@ -311,9 +330,16 @@ fun MainScreen(
             GiveUpReasonDialog(
                 onDismiss = { showGiveUpDialog = false },
                 onSubmit  = { reason ->
-                    vm.saveGiveUpQuest(quest, reason)
-                    vm.clearActiveQuest()
                     showGiveUpDialog = false
+                    vm.saveGiveUpQuest(
+                        quest     = quest,
+                        reason    = reason,
+                        onSuccess = { vm.clearActiveQuest() },
+                        onError   = { msg ->
+                            // activeQuest는 그대로 유지 → 다시 포기를 시도할 수 있음
+                            scope.launch { snackbarHostState.showSnackbar(msg) }
+                        }
+                    )
                 }
             )
         }
@@ -684,6 +710,7 @@ private fun GiveUpReasonDialog(
 @Composable
 private fun QuestVerifyDialog(
     quest: Quest,
+    isSaving: Boolean,
     onDismiss: () -> Unit,
     onSubmit: (String) -> Unit
 ) {
@@ -743,11 +770,12 @@ private fun QuestVerifyDialog(
                             onSubmit(answer.trim())
                         }
                     },
+                    enabled  = !isSaving,
                     modifier = Modifier.fillMaxWidth(),
                     shape    = RoundedCornerShape(14.dp),
                     colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A9858))
                 ) {
-                    Text("제출하기", color = Color.White, fontSize = 14.sp)
+                    Text(if (isSaving) "저장 중..." else "제출하기", color = Color.White, fontSize = 14.sp)
                 }
 
                 Text(
