@@ -6,10 +6,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
-import com.jeepark.onestep.data.model.EXPAMOUNT
 import com.jeepark.onestep.data.model.PrevQuest
 import com.jeepark.onestep.data.model.Quest
 import com.jeepark.onestep.data.model.User
+import com.jeepark.onestep.data.model.calculateTierProgress
 import com.jeepark.onestep.data.repository.QuestRepository
 import com.jeepark.onestep.data.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -139,18 +139,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         _isSavingQuest.value = true
 
-        var newProgress = currentUser.progress + quest.questEXP
-        var newTier = currentUser.tier
-
-        while (newTier < EXPAMOUNT.size) {
-            val threshold = EXPAMOUNT[newTier]
-            if (newProgress >= threshold) {
-                newProgress -= threshold
-                newTier++
-            } else break
-        }
-
-        val didTierUp = newTier > currentUser.tier
+        val (newProgress, newTier, didTierUp) = calculateTierProgress(
+            progress = currentUser.progress,
+            tier     = currentUser.tier,
+            exp      = quest.questEXP
+        )
 
         val newDifficultyQueue = (currentUser.difficultyQueue + quest.difficulty.toDouble()).takeLast(10)
         val newResultsQueue    = (currentUser.questResultsQueue + 1).takeLast(10)
