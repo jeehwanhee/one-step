@@ -76,7 +76,6 @@
 ## 활용 데이터
 
 - **서울시 고립은둔 청년 실태조사 결과** — 통계 기반 가상 케이스 3,000건을 생성해 `Model_A` 학습 데이터로 사용 ([data.seoul.go.kr/OA-22347](https://data.seoul.go.kr/dataList/OA-22347/F/1/datasetView.do))
-- **서울시 실시간 도시데이터** — 위치 기반 기온·강수·미세먼지 조회, 실외 퀘스트 필터링에 사용 ([data.seoul.go.kr/OA-21285](https://data.seoul.go.kr/dataList/OA-21285/F/1/datasetView.do))
 - **서울시 주요 공원현황 / 공공도서관 현황정보** — 위치 기반 퀘스트 치환용 장소 데이터
 - **기상청 단기예보** — 서울 외 지역까지 커버하기 위해 추가한 전국 격자 기반 날씨 API
 

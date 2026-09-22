@@ -25,8 +25,6 @@ android {
         if (propertiesFile.exists()) {
             properties.load(propertiesFile.inputStream())
         }
-        val seoulKey = properties.getProperty("SEOUL_API_KEY") ?: ""
-        buildConfigField("String", "SEOUL_API_KEY", "\"$seoulKey\"")
         val geminiKey = properties.getProperty("GEMINI_API_KEY") ?: ""
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
         val kmaKey = properties.getProperty("KMA_API_KEY") ?: ""

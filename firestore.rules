@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 사용자 문서: 본인만 읽기/쓰기
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 퀘스트 문서: 인증된 사용자 읽기 허용
+    // 쓰기는 giveUpReasons 필드 추가만 허용 (포기 사유 기록)
+    match /quests/{questId} {
+      allow read: if request.auth != null;
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['giveUpReasons']);
+      allow create, delete: if false;
+    }
+
+    match /places/{document} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    match /meta/{document} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+  }
+}
