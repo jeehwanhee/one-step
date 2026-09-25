@@ -9,7 +9,7 @@ import androidx.compose.ui.unit.sp
 import com.jeepark.onestep.R
 
 val BoldFont = FontFamily(Font(R.font.bold))
-val RegularFont = FontFamily(Font(R.font.bold))
+val RegularFont = FontFamily(Font(R.font.regular))
 
 val text_Bold_28 = TextStyle(
     fontFamily = BoldFont,
