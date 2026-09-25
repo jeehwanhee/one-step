@@ -9,11 +9,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
@@ -21,10 +24,12 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.FirebaseApp
 import com.jeepark.onestep.util.LocationHelper
 import com.jeepark.onestep.util.NotificationHelper
+import com.jeepark.onestep.ui.components.OneStepBottomBar
 import com.jeepark.onestep.ui.screens.AuthScreen
 import com.jeepark.onestep.ui.screens.CompletedQuestsScreen
 import com.jeepark.onestep.ui.screens.InitQuestionScreen
@@ -107,7 +112,23 @@ fun MyNavGraph() {
         }
     }
 
-    NavHost(navController = navController, startDestination = "init") {
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    val bottomBarRoutes = setOf("main", "progress", "completed")
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = {
+            if (currentRoute in bottomBarRoutes) {
+                OneStepBottomBar(navController = navController, currentRoute = currentRoute)
+            }
+        }
+    ) { innerPadding ->
+    NavHost(
+        navController = navController,
+        startDestination = "init",
+        modifier = Modifier.padding(innerPadding)
+    ) {
 
         composable(route = "init") {
             InitScreen(
@@ -176,8 +197,10 @@ fun MyNavGraph() {
 
         composable(
             route = "main",
+            enterTransition = { EnterTransition.None },
             exitTransition = { ExitTransition.None },
-            popEnterTransition = { EnterTransition.None }
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
         ) {
             MainScreen(
                 onNavigateToProgress = {
@@ -206,6 +229,8 @@ fun MyNavGraph() {
         composable(
             route = "progress",
             enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) {
             CollectionScreen(
@@ -218,6 +243,8 @@ fun MyNavGraph() {
         composable(
             route = "completed",
             enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) {
             CompletedQuestsScreen(
@@ -243,8 +270,6 @@ fun MyNavGraph() {
             )
         }
 
-
-
-
+    }
     }
 }
