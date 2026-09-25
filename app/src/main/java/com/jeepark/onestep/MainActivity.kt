@@ -203,16 +203,6 @@ fun MyNavGraph() {
             popExitTransition = { ExitTransition.None }
         ) {
             MainScreen(
-                onNavigateToProgress = {
-                    navController.navigate("progress") {
-                        launchSingleTop = true
-                    }
-                },
-                onNavigateToCompleted = {
-                    navController.navigate("completed") {
-                        launchSingleTop = true
-                    }
-                },
                 onNavigateToSetting = {
                     navController.navigate("setting") {
                         launchSingleTop = true
