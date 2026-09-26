@@ -185,15 +185,15 @@ private fun CollectionHeader(
         modifier = Modifier
             .fillMaxWidth()
             .background(CreamSurface)
-            .padding(top = 8.dp, bottom = 14.dp)
+            .padding(bottom = 14.dp)
     ) {
         Row(
-            modifier          = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+            modifier          = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 32.dp, bottom = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text       = "진척도",
-                fontSize   = 18.sp,
+                fontSize   = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color      = HeadingText
             )

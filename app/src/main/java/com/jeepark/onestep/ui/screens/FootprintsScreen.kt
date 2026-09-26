@@ -86,14 +86,13 @@ private fun FootprintsHeader(selectedTab: Int, onSelectTab: (Int) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .background(CreamSurface)
-            .padding(top = 8.dp)
     ) {
         Text(
             text       = "발자취",
-            fontSize   = 18.sp,
+            fontSize   = 20.sp,
             fontWeight = FontWeight.Bold,
             color      = HeadingText,
-            modifier   = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
+            modifier   = Modifier.padding(start = 20.dp, end = 20.dp, top = 32.dp, bottom = 14.dp)
         )
 
         Row(
