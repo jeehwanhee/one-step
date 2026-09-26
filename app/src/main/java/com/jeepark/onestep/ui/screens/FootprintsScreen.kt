@@ -45,6 +45,7 @@ import com.jeepark.onestep.ui.screens.footprints.calcStartDate
 import com.jeepark.onestep.ui.screens.footprints.calcStreakDays
 import com.jeepark.onestep.ui.screens.footprints.calcTotalExp
 import com.jeepark.onestep.ui.theme.AmberText
+import com.jeepark.onestep.ui.theme.CardSurface
 import com.jeepark.onestep.ui.theme.CreamBackground
 import com.jeepark.onestep.ui.theme.CreamSurface
 import com.jeepark.onestep.ui.theme.HeadingText
@@ -170,7 +171,7 @@ private fun HistoryTab(completedQuests: List<PrevQuest>) {
 
 @Composable
 private fun CompletedQuestCard(quest: PrevQuest, modifier: Modifier = Modifier) {
-    FlatCard(modifier = modifier.fillMaxWidth(), cornerRadius = 18.dp, shadowOffset = 2.dp) {
+    FlatCard(modifier = modifier.fillMaxWidth(), backgroundColor = CardSurface, cornerRadius = 18.dp, shadowOffset = 2.dp) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier              = Modifier.fillMaxWidth(),

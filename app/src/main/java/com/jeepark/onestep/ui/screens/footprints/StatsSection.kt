@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jeepark.onestep.data.model.PrevQuest
+import com.jeepark.onestep.ui.theme.CardSurface
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -41,7 +42,7 @@ fun StatsColumn(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(Color.White)
+            .background(CardSurface)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {

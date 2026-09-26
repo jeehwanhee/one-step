@@ -23,6 +23,7 @@ val AmberText = Color(0xFF96590D)
 val SecondaryBackground = Color(0xFFF3EBD8)
 val SecondaryBorder = Color(0xFFE7DCC3)
 val HeadingText = Color(0xFF2B2620)
+val CardSurface = Color(0xFFFFF9EF) // CreamSurface보다 살짝만 밝은 톤 — 발자취 통계 카드 배경
 
 
 
