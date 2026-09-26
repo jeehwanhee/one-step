@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jeepark.onestep.ui.theme.MutedText
@@ -28,6 +29,7 @@ fun PrimaryPillButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    minHeight: Dp = 58.dp,
 ) {
     Button(
         onClick = onClick,
@@ -46,7 +48,7 @@ fun PrimaryPillButton(
         ),
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 58.dp)
+            .defaultMinSize(minHeight = minHeight)
             .flatShadow(shape = PillShape, color = PrimaryGreenShadow)
     ) {
         Text(text = text, fontSize = 15.sp, fontWeight = FontWeight.Bold)
@@ -60,6 +62,7 @@ fun SecondaryPillButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    minHeight: Dp = 58.dp,
 ) {
     Button(
         onClick = onClick,
@@ -79,7 +82,7 @@ fun SecondaryPillButton(
         ),
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 58.dp)
+            .defaultMinSize(minHeight = minHeight)
     ) {
         Text(text = text, fontSize = 13.5.sp, fontWeight = FontWeight.Medium)
     }

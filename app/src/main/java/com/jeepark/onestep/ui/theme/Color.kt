@@ -22,6 +22,7 @@ val MutedText = Color(0xFF6B5D4A)
 val AmberText = Color(0xFF96590D)
 val SecondaryBackground = Color(0xFFF3EBD8)
 val SecondaryBorder = Color(0xFFE7DCC3)
+val HeadingText = Color(0xFF2B2620)
 
 
 

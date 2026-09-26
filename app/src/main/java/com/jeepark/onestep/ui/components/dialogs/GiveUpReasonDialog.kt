@@ -10,10 +10,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,6 +25,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.jeepark.onestep.ui.components.FlatCard
+import com.jeepark.onestep.ui.components.PrimaryPillButton
+import com.jeepark.onestep.ui.theme.HeadingText
+import com.jeepark.onestep.ui.theme.MutedText
+import com.jeepark.onestep.ui.theme.PrimaryGreen
+import com.jeepark.onestep.ui.theme.SecondaryBackground
+import com.jeepark.onestep.ui.theme.SecondaryBorder
 
 // ===== 퀘스트 포기 사유 다이얼로그 =====
 
@@ -45,17 +48,15 @@ fun GiveUpReasonDialog(
     var selected by remember { mutableStateOf(-1) }
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Card(
-            modifier  = Modifier.padding(horizontal = 20.dp).fillMaxWidth(),
-            shape     = RoundedCornerShape(22.dp),
-            colors    = CardDefaults.cardColors(containerColor = Color(0xFFFAF7F1)),
-            elevation = CardDefaults.cardElevation(8.dp)
+        FlatCard(
+            modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth(),
+            cornerRadius = 22.dp
         ) {
             Column(
                 modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("포기 사유를 선택해주세요", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF3A3228))
+                Text("포기 사유를 선택해주세요", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = HeadingText)
 
                 reasons.forEach { (id, label) ->
                     val isSelected = selected == id
@@ -63,8 +64,8 @@ fun GiveUpReasonDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) Color(0xFFD4EAD0) else Color(0xFFF0ECE0))
-                            .border(1.dp, if (isSelected) Color(0xFF7AB870) else Color(0xFFD4CDB8), RoundedCornerShape(12.dp))
+                            .background(if (isSelected) PrimaryGreen.copy(alpha = 0.14f) else SecondaryBackground)
+                            .border(1.dp, if (isSelected) PrimaryGreen else SecondaryBorder, RoundedCornerShape(12.dp))
                             .clickable(
                                 indication = null,
                                 interactionSource = remember { MutableInteractionSource() }
@@ -74,24 +75,18 @@ fun GiveUpReasonDialog(
                         Text(
                             text      = label,
                             fontSize  = 13.sp,
-                            color     = if (isSelected) Color(0xFF2D5A2D) else Color(0xFF5A5248),
+                            color     = if (isSelected) PrimaryGreen else MutedText,
                             fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
                         )
                     }
                 }
 
-                Button(
-                    onClick  = { if (selected >= 0) onSubmit(selected) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled  = selected >= 0,
-                    shape    = RoundedCornerShape(14.dp),
-                    colors   = ButtonDefaults.buttonColors(
-                        containerColor         = Color(0xFF6A9858),
-                        disabledContainerColor = Color(0xFFB8B0A0)
-                    )
-                ) {
-                    Text("포기하기", color = Color.White, fontSize = 14.sp)
-                }
+                PrimaryPillButton(
+                    text = "포기하기",
+                    onClick = { if (selected >= 0) onSubmit(selected) },
+                    enabled = selected >= 0,
+                    minHeight = 52.dp
+                )
 
                 Text(
                     "취소",
@@ -101,7 +96,7 @@ fun GiveUpReasonDialog(
                     ) { onDismiss() },
                     textAlign = TextAlign.Center,
                     fontSize  = 12.sp,
-                    color     = Color(0xFFB0A890)
+                    color     = MutedText
                 )
             }
         }

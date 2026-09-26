@@ -1,28 +1,23 @@
 package com.jeepark.onestep.ui.screens
 
 import android.widget.Toast
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -38,18 +33,30 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jeepark.onestep.data.model.Quest
+import com.jeepark.onestep.ui.components.FlatCard
+import com.jeepark.onestep.ui.components.PrimaryPillButton
+import com.jeepark.onestep.ui.components.flatShadow
+import com.jeepark.onestep.ui.components.SecondaryPillButton
 import com.jeepark.onestep.ui.components.StarRating
 import com.jeepark.onestep.ui.components.dialogs.GiveUpReasonDialog
 import com.jeepark.onestep.ui.components.dialogs.QuestInputDialog
 import com.jeepark.onestep.ui.components.dialogs.QuestSuggestDialog
 import com.jeepark.onestep.ui.components.dialogs.QuestVerifyDialog
+import com.jeepark.onestep.ui.theme.AmberText
+import com.jeepark.onestep.ui.theme.CreamBackground
+import com.jeepark.onestep.ui.theme.CreamSurface
+import com.jeepark.onestep.ui.theme.HeadingText
+import com.jeepark.onestep.ui.theme.PrimaryGreen
+import com.jeepark.onestep.ui.theme.SecondaryBorder
 import com.jeepark.onestep.ui.viewmodels.MainViewModel
 import kotlinx.coroutines.launch
 
@@ -111,15 +118,38 @@ fun MainScreen(
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        ParkBackground(tier = tier)
+    Box(modifier = modifier.fillMaxSize().background(CreamBackground)) {
+
+        // ===== 공원 스테이지 카드: 여백 + 라운드 코너 + 하드 섀도 =====
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+                .padding(top = 76.dp, bottom = 22.dp)
+                .flatShadow(shape = RoundedCornerShape(44.dp), color = SecondaryBorder)
+                .clip(RoundedCornerShape(44.dp))
+        ) {
+            ParkBackground(tier = tier, modifier = Modifier.fillMaxSize())
+        }
+
+        // 워드마크
+        Text(
+            text = "한걸음,",
+            color = PrimaryGreen,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Default,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(top = 32.dp, start = 20.dp)
+        )
 
         // 활성 퀘스트가 없을 때만 퀘스트 버튼 표시
         if (activeQuest == null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 14.dp, vertical = 24.dp),
+                    .padding(horizontal = 16.dp, vertical = 22.dp),
                 contentAlignment = Alignment.BottomCenter
             ) {
                 QuestButton(limitReached = false) { showInputDialog = true }
@@ -143,15 +173,20 @@ fun MainScreen(
         // 우상단 설정 버튼
         IconButton(
             onClick  = onNavigateToSetting,
+            colors   = IconButtonDefaults.iconButtonColors(
+                containerColor = CreamSurface,
+                contentColor   = HeadingText
+            ),
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 8.dp, end = 4.dp)
+                .padding(top = 24.dp, end = 20.dp)
+                .size(40.dp)
+                .clip(CircleShape)
         ) {
             Icon(
                 imageVector        = Icons.Default.Menu,
                 contentDescription = "설정",
-                tint               = Color.White,
-                modifier           = Modifier.size(28.dp)
+                modifier           = Modifier.size(18.dp)
             )
         }
 
@@ -163,7 +198,7 @@ fun MainScreen(
         ) { data ->
             Snackbar(
                 snackbarData = data,
-                containerColor = Color(0xFF5A9848),
+                containerColor = PrimaryGreen,
                 contentColor = Color.White
             )
         }
@@ -260,25 +295,11 @@ fun MainScreen(
 
 @Composable
 private fun QuestButton(limitReached: Boolean, onClick: () -> Unit) {
-    Button(
-        onClick  = onClick,
-        enabled  = !limitReached,
-        modifier = Modifier.fillMaxWidth(),
-        shape    = RoundedCornerShape(18.dp),
-        colors   = ButtonDefaults.buttonColors(
-            containerColor         = Color(0xFF5A9848),
-            disabledContainerColor = Color(0xFFAAAAAA)
-        ),
-        border         = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.22f)),
-        contentPadding = PaddingValues(vertical = 20.dp, horizontal = 20.dp)
-    ) {
-        Text(
-            text       = if (limitReached) "오늘은 여기까지, 내일 시도해 주세요" else "새 퀘스트 받기",
-            fontSize   = 15.sp,
-            color      = Color.White,
-            fontWeight = FontWeight.Medium
-        )
-    }
+    PrimaryPillButton(
+        text = if (limitReached) "오늘은 여기까지, 내일 시도해 주세요" else "새 퀘스트 받기",
+        onClick = onClick,
+        enabled = !limitReached
+    )
 }
 
 // ===== 퀘스트 수행 카드 =====
@@ -289,53 +310,49 @@ private fun ActiveQuestCard(
     onGiveUp: () -> Unit,
     onComplete: () -> Unit
 ) {
-    Card(
-        modifier  = Modifier
+    FlatCard(
+        modifier = Modifier
             .padding(horizontal = 16.dp, vertical = 20.dp)
             .fillMaxWidth(),
-        shape     = RoundedCornerShape(22.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color(0xFFFAF7F1)),
-        elevation = CardDefaults.cardElevation(12.dp)
+        cornerRadius = 22.dp
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 28.dp, horizontal = 22.dp),
+            modifier = Modifier.padding(vertical = 24.dp, horizontal = 22.dp),
         ) {
             Text(
                 quest.questName,
-                fontSize   = 22.sp,
+                fontSize   = 20.sp,
                 fontWeight = FontWeight.Medium,
-                color      = Color(0xFF3A3228),
-                lineHeight = 32.sp,
-                modifier   = Modifier.padding(bottom = 24.dp)
+                color      = HeadingText,
+                lineHeight = 28.sp,
+                modifier   = Modifier.padding(bottom = 18.dp)
             )
 
             Row(
-                modifier          = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                modifier          = Modifier.fillMaxWidth().padding(bottom = 18.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 StarRating(quest.difficulty, starSize = 18.sp)
                 Spacer(modifier = Modifier.weight(1f))
-                Text("+${quest.questEXP} XP", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF5A7A30))
+                Text("+${quest.questEXP} XP", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = AmberText)
             }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                OutlinedButton(
-                    onClick  = onGiveUp,
-                    modifier = Modifier.weight(1f).defaultMinSize(minHeight = 52.dp),
-                    shape    = RoundedCornerShape(12.dp),
-                    border   = BorderStroke(1.dp, Color(0xFFD4CDB8)),
-                    colors   = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF0ECE0), contentColor = Color(0xFF8A7068))
-                ) { Text("포기", fontSize = 13.sp) }
-
-                Button(
-                    onClick  = onComplete,
-                    modifier = Modifier.weight(2f).defaultMinSize(minHeight = 52.dp),
-                    shape    = RoundedCornerShape(12.dp),
-                    colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A9858))
-                ) { Text("완료했어요", fontSize = 14.sp, color = Color.White) }
+                SecondaryPillButton(
+                    text = "포기",
+                    onClick = onGiveUp,
+                    modifier = Modifier.weight(1f),
+                    minHeight = 52.dp
+                )
+                PrimaryPillButton(
+                    text = "완료했어요",
+                    onClick = onComplete,
+                    modifier = Modifier.weight(2f),
+                    minHeight = 52.dp
+                )
             }
         }
     }

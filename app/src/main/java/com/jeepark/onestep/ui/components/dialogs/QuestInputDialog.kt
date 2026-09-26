@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +36,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.jeepark.onestep.ui.components.FlatCard
+import com.jeepark.onestep.ui.theme.HeadingText
+import com.jeepark.onestep.ui.theme.MutedText
+import com.jeepark.onestep.ui.theme.PrimaryGreen
+import com.jeepark.onestep.ui.theme.SecondaryBackground
+import com.jeepark.onestep.ui.theme.SecondaryBorder
 
 // ===== 퀘스트 조건 다이얼로그 =====
 
@@ -56,29 +60,27 @@ fun QuestInputDialog(
     val moods = listOf("매우 나쁨", "나쁨", "보통", "좋음", "매우 좋음")
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Card(
+        FlatCard(
             modifier = Modifier
                 .padding(horizontal = 20.dp)
                 .fillMaxWidth()
                 .graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha },
-            shape     = RoundedCornerShape(22.dp),
-            colors    = CardDefaults.cardColors(containerColor = Color(0xFFFAF7F1)),
-            elevation = CardDefaults.cardElevation(8.dp)
+            cornerRadius = 22.dp
         ) {
             Column(
-                modifier  = Modifier.padding(horizontal = 18.dp, vertical = 22.dp),
+                modifier = Modifier.padding(horizontal = 18.dp, vertical = 22.dp),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
                 Text(
                     "퀘스트 조건 설정",
                     fontSize   = 16.sp,
                     fontWeight = FontWeight.Medium,
-                    color      = Color(0xFF3A3228),
+                    color      = HeadingText,
                     modifier   = Modifier.padding(bottom = 18.dp)
                 )
 
                 // 기분 섹션
-                Text("지금 기분", fontSize = 10.sp, color = Color(0xFF8A7A60), letterSpacing = 1.2.sp,
+                Text("지금 기분", fontSize = 10.sp, color = MutedText, letterSpacing = 1.2.sp,
                     modifier = Modifier.padding(bottom = 7.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
@@ -96,8 +98,8 @@ fun QuestInputDialog(
                     enabled  = selectedMood >= 0 && !isLoading,
                     shape    = RoundedCornerShape(14.dp),
                     colors   = ButtonDefaults.buttonColors(
-                        containerColor         = Color(0xFF6A9858),
-                        disabledContainerColor = Color(0xFFB8B0A0)
+                        containerColor         = PrimaryGreen,
+                        disabledContainerColor = PrimaryGreen.copy(alpha = 0.4f)
                     ),
                     contentPadding = PaddingValues(13.dp)
                 ) {
@@ -112,7 +114,7 @@ fun QuestInputDialog(
                             "퀘스트 찾기",
                             fontSize   = 13.sp,
                             fontWeight = FontWeight.Medium,
-                            color      = if (selectedMood >= 0) Color.White else Color(0xFFECE8E0)
+                            color      = Color.White
                         )
                     }
                 }
@@ -129,7 +131,7 @@ fun QuestInputDialog(
                         ) { if (!isLoading) onDismiss() },
                     textAlign = TextAlign.Center,
                     fontSize  = 12.sp,
-                    color     = Color(0xFFB0A890)
+                    color     = MutedText
                 )
             }
         }
@@ -141,15 +143,15 @@ private fun MoodChip(text: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(if (selected) Color(0xFFD4EAD0) else Color(0xFFF0ECE0))
-            .border(1.dp, if (selected) Color(0xFF7AB870) else Color(0xFFD4CDB8), RoundedCornerShape(10.dp))
+            .background(if (selected) PrimaryGreen.copy(alpha = 0.14f) else SecondaryBackground)
+            .border(1.dp, if (selected) PrimaryGreen else SecondaryBorder, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 7.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text,
-            color      = if (selected) Color(0xFF2D5A2D) else Color(0xFF7A6E60),
+            color      = if (selected) PrimaryGreen else MutedText,
             fontSize   = 10.sp,
             fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
             maxLines   = 1
