@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -36,14 +37,28 @@ import com.jeepark.onestep.ui.components.FlatCard
 import com.jeepark.onestep.ui.theme.CardSurface
 import com.jeepark.onestep.ui.theme.HeadingText
 import com.jeepark.onestep.ui.theme.MutedText
+import com.jeepark.onestep.ui.theme.PrimaryGreen
+import com.jeepark.onestep.ui.theme.PrimaryGreenShadow
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
+// 5단계: 0 / 1 / 2 / 3~4 / 5+
 private val LEVEL_0 = Color(0xFFEDE4CE)
-private val LEVEL_1 = Color(0xFFB7E2A6)
-private val LEVEL_2 = Color(0xFF5DA84C)
-private val LEVEL_3 = Color(0xFF3F7A36)
+private val LEVEL_1 = Color(0xFFC9E8B8)
+private val LEVEL_2 = Color(0xFF8CCB6E)
+private val LEVEL_3 = PrimaryGreen
+private val LEVEL_4 = PrimaryGreenShadow
+
+private data class LegendStep(val label: String, val color: Color)
+
+private val LEGEND_STEPS = listOf(
+    LegendStep("0", LEVEL_0),
+    LegendStep("1", LEVEL_1),
+    LegendStep("2", LEVEL_2),
+    LegendStep("3~4", LEVEL_3),
+    LegendStep("5+", LEVEL_4),
+)
 
 private val DONE_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
 private val WEEKDAY_LABELS = listOf("일", "월", "화", "수", "목", "금", "토")
@@ -51,11 +66,12 @@ private val WEEKDAY_LABELS = listOf("일", "월", "화", "수", "목", "금", "�
 private fun levelColorFor(count: Int): Color = when {
     count <= 0 -> LEVEL_0
     count == 1 -> LEVEL_1
-    count <= 3 -> LEVEL_2
-    else       -> LEVEL_3
+    count == 2 -> LEVEL_2
+    count <= 4 -> LEVEL_3
+    else       -> LEVEL_4
 }
 
-private fun textColorFor(count: Int): Color = if (count >= 4) Color.White else HeadingText
+private fun textColorFor(count: Int): Color = if (count >= 3) Color.White else HeadingText
 
 private fun PrevQuest.doneLocalDateOrNull(): LocalDate? =
     runCatching { LocalDate.parse(doneDate.take(10), DONE_DATE_FORMAT) }.getOrNull()
@@ -150,22 +166,24 @@ fun QuestActivityCalendar(
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                horizontalArrangement = Arrangement.Center
             ) {
-                Text(text = "적음", fontSize = 10.sp, color = MutedText)
-                Spacer(Modifier.width(4.dp))
-                listOf(LEVEL_0, LEVEL_1, LEVEL_2, LEVEL_3).forEach { color ->
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 2.dp)
-                            .size(10.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(color)
-                    )
+                LEGEND_STEPS.forEach { step ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(horizontal = 7.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(step.color)
+                        )
+                        Spacer(Modifier.height(3.dp))
+                        Text(text = step.label, fontSize = 9.5.sp, color = MutedText)
+                    }
                 }
-                Spacer(Modifier.width(4.dp))
-                Text(text = "많음", fontSize = 10.sp, color = MutedText)
             }
         }
     }
