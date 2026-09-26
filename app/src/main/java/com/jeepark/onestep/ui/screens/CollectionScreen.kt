@@ -4,6 +4,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -22,8 +24,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Icon
@@ -38,6 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -52,17 +53,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jeepark.onestep.data.model.EXPAMOUNT
-import com.jeepark.onestep.data.model.PrevQuest
+import com.jeepark.onestep.ui.components.flatShadow
+import com.jeepark.onestep.ui.screens.collection.AnimalProfileCard
+import com.jeepark.onestep.ui.theme.AmberText
+import com.jeepark.onestep.ui.theme.CreamBackground
+import com.jeepark.onestep.ui.theme.CreamSurface
+import com.jeepark.onestep.ui.theme.HeadingText
+import com.jeepark.onestep.ui.theme.MutedText
+import com.jeepark.onestep.ui.theme.PrimaryGreen
+import com.jeepark.onestep.ui.theme.SecondaryBackground
 import com.jeepark.onestep.ui.viewmodels.CollectionViewModel
 import com.jeepark.onestep.util.ANIMAL_NAMES
 import com.jeepark.onestep.util.PixelAnimalRenderer
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
-
-private val BG_COLOR = Color(0xFFFDF8F0)
-private val PRIMARY  = Color(0xFF5A9848)
-
+import com.jeepark.onestep.util.findAnimalUnlockDate
 
 @Composable
 fun CollectionScreen(
@@ -80,6 +83,10 @@ fun CollectionScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // 기본값: 가장 최근에 해금된 동물. 사용자가 직접 고르면 그 선택을 유지한다.
+    var manuallySelected by remember { mutableStateOf<Int?>(null) }
+    val selectedIndex = manuallySelected ?: unlockedAnimals.maxOrNull() ?: 0
+
     LaunchedEffect(loadError) {
         if (loadError != null) {
             val result = snackbarHostState.showSnackbar(
@@ -95,7 +102,7 @@ fun CollectionScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(BG_COLOR)
+                .background(CreamBackground)
         ) {
             // 헤더는 고정 (스크롤 영향 없음)
             CollectionHeader(
@@ -115,35 +122,25 @@ fun CollectionScreen(
                     text       = "해금된 동물들",
                     fontSize   = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color      = Color(0xFF3A3A3A),
+                    color      = HeadingText,
                     modifier   = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
                 )
 
                 AnimalGrid(
                     unlockedAnimals = unlockedAnimals,
+                    selectedIndex   = selectedIndex,
+                    onSelect        = { manuallySelected = it },
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth()
                 )
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(14.dp))
 
-                RecoveryGraph(
-                    history  = user?.isolatedHistory ?: emptyList(),
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-
-                Spacer(Modifier.height(10.dp))
-
-                StatsColumn(
-                    completedCount = completedQuests.size,
-                    streakDays     = calcStreakDays(completedQuests),
-                    maxStreakDays  = calcMaxStreakDays(completedQuests),
-                    startDate      = calcStartDate(completedQuests),
-                    dday           = calcDday(completedQuests),
-                    totalExp       = calcTotalExp(completedQuests),
-                    avgDifficulty  = calcAvgDifficulty(completedQuests),
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                AnimalProfileCard(
+                    animalIndex  = selectedIndex,
+                    metDateLabel = findAnimalUnlockDate(selectedIndex, completedQuests, user?.agreedAt) ?: "-",
+                    modifier     = Modifier.padding(horizontal = 16.dp)
                 )
 
                 Spacer(Modifier.height(24.dp))   // 하단 여백
@@ -158,7 +155,7 @@ fun CollectionScreen(
         ) { data ->
             Snackbar(
                 snackbarData = data,
-                containerColor = Color(0xFF5A9848),
+                containerColor = PrimaryGreen,
                 contentColor = Color.White
             )
         }
@@ -187,7 +184,7 @@ private fun CollectionHeader(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .background(CreamSurface)
             .padding(top = 8.dp, bottom = 14.dp)
     ) {
         Row(
@@ -198,7 +195,7 @@ private fun CollectionHeader(
                 text       = "진척도",
                 fontSize   = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color      = Color(0xFF2A2A2A)
+                color      = HeadingText
             )
         }
 
@@ -213,19 +210,19 @@ private fun CollectionHeader(
                 text       = "티어 ${tier}",
                 fontSize   = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color      = Color(0xFF2A2A2A)
+                color      = HeadingText
             )
             if (isMaxTier) {
                 Text(
                     text     = "   •   최고 티어 달성!",
                     fontSize = 12.sp,
-                    color    = Color(0xFFD4A820)
+                    color    = AmberText
                 )
             } else {
                 Text(
                     text     = "   •   다음 티어까지 ${threshold - progress} XP",
                     fontSize = 12.sp,
-                    color    = Color(0xFF888888)
+                    color    = MutedText
                 )
             }
         }
@@ -236,8 +233,8 @@ private fun CollectionHeader(
                     modifier          = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "$progress XP", fontSize = 11.sp, color = PRIMARY)
-                    Text(text = "$threshold XP", fontSize = 11.sp, color = Color(0xFFAAAAAA))
+                    Text(text = "$progress XP", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AmberText)
+                    Text(text = "$threshold XP", fontSize = 11.sp, color = MutedText)
                 }
                 Spacer(Modifier.height(3.dp))
                 LinearProgressIndicator(
@@ -246,8 +243,8 @@ private fun CollectionHeader(
                         .fillMaxWidth()
                         .height(6.dp)
                         .clip(RoundedCornerShape(4.dp)),
-                    color             = PRIMARY,
-                    trackColor        = Color(0xFFE0E0E0),
+                    color             = PrimaryGreen,
+                    trackColor        = SecondaryBackground,
                     strokeCap         = StrokeCap.Round
                 )
             }
@@ -260,6 +257,8 @@ private fun CollectionHeader(
 @Composable
 private fun AnimalGrid(
     unlockedAnimals: List<Int>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val allAnimals = ANIMAL_NAMES.indices.toList()
@@ -274,23 +273,30 @@ private fun AnimalGrid(
     ) {
         items(allAnimals) { index ->
             val unlocked = index in unlockedAnimals
-            AnimalCard(index = index, unlocked = unlocked)
+            AnimalCard(
+                index    = index,
+                unlocked = unlocked,
+                selected = unlocked && index == selectedIndex,
+                onClick  = { onSelect(index) }
+            )
         }
     }
 }
 
 @Composable
-private fun AnimalCard(index: Int, unlocked: Boolean) {
-    Card(
-        modifier = Modifier.aspectRatio(1f),
-        shape  = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (unlocked) Color.White else Color(0xFFEAEAEA)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (unlocked) 2.dp else 0.dp)
+private fun AnimalCard(index: Int, unlocked: Boolean, selected: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(14.dp)
+    Box(
+        modifier = Modifier
+            .aspectRatio(1f)
+            .let { if (unlocked) it.flatShadow(shape = shape, color = SecondaryBackground, offset = 2.dp) else it }
+            .clip(shape)
+            .background(if (unlocked) CreamSurface else SecondaryBackground.copy(alpha = 0.5f))
+            .let { if (selected) it.border(2.dp, PrimaryGreen, shape) else it }
+            .clickable(enabled = unlocked, onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier          = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -308,7 +314,7 @@ private fun AnimalCard(index: Int, unlocked: Boolean) {
                     Icon(
                         imageVector = Icons.Outlined.Lock,
                         contentDescription = "잠금",
-                        tint = Color(0xFFAAAAAA),
+                        tint = MutedText,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -317,170 +323,11 @@ private fun AnimalCard(index: Int, unlocked: Boolean) {
             Text(
                 text     = if (unlocked) ANIMAL_NAMES[index] else "???",
                 fontSize = 10.sp,
-                color    = if (unlocked) Color(0xFF4A4A4A) else Color(0xFFAAAAAA)
+                color    = if (unlocked) HeadingText else MutedText
             )
         }
     }
 }
-
-// ===== 통계 (Column 3개 항목) =====
-
-@Composable
-private fun StatsColumn(
-    completedCount: Int,
-    streakDays: Int,
-    maxStreakDays: Int,
-    startDate: String,
-    dday: Int,
-    totalExp: Int,
-    avgDifficulty: Double,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color.White)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        StatRow(label = "현재 연속 활동일",   value = "${streakDays}일")
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(Color(0xFFEAE3D2))
-        )
-        StatRow(label = "최장 연속 활동일", value = "${maxStreakDays}일")
-        StatRow(
-            label = "활동 시작일",
-            value = if (startDate.isNotEmpty()) "$startDate (D+$dday)" else "-"
-        )
-
-        StatRow(label = "총 획득 경험치", value = "${totalExp} XP")
-        StatRow(label = "완료한 퀘스트", value = "${completedCount}개")
-        StatRow(
-            label = "평균 난이도",
-            value = if (avgDifficulty > 0) String.format(Locale.getDefault(), "%.1f", avgDifficulty) else "-"
-        )
-    }
-}
-
-@Composable
-private fun StatRow(label: String, value: String) {
-    Row(
-        modifier              = Modifier.fillMaxWidth(),
-        verticalAlignment     = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text     = label,
-            fontSize = 13.sp,
-            color    = Color(0xFF6A6058)
-        )
-        Text(
-            text       = value,
-            fontSize   = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            color      = Color(0xFF2A2A2A)
-        )
-    }
-}
-
-// ===== 통계 계산 =====
-
-private fun calcStreakDays(quests: List<PrevQuest>): Int {
-    if (quests.isEmpty()) return 0
-    val parser = SimpleDateFormat("yyyy.MM.dd", Locale.getDefault())
-    val days = quests.mapNotNull { q ->
-        runCatching { parser.parse(q.doneDate.take(10))?.time }.getOrNull()
-    }.map { ts ->
-        val cal = Calendar.getInstance().apply {
-            timeInMillis = ts
-            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-        }
-        cal.timeInMillis
-    }.toSortedSet()
-    if (days.isEmpty()) return 0
-
-    val today = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-    }
-    val oneDay = 24L * 60 * 60 * 1000
-
-    // 오늘 또는 어제부터 시작 가능
-    var cursor = today.timeInMillis
-    if (cursor !in days && (cursor - oneDay) !in days) return 0
-    if (cursor !in days) cursor -= oneDay
-
-    var streak = 0
-    while (cursor in days) {
-        streak++
-        cursor -= oneDay
-    }
-    return streak
-}
-
-private fun calcAvgDifficulty(quests: List<PrevQuest>): Double =
-    if (quests.isEmpty()) 0.0
-    else quests.map { it.difficulty }.average()
-
-private fun calcMaxStreakDays(quests: List<PrevQuest>): Int {
-    if (quests.isEmpty()) return 0
-    val parser = SimpleDateFormat("yyyy.MM.dd", Locale.getDefault())
-    val days = quests.mapNotNull { q ->
-        runCatching { parser.parse(q.doneDate.take(10))?.time }.getOrNull()
-    }.map { ts ->
-        val cal = Calendar.getInstance().apply {
-            timeInMillis = ts
-            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-        }
-        cal.timeInMillis
-    }.toSortedSet().toList()
-    if (days.isEmpty()) return 0
-
-    val oneDay = 24L * 60 * 60 * 1000
-    var maxStreak = 1
-    var current = 1
-    for (i in 1 until days.size) {
-        if (days[i] - days[i - 1] == oneDay) {
-            current++
-            if (current > maxStreak) maxStreak = current
-        } else {
-            current = 1
-        }
-    }
-    return maxStreak
-}
-
-private fun calcStartDate(quests: List<PrevQuest>): String {
-    if (quests.isEmpty()) return ""
-    val parser = SimpleDateFormat("yyyy.MM.dd", Locale.getDefault())
-    val firstTs = quests.mapNotNull { q ->
-        runCatching { parser.parse(q.doneDate.take(10))?.time }.getOrNull()
-    }.minOrNull() ?: return ""
-    return parser.format(java.util.Date(firstTs))
-}
-
-private fun calcDday(quests: List<PrevQuest>): Int {
-    if (quests.isEmpty()) return 0
-    val parser = SimpleDateFormat("yyyy.MM.dd", Locale.getDefault())
-    val firstTs = quests.mapNotNull { q ->
-        runCatching { parser.parse(q.doneDate.take(10))?.time }.getOrNull()
-    }.minOrNull() ?: return 0
-    val today = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-    }.timeInMillis
-    val oneDay = 24L * 60 * 60 * 1000
-    return ((today - firstTs) / oneDay).toInt().coerceAtLeast(0)
-}
-
-private fun calcTotalExp(quests: List<PrevQuest>): Int =
-    quests.sumOf { it.questEXP }
 
 @Preview(showBackground = true)
 @Composable
