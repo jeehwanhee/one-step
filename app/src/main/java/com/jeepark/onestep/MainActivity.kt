@@ -31,7 +31,7 @@ import com.jeepark.onestep.util.LocationHelper
 import com.jeepark.onestep.util.NotificationHelper
 import com.jeepark.onestep.ui.components.OneStepBottomBar
 import com.jeepark.onestep.ui.screens.AuthScreen
-import com.jeepark.onestep.ui.screens.CompletedQuestsScreen
+import com.jeepark.onestep.ui.screens.FootprintsScreen
 import com.jeepark.onestep.ui.screens.InitQuestionScreen
 import com.jeepark.onestep.ui.screens.InitScreen
 import com.jeepark.onestep.ui.screens.MainScreen
@@ -233,7 +233,7 @@ fun MyNavGraph() {
             popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) {
-            CompletedQuestsScreen()
+            FootprintsScreen()
         }
 
         composable(route = "setting") {
