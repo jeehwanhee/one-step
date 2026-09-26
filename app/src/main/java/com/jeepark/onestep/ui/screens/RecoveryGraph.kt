@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jeepark.onestep.data.model.IsolatedRecord
+import com.jeepark.onestep.ui.theme.CardSurface
 
 private val GRAPH_LINE  = Color(0xFF5A9848)
 private val GRAPH_FILL  = Color(0x335A9848)
@@ -44,7 +45,7 @@ fun RecoveryGraph(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(Color.White)
+            .background(CardSurface)
             .padding(horizontal = 16.dp, vertical = 14.dp)
     ) {
         Row(

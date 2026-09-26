@@ -47,12 +47,13 @@ import com.jeepark.onestep.data.model.InitQuestions
 import com.jeepark.onestep.ui.components.PagerNavigationButton
 import com.jeepark.onestep.ui.components.TextInput
 import com.jeepark.onestep.data.repository.UserRepository
+import com.jeepark.onestep.ui.theme.CreamBackground
+import com.jeepark.onestep.ui.theme.HeadingText
+import com.jeepark.onestep.ui.theme.PrimaryGreen
+import com.jeepark.onestep.ui.theme.SecondaryBackground
+import com.jeepark.onestep.ui.theme.SecondaryBorder
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
-private val IQ_BG      = Color(0xFFFDF8F0)
-private val IQ_PRIMARY = Color(0xFF5A9848)
-private val IQ_CARD    = Color(0xFFF5EFE4)
 
 @Composable
 fun InitQuestionScreen(
@@ -86,7 +87,7 @@ fun InitQuestionScreen(
         0 to 3     // 활동 시간대
     )
 
-    Box(modifier = Modifier.fillMaxSize().background(IQ_BG)) {
+    Box(modifier = Modifier.fillMaxSize().background(CreamBackground)) {
 
         // 상단 공원 헤더
         Box(
@@ -123,8 +124,8 @@ fun InitQuestionScreen(
                 .fillMaxWidth()
                 .height(4.dp)
                 .padding(top = 160.dp),
-            color             = IQ_PRIMARY,
-            trackColor        = IQ_CARD,
+            color             = PrimaryGreen,
+            trackColor        = SecondaryBackground,
             strokeCap         = StrokeCap.Round
         )
 
@@ -153,7 +154,7 @@ fun InitQuestionScreen(
                         text       = questions[pageIndex],
                         fontSize   = 24.sp,
                         fontWeight = FontWeight.Bold,
-                        color      = Color(0xFF2A2A2A),
+                        color      = HeadingText,
                         lineHeight = 32.sp
                     )
 
@@ -214,7 +215,7 @@ fun InitQuestionScreen(
                             modifier = Modifier
                                 .size(if (isCurrent) 10.dp else 7.dp)
                                 .clip(CircleShape)
-                                .background(if (isCurrent) IQ_PRIMARY else Color(0xFFCCCCCC))
+                                .background(if (isCurrent) PrimaryGreen else SecondaryBorder)
                         )
                     }
                 }
@@ -250,7 +251,7 @@ fun InitQuestionScreen(
                             if (isLoading) {
                                 CircularProgressIndicator(
                                     modifier    = Modifier.size(20.dp),
-                                    color       = IQ_PRIMARY,
+                                    color       = PrimaryGreen,
                                     strokeWidth = 2.dp
                                 )
                             } else {
@@ -258,7 +259,7 @@ fun InitQuestionScreen(
                                     text       = "완료",
                                     fontSize   = 16.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color      = IQ_PRIMARY
+                                    color      = PrimaryGreen
                                 )
                             }
                         }

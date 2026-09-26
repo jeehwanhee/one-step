@@ -23,13 +23,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.jeepark.onestep.ui.theme.OneStepTheme
-import com.jeepark.onestep.ui.theme.beige1
-import com.jeepark.onestep.ui.theme.beige2
-import com.jeepark.onestep.ui.theme.black
-import com.jeepark.onestep.ui.theme.gray1
+import com.jeepark.onestep.ui.theme.HeadingText
+import com.jeepark.onestep.ui.theme.PrimaryGreen
+import com.jeepark.onestep.ui.theme.SecondaryBackground
 import com.jeepark.onestep.ui.theme.text_Bold_20
-import com.jeepark.onestep.ui.theme.white
 
 @Composable
 fun SelectButton(
@@ -52,8 +49,8 @@ fun SelectButton(
                 .fillMaxHeight(),
             shape = RoundedCornerShape(0.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = if(isSelectedLeft) beige2 else beige1,
-                contentColor = black,
+                containerColor = if (isSelectedLeft) PrimaryGreen else SecondaryBackground,
+                contentColor = if (isSelectedLeft) Color.White else HeadingText,
             ),
             contentPadding = PaddingValues(10.dp),
 
@@ -70,8 +67,8 @@ fun SelectButton(
                 .fillMaxHeight(),
             shape = RoundedCornerShape(0.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = if(!isSelectedLeft) beige2 else beige1,
-                contentColor = black,
+                containerColor = if (!isSelectedLeft) PrimaryGreen else SecondaryBackground,
+                contentColor = if (!isSelectedLeft) Color.White else HeadingText,
             ),
             contentPadding = PaddingValues(10.dp),
         ) {

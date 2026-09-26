@@ -14,12 +14,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.jeepark.onestep.ui.theme.OneStepTheme
-import com.jeepark.onestep.ui.theme.beige2
-import com.jeepark.onestep.ui.theme.black
-import com.jeepark.onestep.ui.theme.gray1
-import com.jeepark.onestep.ui.theme.purple
+import com.jeepark.onestep.ui.theme.PrimaryGreen
+import com.jeepark.onestep.ui.theme.PrimaryGreenShadow
 import com.jeepark.onestep.ui.theme.text_Bold_20
-import com.jeepark.onestep.ui.theme.white
 
 @Composable
 fun BottomButton (
@@ -27,9 +24,9 @@ fun BottomButton (
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    textColor: Color = black,
-    containerColor: Color = beige2,
-    borderColor: Color = purple,
+    textColor: Color = Color.White,
+    containerColor: Color = PrimaryGreen,
+    borderColor: Color = PrimaryGreenShadow,
     borderWidth: Int = 0
 ) {
     Button(
@@ -41,8 +38,8 @@ fun BottomButton (
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
             contentColor = textColor,
-            disabledContainerColor = gray1,
-            disabledContentColor = white
+            disabledContainerColor = PrimaryGreen.copy(alpha = 0.4f),
+            disabledContentColor = Color.White.copy(alpha = 0.7f)
         ),
         contentPadding = PaddingValues(10.dp),
         enabled = enabled,
