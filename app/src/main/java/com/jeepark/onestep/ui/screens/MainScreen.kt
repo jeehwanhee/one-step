@@ -121,11 +121,12 @@ fun MainScreen(
     Box(modifier = modifier.fillMaxSize().background(CreamBackground)) {
 
         // ===== 공원 스테이지 카드: 여백 + 라운드 코너 + 하드 섀도 =====
+        // 퀘스트 버튼/카드가 배경과 겹치지 않도록 아래 여백을 항상 넉넉히 둔다.
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
-                .padding(top = 76.dp, bottom = 22.dp)
+                .padding(top = 76.dp, bottom = 96.dp)
                 .flatShadow(shape = RoundedCornerShape(44.dp), color = SecondaryBorder)
                 .clip(RoundedCornerShape(44.dp))
         ) {
