@@ -1,10 +1,6 @@
 package com.jeepark.onestep.ui.screens
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,32 +15,21 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jeepark.onestep.data.model.PrevQuest
 import com.jeepark.onestep.ui.viewmodels.CollectionViewModel
-import kotlinx.coroutines.launch
 
 private val CQ_BG      = Color(0xFFFDF8F0)
 private val CQ_PRIMARY = Color(0xFF5A9848)
@@ -53,56 +38,17 @@ private val CQ_PRIMARY = Color(0xFF5A9848)
 fun CompletedQuestsScreen(
     modifier: Modifier = Modifier,
     vm: CollectionViewModel = viewModel(),
-    onNavigateBack: () -> Unit
 ) {
-    val tier            = (vm.user.collectAsState().value?.tier ?: 0).coerceIn(0, 7)
     val completedQuests by vm.completedQuests.collectAsState()
 
-    val scope         = rememberCoroutineScope()
-    val dragOffset    = remember { Animatable(0f) }
-    val screenWidthPx = with(LocalDensity.current) {
-        LocalConfiguration.current.screenWidthDp.dp.toPx()
-    }
-
     Box(modifier = modifier.fillMaxSize()) {
-
-        // 스와이프 미리보기: MainScreen 공원 배경 (오른쪽으로 끌어 메인 복귀)
-        ParkBackground(
-            tier = tier,
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer { translationX = screenWidthPx + dragOffset.value }
-        )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .graphicsLayer { translationX = dragOffset.value }
                 .background(CQ_BG)
-                .pointerInput(Unit) {
-                    detectHorizontalDragGestures(
-                        onDragStart  = { scope.launch { dragOffset.snapTo(0f) } },
-                        onDragCancel = { scope.launch { dragOffset.animateTo(0f, spring()) } },
-                        onDragEnd    = {
-                            scope.launch {
-                                if (dragOffset.value < -screenWidthPx * 0.18f) {
-                                    dragOffset.animateTo(-screenWidthPx, tween(200))
-                                    onNavigateBack()
-                                } else {
-                                    dragOffset.animateTo(0f, spring())
-                                }
-                            }
-                        },
-                        onHorizontalDrag = { change, dragAmount ->
-                            change.consume()
-                            scope.launch {
-                                dragOffset.snapTo((dragOffset.value + dragAmount).coerceAtMost(0f))
-                            }
-                        }
-                    )
-                }
         ) {
-            CompletedHeader(count = completedQuests.size, onBack = onNavigateBack)
+            CompletedHeader(count = completedQuests.size)
 
             if (completedQuests.isEmpty()) {
                 Box(
@@ -133,7 +79,7 @@ fun CompletedQuestsScreen(
 }
 
 @Composable
-private fun CompletedHeader(count: Int, onBack: () -> Unit) {
+private fun CompletedHeader(count: Int) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -141,10 +87,9 @@ private fun CompletedHeader(count: Int, onBack: () -> Unit) {
             .padding(top = 8.dp, bottom = 12.dp)
     ) {
         Row(
-            modifier          = Modifier.fillMaxWidth(),
+            modifier          = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Spacer(Modifier.width(16.dp))
             Text(
                 text       = "완료한 퀘스트",
                 fontSize   = 18.sp,
@@ -157,13 +102,6 @@ private fun CompletedHeader(count: Int, onBack: () -> Unit) {
                 fontSize = 13.sp,
                 color    = CQ_PRIMARY
             )
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector        = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "뒤로가기",
-                    tint               = Color(0xFF4A4A4A)
-                )
-            }
         }
     }
 }

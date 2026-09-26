@@ -1,13 +1,9 @@
 package com.jeepark.onestep.ui.screens
 
-import android.R.attr.label
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -29,10 +25,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
@@ -45,7 +39,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,10 +46,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -67,7 +56,6 @@ import com.jeepark.onestep.data.model.PrevQuest
 import com.jeepark.onestep.ui.viewmodels.CollectionViewModel
 import com.jeepark.onestep.util.ANIMAL_NAMES
 import com.jeepark.onestep.util.PixelAnimalRenderer
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -80,7 +68,6 @@ private val PRIMARY  = Color(0xFF5A9848)
 fun CollectionScreen(
     modifier: Modifier = Modifier,
     vm: CollectionViewModel = viewModel(),
-    onNavigateBack: () -> Unit
 ) {
     val user             by vm.user.collectAsState()
     val completedQuests  by vm.completedQuests.collectAsState()
@@ -91,12 +78,7 @@ fun CollectionScreen(
     val progress = user?.progress ?: 0
     val threshold = if (tier < EXPAMOUNT.size) EXPAMOUNT[tier] else EXPAMOUNT.last()
 
-    val scope         = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val dragOffset    = remember { Animatable(0f) }
-    val screenWidthPx = with(LocalDensity.current) {
-        LocalConfiguration.current.screenWidthDp.dp.toPx()
-    }
 
     LaunchedEffect(loadError) {
         if (loadError != null) {
@@ -110,48 +92,16 @@ fun CollectionScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
 
-        // 스와이프 미리보기: MainScreen 공원 배경
-        ParkBackground(
-            tier = tier,
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer { translationX = -screenWidthPx + dragOffset.value }
-        )
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .graphicsLayer { translationX = dragOffset.value }
                 .background(BG_COLOR)
-                .pointerInput(Unit) {
-                    detectHorizontalDragGestures(
-                        onDragStart  = { scope.launch { dragOffset.snapTo(0f) } },
-                        onDragCancel = { scope.launch { dragOffset.animateTo(0f, spring()) } },
-                        onDragEnd    = {
-                            scope.launch {
-                                if (dragOffset.value > screenWidthPx * 0.18f) {
-                                    dragOffset.animateTo(screenWidthPx, tween(200))
-                                    onNavigateBack()
-                                } else {
-                                    dragOffset.animateTo(0f, spring())
-                                }
-                            }
-                        },
-                        onHorizontalDrag = { change, dragAmount ->
-                            change.consume()
-                            scope.launch {
-                                dragOffset.snapTo((dragOffset.value + dragAmount).coerceAtLeast(0f))
-                            }
-                        }
-                    )
-                }
         ) {
             // 헤더는 고정 (스크롤 영향 없음)
             CollectionHeader(
                 tier      = tier,
                 progress  = progress,
-                threshold = threshold,
-                onBack    = onNavigateBack
+                threshold = threshold
             )
 
             // 본문만 세로 스크롤
@@ -221,8 +171,7 @@ fun CollectionScreen(
 private fun CollectionHeader(
     tier: Int,
     progress: Int,
-    threshold: Int,
-    onBack: () -> Unit
+    threshold: Int
 ) {
     val targetFraction = if (threshold > 0) progress.toFloat() / threshold else 1f
     var animFraction by remember { mutableFloatStateOf(0f) }
@@ -242,16 +191,9 @@ private fun CollectionHeader(
             .padding(top = 8.dp, bottom = 14.dp)
     ) {
         Row(
-            modifier          = Modifier.fillMaxWidth(),
+            modifier          = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector        = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "뒤로가기",
-                    tint               = Color(0xFF4A4A4A)
-                )
-            }
             Text(
                 text       = "진척도",
                 fontSize   = 18.sp,
@@ -543,5 +485,5 @@ private fun calcTotalExp(quests: List<PrevQuest>): Int =
 @Preview(showBackground = true)
 @Composable
 private fun CollectionScreenPreview() {
-    CollectionScreen(onNavigateBack = {})
+    CollectionScreen()
 }

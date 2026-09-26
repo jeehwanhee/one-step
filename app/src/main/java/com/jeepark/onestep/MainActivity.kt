@@ -223,11 +223,7 @@ fun MyNavGraph() {
             popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) {
-            CollectionScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
+            CollectionScreen()
         }
 
         composable(
@@ -237,11 +233,7 @@ fun MyNavGraph() {
             popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) {
-            CompletedQuestsScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
+            CompletedQuestsScreen()
         }
 
         composable(route = "setting") {
