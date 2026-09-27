@@ -45,9 +45,10 @@ import com.jeepark.onestep.ui.components.InputWithWarning
 import com.jeepark.onestep.ui.components.SelectButton
 import com.jeepark.onestep.ui.components.TextInput
 import com.jeepark.onestep.data.repository.UserRepository
-
-private val SIGNUP_BG      = Color(0xFFFDF8F0)
-private val SIGNUP_PRIMARY = Color(0xFF5A9848)
+import com.jeepark.onestep.ui.theme.CreamBackground
+import com.jeepark.onestep.ui.theme.MutedText
+import com.jeepark.onestep.ui.theme.PrimaryGreen
+import com.jeepark.onestep.ui.theme.SecondaryBorder
 
 @Composable
 fun SignupScreen(
@@ -72,7 +73,7 @@ fun SignupScreen(
         ""
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(SIGNUP_BG)) {
+    Box(modifier = Modifier.fillMaxSize().background(CreamBackground)) {
 
         // 상단 그린 헤더
         Box(
@@ -200,7 +201,7 @@ private fun ConsentRow(
         Icon(
             imageVector        = if (checked) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircle,
             contentDescription = null,
-            tint               = if (checked) SIGNUP_PRIMARY else Color(0xFFCCCCCC),
+            tint               = if (checked) PrimaryGreen else SecondaryBorder,
             modifier           = Modifier
                 .size(22.dp)
                 .clickable(
@@ -213,13 +214,13 @@ private fun ConsentRow(
         Text(
             text = buildAnnotatedString {
                 append("(필수) ")
-                withStyle(SpanStyle(textDecoration = TextDecoration.Underline, color = SIGNUP_PRIMARY)) {
+                withStyle(SpanStyle(textDecoration = TextDecoration.Underline, color = PrimaryGreen)) {
                     append(label)
                 }
                 append("에 동의합니다.")
             },
             fontSize = 13.sp,
-            color    = Color(0xFF4A4A4A),
+            color    = MutedText,
             modifier = Modifier.clickable(
                 indication        = null,
                 interactionSource = remember { MutableInteractionSource() },

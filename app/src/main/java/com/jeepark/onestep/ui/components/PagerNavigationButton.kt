@@ -11,7 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.jeepark.onestep.ui.theme.gray2
+import com.jeepark.onestep.ui.theme.PrimaryGreen
+import com.jeepark.onestep.ui.theme.SecondaryBorder
 import com.jeepark.onestep.ui.theme.white
 
 @Composable
@@ -26,13 +27,13 @@ fun PagerNavigationButton(
         modifier = modifier
             .size(50.dp)
             .clip(CircleShape)
-            .border(1.dp, gray2, CircleShape) // 회색 테두리
+            .border(1.dp, SecondaryBorder, CircleShape)
             .background(white)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = gray2, // 화살표 색상
+            tint = PrimaryGreen,
             modifier = Modifier.size(30.dp)
         )
     }

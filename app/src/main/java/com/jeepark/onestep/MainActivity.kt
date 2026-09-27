@@ -9,11 +9,17 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
@@ -21,12 +27,14 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.FirebaseApp
 import com.jeepark.onestep.util.LocationHelper
 import com.jeepark.onestep.util.NotificationHelper
+import com.jeepark.onestep.ui.components.OneStepBottomBar
 import com.jeepark.onestep.ui.screens.AuthScreen
-import com.jeepark.onestep.ui.screens.CompletedQuestsScreen
+import com.jeepark.onestep.ui.screens.FootprintsScreen
 import com.jeepark.onestep.ui.screens.InitQuestionScreen
 import com.jeepark.onestep.ui.screens.InitScreen
 import com.jeepark.onestep.ui.screens.MainScreen
@@ -107,7 +115,31 @@ fun MyNavGraph() {
         }
     }
 
-    NavHost(navController = navController, startDestination = "init") {
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    val bottomBarRoutes = setOf("main", "progress", "completed")
+
+    // 발자취 탭(이전 퀘스트/통계): 처음 진입 시 통계가 먼저 보이고,
+    // 발자취 화면에 있는 상태에서 발자취 버튼을 다시 누르면 탭이 토글된다.
+    var footprintsTab by remember { mutableIntStateOf(1) }
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = {
+            if (currentRoute in bottomBarRoutes) {
+                OneStepBottomBar(
+                    navController = navController,
+                    currentRoute = currentRoute,
+                    onReselectFootprints = { footprintsTab = if (footprintsTab == 0) 1 else 0 }
+                )
+            }
+        }
+    ) { innerPadding ->
+    NavHost(
+        navController = navController,
+        startDestination = "init",
+        modifier = Modifier.padding(innerPadding)
+    ) {
 
         composable(route = "init") {
             InitScreen(
@@ -176,20 +208,12 @@ fun MyNavGraph() {
 
         composable(
             route = "main",
+            enterTransition = { EnterTransition.None },
             exitTransition = { ExitTransition.None },
-            popEnterTransition = { EnterTransition.None }
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
         ) {
             MainScreen(
-                onNavigateToProgress = {
-                    navController.navigate("progress") {
-                        launchSingleTop = true
-                    }
-                },
-                onNavigateToCompleted = {
-                    navController.navigate("completed") {
-                        launchSingleTop = true
-                    }
-                },
                 onNavigateToSetting = {
                     navController.navigate("setting") {
                         launchSingleTop = true
@@ -206,24 +230,23 @@ fun MyNavGraph() {
         composable(
             route = "progress",
             enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) {
-            CollectionScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
+            CollectionScreen()
         }
 
         composable(
             route = "completed",
             enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) {
-            CompletedQuestsScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
+            FootprintsScreen(
+                selectedTab = footprintsTab,
+                onTabChange = { footprintsTab = it }
             )
         }
 
@@ -243,8 +266,6 @@ fun MyNavGraph() {
             )
         }
 
-
-
-
+    }
     }
 }

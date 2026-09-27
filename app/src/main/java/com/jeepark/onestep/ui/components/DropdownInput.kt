@@ -9,8 +9,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.jeepark.onestep.ui.theme.black
-import com.jeepark.onestep.ui.theme.gray2
+import com.jeepark.onestep.ui.theme.CardSurface
+import com.jeepark.onestep.ui.theme.HeadingText
+import com.jeepark.onestep.ui.theme.MutedText
+import com.jeepark.onestep.ui.theme.PrimaryGreen
+import com.jeepark.onestep.ui.theme.SecondaryBorder
 import com.jeepark.onestep.ui.theme.text_Bold_20
 import com.jeepark.onestep.ui.theme.text_Bold_24
 import com.jeepark.onestep.ui.theme.text_Bold_28
@@ -40,18 +43,18 @@ fun DropdownInput(
                 .fillMaxWidth()
                 .height(60.dp),
             textStyle = text_Bold_24,
-            placeholder = { Text(placeholder, color = gray2, style = text_Bold_20) },
+            placeholder = { Text(placeholder, color = MutedText, style = text_Bold_20) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
                 disabledContainerColor = Color.Transparent,
-                focusedIndicatorColor = black,
-                unfocusedIndicatorColor = black,
-                focusedTrailingIconColor = black,
-                unfocusedTrailingIconColor = black,
-                focusedTextColor = black,
-                unfocusedTextColor = black
+                focusedIndicatorColor = PrimaryGreen,
+                unfocusedIndicatorColor = SecondaryBorder,
+                focusedTrailingIconColor = PrimaryGreen,
+                unfocusedTrailingIconColor = MutedText,
+                focusedTextColor = HeadingText,
+                unfocusedTextColor = HeadingText
             ),
             singleLine = true
         )
@@ -62,7 +65,7 @@ fun DropdownInput(
             ExposedDropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
-                modifier = Modifier.background(Color.White)
+                modifier = Modifier.background(CardSurface)
             ) {
                 options.forEachIndexed { index, option ->
                     DropdownMenuItem(
@@ -70,6 +73,7 @@ fun DropdownInput(
                             Text(
                                 text = option,
                                 style = text_Bold_20,
+                                color = HeadingText,
                                 modifier = Modifier.padding(vertical = 4.dp)
                             )
                         },
@@ -84,7 +88,7 @@ fun DropdownInput(
                         HorizontalDivider(
                             modifier = Modifier.padding(horizontal = 16.dp),
                             thickness = 0.5.dp,
-                            color = gray2.copy(alpha = 0.3f)
+                            color = SecondaryBorder
                         )
                     }
                 }

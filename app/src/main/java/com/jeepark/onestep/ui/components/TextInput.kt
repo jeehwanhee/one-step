@@ -17,8 +17,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.jeepark.onestep.ui.theme.black
-import com.jeepark.onestep.ui.theme.gray2
+import com.jeepark.onestep.ui.theme.HeadingText
+import com.jeepark.onestep.ui.theme.MutedText
+import com.jeepark.onestep.ui.theme.PrimaryGreen
+import com.jeepark.onestep.ui.theme.SecondaryBorder
 import com.jeepark.onestep.ui.theme.text_Bold_28
 
 @Composable
@@ -48,10 +50,12 @@ fun TextInput(
             focusedContainerColor = Color.Transparent,
             unfocusedContainerColor = Color.Transparent,
             disabledContainerColor = Color.Transparent,
-            focusedIndicatorColor = black,    // 포커스 됐을 때 선 색
-            unfocusedIndicatorColor = black,   // 포커스 없을 때 선 색
+            focusedTextColor = HeadingText,
+            unfocusedTextColor = HeadingText,
+            focusedIndicatorColor = PrimaryGreen,
+            unfocusedIndicatorColor = SecondaryBorder,
         ),
-        placeholder = { Text(placeholder, color = gray2, style = text_Bold_28) },
+        placeholder = { Text(placeholder, color = MutedText, style = text_Bold_28) },
 
         singleLine = true,
         keyboardOptions = KeyboardOptions(

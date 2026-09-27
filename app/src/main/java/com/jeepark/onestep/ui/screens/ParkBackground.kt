@@ -59,6 +59,7 @@ import com.jeepark.onestep.util.HORSE_COLORS
 import com.jeepark.onestep.util.HORSE_PIXELS
 import com.jeepark.onestep.util.TURTLE_COLORS
 import com.jeepark.onestep.util.TURTLE_PIXELS
+import com.jeepark.onestep.util.animalMessages
 import kotlinx.coroutines.delay
 
 // ===== 드로잉 헬퍼 =====
@@ -183,64 +184,7 @@ private val variants = listOf(
     ),
 )
 
-private val animalMessages = mapOf(
-    0 to listOf(
-        "오늘도 만나서 너무 좋아!",
-        "어디 있다 왔어?",
-        "나랑 친구할래?",
-        "보고 싶었어",
-        "오늘은 뭐 하고 놀까?",
-    ),
-    1 to listOf(
-        "조금 천천히 와도 돼",
-        "오늘은 살짝 졸린 날이야",
-        "쉬어가도 괜찮은걸",
-        "급할 거 하나도 없어",
-        "햇볕이 참 따뜻하지?",
-    ),
-    2 to listOf(
-        "흥, 왔어?",
-        "잠깐만 더 잘게",
-        "옆에 있어줄래?",
-        "별로 안 기다렸어",
-        "쓰다듬어줘도 좋아",
-    ),
-    3 to listOf(
-        "기다리고 있었어!",
-        "나랑 산책 갈래?",
-        "너만 보면 기분이 좋아져",
-        "꼬리 멈출 수가 없어",
-        "같이 있으면 행복해",
-    ),
-    4 to listOf(
-        "하늘 좀 봐, 예쁘지?",
-        "오늘은 어디 가볼까?",
-        "바람이 정말 좋아",
-        "위에서 내려다보면 다 작아",
-        "멀리 가도 길을 잃지 않아",
-    ),
-    5 to listOf(
-        "안아줄까?",
-        "오늘 많이 힘들었지?",
-        "옆에 있어줄게",
-        "푹 쉬어도 괜찮아",
-        "내가 든든하게 있어줄게",
-    ),
-    6 to listOf(
-        "함께 달려볼래?",
-        "내가 너를 데려다줄게",
-        "어디든 갈 수 있어",
-        "네 속도에 맞춰줄게",
-        "내 등에 타도 돼",
-    ),
-    7 to listOf(
-        "오늘 기분 좋아!",
-        "수영하러 갈래?",
-        "물속이 시원해",
-        "같이 놀자!",
-        "더 멀리 헤엄칠 수 있어",
-    ),
-)
+// 동물 대사(animalMessages)는 util/AnimalInfo.kt로 이동 — 진척도 화면의 동물 프로필과 공유
 
 private val parkVariant = (0..3).random()
 

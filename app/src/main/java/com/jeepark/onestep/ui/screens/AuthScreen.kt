@@ -29,11 +29,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jeepark.onestep.ui.components.BottomButton
+import com.jeepark.onestep.ui.theme.CreamBackground
+import com.jeepark.onestep.ui.theme.HeadingText
+import com.jeepark.onestep.ui.theme.MutedText
+import com.jeepark.onestep.ui.theme.SecondaryBorder
 import com.jeepark.onestep.ui.theme.white
 import com.jeepark.onestep.ui.viewmodels.AuthViewModel
 import kotlinx.coroutines.launch
-
-private val BG_CREAM = Color(0xFFFDF8F0)
 
 @Composable
 fun AuthScreen(
@@ -97,7 +99,7 @@ fun AuthScreen(
                 .align(Alignment.BottomCenter)
                 .fillMaxHeight(0.52f),
             shape  = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-            colors = CardDefaults.cardColors(containerColor = BG_CREAM),
+            colors = CardDefaults.cardColors(containerColor = CreamBackground),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(
@@ -111,13 +113,13 @@ fun AuthScreen(
                         text       = "시작해볼까요?",
                         fontSize   = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color      = Color(0xFF2A2A2A)
+                        color      = HeadingText
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
                         text     = "구글 계정으로 간편하게 로그인하세요.",
                         fontSize = 14.sp,
-                        color    = Color(0xFF888888)
+                        color    = MutedText
                     )
                 }
 
@@ -130,7 +132,9 @@ fun AuthScreen(
                         val signInClient = screenModel.getGoogleSignInClient(context)
                         googleSignInLauncher.launch(signInClient.signInIntent)
                     },
+                    textColor = HeadingText,
                     containerColor = white,
+                    borderColor = SecondaryBorder,
                     borderWidth = 2
                 )
             }

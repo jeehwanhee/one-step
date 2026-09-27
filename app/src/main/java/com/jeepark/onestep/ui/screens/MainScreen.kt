@@ -1,42 +1,25 @@
 package com.jeepark.onestep.ui.screens
 
 import android.widget.Toast
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
@@ -51,24 +34,29 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.size
 import com.jeepark.onestep.data.model.Quest
+import com.jeepark.onestep.ui.components.FlatCard
+import com.jeepark.onestep.ui.components.PrimaryPillButton
+import com.jeepark.onestep.ui.components.flatShadow
+import com.jeepark.onestep.ui.components.SecondaryPillButton
+import com.jeepark.onestep.ui.components.StarRating
+import com.jeepark.onestep.ui.components.dialogs.GiveUpReasonDialog
+import com.jeepark.onestep.ui.components.dialogs.QuestInputDialog
+import com.jeepark.onestep.ui.components.dialogs.QuestSuggestDialog
+import com.jeepark.onestep.ui.components.dialogs.QuestVerifyDialog
+import com.jeepark.onestep.ui.theme.AmberText
+import com.jeepark.onestep.ui.theme.CreamBackground
+import com.jeepark.onestep.ui.theme.CreamSurface
+import com.jeepark.onestep.ui.theme.HeadingText
+import com.jeepark.onestep.ui.theme.PrimaryGreen
+import com.jeepark.onestep.ui.theme.SecondaryBorder
 import com.jeepark.onestep.ui.viewmodels.MainViewModel
 import kotlinx.coroutines.launch
 
@@ -77,8 +65,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun MainScreen(
     modifier: Modifier = Modifier,
-    onNavigateToProgress: () -> Unit,
-    onNavigateToCompleted: () -> Unit = {},
     onNavigateToSetting: () -> Unit,
     onNavigateToInitQuestion: () -> Unit = {},
 ) {
@@ -106,10 +92,6 @@ fun MainScreen(
     var currentQuestIndex by remember { mutableStateOf(0) }
     var currentQuest      by remember { mutableStateOf<Quest?>(null) }
     var showTierUp        by remember { mutableStateOf(false) }
-    val dragOffset        = remember { Animatable(0f) }
-    val screenWidthPx     = with(LocalDensity.current) {
-        LocalConfiguration.current.screenWidthDp.dp.toPx()
-    }
 
     LaunchedEffect(showTierUp) {
         if (showTierUp) {
@@ -128,15 +110,6 @@ fun MainScreen(
         }
     }
 
-    // 첫 실행 시 튜토리얼 오버레이 표시
-    var showTutorial by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        val prefs = context.getSharedPreferences("onboarding", android.content.Context.MODE_PRIVATE)
-        if (!prefs.getBoolean("swipe_hint_seen", false)) {
-            showTutorial = true
-        }
-    }
-
     LaunchedEffect(user) {
         val count = user?.isolatedCount ?: 0
         if (count >= 10) {
@@ -145,62 +118,39 @@ fun MainScreen(
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(modifier = modifier.fillMaxSize().background(CreamBackground)) {
 
-        // 스와이프 미리보기: 좌우 양쪽 모두 같은 배경색
+        // ===== 공원 스테이지 카드: 여백 + 라운드 코너 + 하드 섀도 =====
+        // 퀘스트 버튼/카드가 배경과 겹치지 않도록 아래 여백을 항상 넉넉히 둔다.
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .graphicsLayer { translationX = screenWidthPx + dragOffset.value }
-                .background(Color(0xFFFDF8F0))
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer { translationX = -screenWidthPx + dragOffset.value }
-                .background(Color(0xFFFDF8F0))
-        )
+                .padding(horizontal = 16.dp)
+                .padding(top = 76.dp, bottom = 96.dp)
+                .flatShadow(shape = RoundedCornerShape(44.dp), color = SecondaryBorder)
+                .clip(RoundedCornerShape(44.dp))
+        ) {
+            ParkBackground(tier = tier, modifier = Modifier.fillMaxSize())
+        }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .graphicsLayer { translationX = dragOffset.value }
-            .pointerInput(Unit) {
-                detectHorizontalDragGestures(
-                    onDragStart  = { scope.launch { dragOffset.snapTo(0f) } },
-                    onDragCancel = { scope.launch { dragOffset.animateTo(0f, spring()) } },
-                    onDragEnd    = {
-                        scope.launch {
-                            when {
-                                dragOffset.value < -screenWidthPx * 0.18f -> {
-                                    dragOffset.animateTo(-screenWidthPx, tween(200))
-                                    onNavigateToProgress()
-                                }
-                                dragOffset.value > screenWidthPx * 0.18f -> {
-                                    dragOffset.animateTo(screenWidthPx, tween(200))
-                                    onNavigateToCompleted()
-                                }
-                                else -> dragOffset.animateTo(0f, spring())
-                            }
-                        }
-                    },
-                    onHorizontalDrag = { change, dragAmount ->
-                        change.consume()
-                        scope.launch {
-                            dragOffset.snapTo(dragOffset.value + dragAmount)
-                        }
-                    }
-                )
-            }
-    ) {
-        ParkBackground(tier = tier)
+        // 워드마크
+        Text(
+            text = "한걸음,",
+            color = PrimaryGreen,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Default,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(top = 32.dp, start = 20.dp)
+        )
 
         // 활성 퀘스트가 없을 때만 퀘스트 버튼 표시
         if (activeQuest == null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 14.dp, vertical = 24.dp),
+                    .padding(horizontal = 16.dp, vertical = 22.dp),
                 contentAlignment = Alignment.BottomCenter
             ) {
                 QuestButton(limitReached = false) { showInputDialog = true }
@@ -224,15 +174,20 @@ fun MainScreen(
         // 우상단 설정 버튼
         IconButton(
             onClick  = onNavigateToSetting,
+            colors   = IconButtonDefaults.iconButtonColors(
+                containerColor = CreamSurface,
+                contentColor   = HeadingText
+            ),
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 8.dp, end = 4.dp)
+                .padding(top = 24.dp, end = 20.dp)
+                .size(40.dp)
+                .clip(CircleShape)
         ) {
             Icon(
                 imageVector        = Icons.Default.Menu,
                 contentDescription = "설정",
-                tint               = Color.White,
-                modifier           = Modifier.size(28.dp)
+                modifier           = Modifier.size(18.dp)
             )
         }
 
@@ -244,20 +199,11 @@ fun MainScreen(
         ) { data ->
             Snackbar(
                 snackbarData = data,
-                containerColor = Color(0xFF5A9848),
+                containerColor = PrimaryGreen,
                 contentColor = Color.White
             )
         }
-    } // inner Box (draggable content)
-
-        if (showTutorial) {
-            SwipeTutorialOverlay(onDismiss = {
-                showTutorial = false
-                context.getSharedPreferences("onboarding", android.content.Context.MODE_PRIVATE)
-                    .edit().putBoolean("swipe_hint_seen", true).apply()
-            })
-        }
-    }  // outer Box
+    }
 
     // ---- 다이얼로그 ----
     if (showInputDialog) {
@@ -350,224 +296,14 @@ fun MainScreen(
 
 @Composable
 private fun QuestButton(limitReached: Boolean, onClick: () -> Unit) {
-    Button(
-        onClick  = onClick,
-        enabled  = !limitReached,
-        modifier = Modifier.fillMaxWidth(),
-        shape    = RoundedCornerShape(18.dp),
-        colors   = ButtonDefaults.buttonColors(
-            containerColor         = Color(0xFF5A9848),
-            disabledContainerColor = Color(0xFFAAAAAA)
-        ),
-        border         = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.22f)),
-        contentPadding = PaddingValues(vertical = 20.dp, horizontal = 20.dp)
-    ) {
-        Text(
-            text       = if (limitReached) "오늘은 여기까지, 내일 시도해 주세요" else "새 퀘스트 받기",
-            fontSize   = 15.sp,
-            color      = Color.White,
-            fontWeight = FontWeight.Medium
-        )
-    }
+    PrimaryPillButton(
+        text = if (limitReached) "오늘은 여기까지, 내일 시도해 주세요" else "새 퀘스트 받기",
+        onClick = onClick,
+        enabled = !limitReached
+    )
 }
 
-// ===== 퀘스트 조건 다이얼로그 =====
-
-@Composable
-private fun QuestInputDialog(
-    isLoading: Boolean,
-    onDismiss: () -> Unit,
-    onSearch: (mood: Int) -> Unit
-) {
-    var selectedMood  by remember { mutableStateOf(-1) }
-    var visible       by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { visible = true }
-    val scale by animateFloatAsState(if (visible) 1f else 0.94f, animationSpec = tween(200), label = "scale")
-    val alpha by animateFloatAsState(if (visible) 1f else 0f,    animationSpec = tween(200), label = "alpha")
-
-    val moods = listOf("매우 나쁨", "나쁨", "보통", "좋음", "매우 좋음")
-
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Card(
-            modifier = Modifier
-                .padding(horizontal = 20.dp)
-                .fillMaxWidth()
-                .graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha },
-            shape     = RoundedCornerShape(22.dp),
-            colors    = CardDefaults.cardColors(containerColor = Color(0xFFFAF7F1)),
-            elevation = CardDefaults.cardElevation(8.dp)
-        ) {
-            Column(
-                modifier  = Modifier.padding(horizontal = 18.dp, vertical = 22.dp),
-                verticalArrangement = Arrangement.spacedBy(0.dp)
-            ) {
-                Text(
-                    "퀘스트 조건 설정",
-                    fontSize   = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color      = Color(0xFF3A3228),
-                    modifier   = Modifier.padding(bottom = 18.dp)
-                )
-
-                // 기분 섹션
-                Text("지금 기분", fontSize = 10.sp, color = Color(0xFF8A7A60), letterSpacing = 1.2.sp,
-                    modifier = Modifier.padding(bottom = 7.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    moods.forEachIndexed { i, mood ->
-                        MoodChip(mood, selectedMood == i) { if (!isLoading) selectedMood = i }
-                    }
-                }
-
-                // 퀘스트 찾기 버튼
-                Button(
-                    onClick  = { if (selectedMood >= 0 && !isLoading) onSearch(selectedMood) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled  = selectedMood >= 0 && !isLoading,
-                    shape    = RoundedCornerShape(14.dp),
-                    colors   = ButtonDefaults.buttonColors(
-                        containerColor         = Color(0xFF6A9858),
-                        disabledContainerColor = Color(0xFFB8B0A0)
-                    ),
-                    contentPadding = PaddingValues(13.dp)
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier    = Modifier.size(18.dp),
-                            color       = Color.White,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text(
-                            "퀘스트 찾기",
-                            fontSize   = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            color      = if (selectedMood >= 0) Color.White else Color(0xFFECE8E0)
-                        )
-                    }
-                }
-
-                // 취소
-                Text(
-                    "취소",
-                    modifier  = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 10.dp)
-                        .clickable(
-                            indication        = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) { if (!isLoading) onDismiss() },
-                    textAlign = TextAlign.Center,
-                    fontSize  = 12.sp,
-                    color     = Color(0xFFB0A890)
-                )
-            }
-        }
-    }
-}
-
-
-@Composable
-private fun MoodChip(text: String, selected: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (selected) Color(0xFFD4EAD0) else Color(0xFFF0ECE0))
-            .border(1.dp, if (selected) Color(0xFF7AB870) else Color(0xFFD4CDB8), RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 7.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text,
-            color      = if (selected) Color(0xFF2D5A2D) else Color(0xFF7A6E60),
-            fontSize   = 10.sp,
-            fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
-            maxLines   = 1
-        )
-    }
-}
-
-// ===== 퀘스트 추천 다이얼로그 =====
-
-@Composable
-private fun QuestSuggestDialog(
-    quest: Quest,
-    onDismiss: () -> Unit,
-    onSkip: () -> Unit,
-    onAccept: () -> Unit
-) {
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { visible = true }
-    val scale by animateFloatAsState(if (visible) 1f else 0.94f, animationSpec = tween(200), label = "scale")
-    val alpha by animateFloatAsState(if (visible) 1f else 0f,    animationSpec = tween(200), label = "alpha")
-
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Card(
-            modifier = Modifier
-                .padding(horizontal = 20.dp)
-                .fillMaxWidth()
-                .graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha },
-            shape     = RoundedCornerShape(22.dp),
-            colors    = CardDefaults.cardColors(containerColor = Color(0xFFFAF7F1)),
-            elevation = CardDefaults.cardElevation(8.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(quest.questName, fontSize = 17.sp, fontWeight = FontWeight.Medium, color = Color(0xFF3A3228), lineHeight = 24.sp,
-                    modifier = Modifier.padding(bottom = 12.dp))
-
-                // 난이도 + 경험치 행
-                Row(
-                    modifier          = Modifier.fillMaxWidth().padding(bottom = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    StarRating(quest.difficulty)
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text("+${quest.questEXP} XP", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF5A7A30))
-                }
-
-                // 버튼 행
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedButton(
-                        onClick  = onSkip,
-                        modifier = Modifier.weight(1f),
-                        shape    = RoundedCornerShape(12.dp),
-                        border   = BorderStroke(1.dp, Color(0xFFD4CDB8)),
-                        colors   = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF0ECE0), contentColor = Color(0xFF6A6058))
-                    ) { Text("넘기기", fontSize = 13.sp) }
-
-                    Button(
-                        onClick  = onAccept,
-                        modifier = Modifier.weight(1f),
-                        shape    = RoundedCornerShape(12.dp),
-                        colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A9858))
-                    ) { Text("수락하기", fontSize = 13.sp, color = Color.White) }
-                }
-
-                Text(
-                    "취소",
-                    modifier  = Modifier.fillMaxWidth().clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { onDismiss() },
-                    textAlign = TextAlign.Center,
-                    fontSize  = 12.sp,
-                    color     = Color(0xFFB0A890)
-                )
-            }
-        }
-    }
-}
-
-// ===== 퀘스트 수행 다이얼로그 =====
+// ===== 퀘스트 수행 카드 =====
 
 @Composable
 private fun ActiveQuestCard(
@@ -575,307 +311,50 @@ private fun ActiveQuestCard(
     onGiveUp: () -> Unit,
     onComplete: () -> Unit
 ) {
-    Card(
-        modifier  = Modifier
+    FlatCard(
+        modifier = Modifier
             .padding(horizontal = 16.dp, vertical = 20.dp)
             .fillMaxWidth(),
-        shape     = RoundedCornerShape(22.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color(0xFFFAF7F1)),
-        elevation = CardDefaults.cardElevation(12.dp)
+        cornerRadius = 22.dp
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 28.dp, horizontal = 22.dp),
+            modifier = Modifier.padding(vertical = 24.dp, horizontal = 22.dp),
         ) {
             Text(
                 quest.questName,
-                fontSize   = 22.sp,
+                fontSize   = 20.sp,
                 fontWeight = FontWeight.Medium,
-                color      = Color(0xFF3A3228),
-                lineHeight = 32.sp,
-                modifier   = Modifier.padding(bottom = 24.dp)
+                color      = HeadingText,
+                lineHeight = 28.sp,
+                modifier   = Modifier.padding(bottom = 18.dp)
             )
 
             Row(
-                modifier          = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                modifier          = Modifier.fillMaxWidth().padding(bottom = 18.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 StarRating(quest.difficulty, starSize = 18.sp)
                 Spacer(modifier = Modifier.weight(1f))
-                Text("+${quest.questEXP} XP", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF5A7A30))
+                Text("+${quest.questEXP} XP", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = AmberText)
             }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                OutlinedButton(
-                    onClick  = onGiveUp,
-                    modifier = Modifier.weight(1f).defaultMinSize(minHeight = 52.dp),
-                    shape    = RoundedCornerShape(12.dp),
-                    border   = BorderStroke(1.dp, Color(0xFFD4CDB8)),
-                    colors   = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF0ECE0), contentColor = Color(0xFF8A7068))
-                ) { Text("포기", fontSize = 13.sp) }
-
-                Button(
-                    onClick  = onComplete,
-                    modifier = Modifier.weight(2f).defaultMinSize(minHeight = 52.dp),
-                    shape    = RoundedCornerShape(12.dp),
-                    colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A9858))
-                ) { Text("완료했어요", fontSize = 14.sp, color = Color.White) }
-            }
-        }
-    }
-}
-
-// ===== 퀘스트 포기 사유 다이얼로그 =====
-
-@Composable
-private fun GiveUpReasonDialog(
-    onDismiss: () -> Unit,
-    onSubmit: (Int) -> Unit
-) {
-    val reasons = listOf(
-        1 to "퀘스트가 어려워서",
-        2 to "현재 퀘스트를 진행할 상황이 아니라서",
-        3 to "퀘스트를 진행할 컨디션이 아니라서"
-    )
-    var selected by remember { mutableStateOf(-1) }
-
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Card(
-            modifier  = Modifier.padding(horizontal = 20.dp).fillMaxWidth(),
-            shape     = RoundedCornerShape(22.dp),
-            colors    = CardDefaults.cardColors(containerColor = Color(0xFFFAF7F1)),
-            elevation = CardDefaults.cardElevation(8.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text("포기 사유를 선택해주세요", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF3A3228))
-
-                reasons.forEach { (id, label) ->
-                    val isSelected = selected == id
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) Color(0xFFD4EAD0) else Color(0xFFF0ECE0))
-                            .border(1.dp, if (isSelected) Color(0xFF7AB870) else Color(0xFFD4CDB8), RoundedCornerShape(12.dp))
-                            .clickable(
-                                indication = null,
-                                interactionSource = remember { MutableInteractionSource() }
-                            ) { selected = id }
-                            .padding(horizontal = 16.dp, vertical = 14.dp)
-                    ) {
-                        Text(
-                            text      = label,
-                            fontSize  = 13.sp,
-                            color     = if (isSelected) Color(0xFF2D5A2D) else Color(0xFF5A5248),
-                            fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
-                        )
-                    }
-                }
-
-                Button(
-                    onClick  = { if (selected >= 0) onSubmit(selected) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled  = selected >= 0,
-                    shape    = RoundedCornerShape(14.dp),
-                    colors   = ButtonDefaults.buttonColors(
-                        containerColor         = Color(0xFF6A9858),
-                        disabledContainerColor = Color(0xFFB8B0A0)
-                    )
-                ) {
-                    Text("포기하기", color = Color.White, fontSize = 14.sp)
-                }
-
-                Text(
-                    "취소",
-                    modifier  = Modifier.fillMaxWidth().clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { onDismiss() },
-                    textAlign = TextAlign.Center,
-                    fontSize  = 12.sp,
-                    color     = Color(0xFFB0A890)
+                SecondaryPillButton(
+                    text = "포기",
+                    onClick = onGiveUp,
+                    modifier = Modifier.weight(1f),
+                    minHeight = 52.dp
+                )
+                PrimaryPillButton(
+                    text = "완료했어요",
+                    onClick = onComplete,
+                    modifier = Modifier.weight(2f),
+                    minHeight = 52.dp
                 )
             }
         }
-    }
-}
-
-// ===== 퀘스트 완료 확인 다이얼로그 =====
-
-@Composable
-private fun QuestVerifyDialog(
-    quest: Quest,
-    isSaving: Boolean,
-    onDismiss: () -> Unit,
-    onSubmit: (String) -> Unit
-) {
-    var answer  by remember { mutableStateOf("") }
-    val context = LocalContext.current
-
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Card(
-            modifier  = Modifier.padding(horizontal = 20.dp).fillMaxWidth(),
-            shape     = RoundedCornerShape(22.dp),
-            colors    = CardDefaults.cardColors(containerColor = Color(0xFFFAF7F1)),
-            elevation = CardDefaults.cardElevation(8.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text("퀘스트 완료 확인", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF3A3228))
-
-                // 질문 박스
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFF0ECE0), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 14.dp, vertical = 13.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text("질문", fontSize = 10.sp, color = Color(0xFF8A7A60))
-                    Text(quest.confirmQuestion, fontSize = 13.sp, color = Color(0xFF3A3228), lineHeight = 20.sp)
-                }
-
-                // 답변 입력
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("내 답변", fontSize = 10.sp, color = Color(0xFF8A7A60))
-                    OutlinedTextField(
-                        value         = answer,
-                        onValueChange = { answer = it },
-                        modifier      = Modifier.fillMaxWidth().defaultMinSize(minHeight = 76.dp),
-                        maxLines      = 4,
-                        shape         = RoundedCornerShape(12.dp),
-                        colors        = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor    = Color(0xFFD4CCB8),
-                            unfocusedBorderColor  = Color(0xFFD4CCB8),
-                            focusedContainerColor   = Color(0xFFF5F0E8),
-                            unfocusedContainerColor = Color(0xFFF5F0E8)
-                        ),
-                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp, color = Color(0xFF3A3228))
-                    )
-                }
-
-                // 제출 버튼
-                Button(
-                    onClick = {
-                        if (answer.isBlank()) {
-                            Toast.makeText(context, "답변을 입력해주세요", Toast.LENGTH_SHORT).show()
-                        } else {
-                            onSubmit(answer.trim())
-                        }
-                    },
-                    enabled  = !isSaving,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape    = RoundedCornerShape(14.dp),
-                    colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A9858))
-                ) {
-                    Text(if (isSaving) "저장 중..." else "제출하기", color = Color.White, fontSize = 14.sp)
-                }
-
-                Text(
-                    "취소",
-                    modifier  = Modifier.fillMaxWidth().clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { onDismiss() },
-                    textAlign = TextAlign.Center,
-                    fontSize  = 12.sp,
-                    color     = Color(0xFFB0A890)
-                )
-            }
-        }
-    }
-}
-
-// ===== 공통 컴포넌트 =====
-
-@Composable
-private fun StarRating(level: Int, starSize: TextUnit = 16.sp) {
-    Row {
-        repeat(5) { i ->
-            Text("★", fontSize = starSize, color = if (i < level) Color(0xFFF0C030) else Color(0xFFE0D8C8))
-        }
-    }
-}
-
-// ===== 첫 진입 스와이프 튜토리얼 =====
-
-@Composable
-private fun SwipeTutorialOverlay(onDismiss: () -> Unit) {
-    val infiniteTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "swipeHint")
-    val shift by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue  = 14f,
-        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-            animation = tween(800, easing = androidx.compose.animation.core.FastOutSlowInEasing),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
-        ),
-        label = "shift"
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.72f))
-            .clickable(
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            ) { onDismiss() }
-    ) {
-        Text(
-            text       = "양옆으로 스와이프해보세요",
-            fontSize   = 18.sp,
-            fontWeight = FontWeight.Medium,
-            color      = Color.White,
-            modifier   = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 80.dp)
-        )
-
-        Row(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .fillMaxWidth()
-                .padding(horizontal = 32.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text     = "←",
-                    fontSize = 56.sp,
-                    color    = Color.White,
-                    modifier = Modifier.graphicsLayer { translationX = -shift }
-                )
-                Spacer(Modifier.size(6.dp))
-                Text("완료한 퀘스트", fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f))
-            }
-
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text     = "→",
-                    fontSize = 56.sp,
-                    color    = Color.White,
-                    modifier = Modifier.graphicsLayer { translationX = shift }
-                )
-                Spacer(Modifier.size(6.dp))
-                Text("진척도", fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f))
-            }
-        }
-
-        Text(
-            text     = "화면을 탭하여 닫기",
-            fontSize = 12.sp,
-            color    = Color.White.copy(alpha = 0.6f),
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 80.dp)
-        )
     }
 }
