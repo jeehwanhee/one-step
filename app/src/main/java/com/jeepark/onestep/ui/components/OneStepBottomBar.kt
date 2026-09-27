@@ -31,14 +31,21 @@ private val bottomNavItems = listOf(
 
 /** 홈/진척도/발자취 세 화면 전용 하단 탭 바. 스와이프 대신 탭으로만 전환한다. */
 @Composable
-fun OneStepBottomBar(navController: NavHostController, currentRoute: String?) {
+fun OneStepBottomBar(
+    navController: NavHostController,
+    currentRoute: String?,
+    onReselectFootprints: () -> Unit = {}
+) {
     NavigationBar(containerColor = CreamSurface) {
         bottomNavItems.forEach { item ->
             val selected = currentRoute == item.route
             NavigationBarItem(
                 selected = selected,
                 onClick = {
-                    if (!selected) {
+                    if (selected) {
+                        // 이미 발자취 화면에 있을 때 다시 누르면 이전 퀘스트/통계 탭을 토글
+                        if (item.route == "completed") onReselectFootprints()
+                    } else {
                         navController.navigate(item.route) {
                             launchSingleTop = true
                             popUpTo("main") { saveState = true }

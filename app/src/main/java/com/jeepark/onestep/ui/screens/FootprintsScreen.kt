@@ -23,9 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,10 +54,11 @@ import com.jeepark.onestep.ui.viewmodels.CollectionViewModel
 fun FootprintsScreen(
     modifier: Modifier = Modifier,
     vm: CollectionViewModel = viewModel(),
+    selectedTab: Int = 1, // 0 = 이전 퀘스트, 1 = 통계 (기본값: 발자취 진입 시 통계가 먼저 보임)
+    onTabChange: (Int) -> Unit = {},
 ) {
     val user by vm.user.collectAsState()
     val completedQuests by vm.completedQuests.collectAsState()
-    var selectedTab by remember { mutableStateOf(0) } // 0 = 이전 퀘스트, 1 = 통계
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(
@@ -69,7 +68,7 @@ fun FootprintsScreen(
         ) {
             FootprintsHeader(
                 selectedTab = selectedTab,
-                onSelectTab = { selectedTab = it }
+                onSelectTab = onTabChange
             )
 
             when (selectedTab) {

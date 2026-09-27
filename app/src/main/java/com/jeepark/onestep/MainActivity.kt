@@ -17,6 +17,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
@@ -115,12 +118,20 @@ fun MyNavGraph() {
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     val bottomBarRoutes = setOf("main", "progress", "completed")
 
+    // 발자취 탭(이전 퀘스트/통계): 처음 진입 시 통계가 먼저 보이고,
+    // 발자취 화면에 있는 상태에서 발자취 버튼을 다시 누르면 탭이 토글된다.
+    var footprintsTab by remember { mutableIntStateOf(1) }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             if (currentRoute in bottomBarRoutes) {
-                OneStepBottomBar(navController = navController, currentRoute = currentRoute)
+                OneStepBottomBar(
+                    navController = navController,
+                    currentRoute = currentRoute,
+                    onReselectFootprints = { footprintsTab = if (footprintsTab == 0) 1 else 0 }
+                )
             }
         }
     ) { innerPadding ->
@@ -233,7 +244,10 @@ fun MyNavGraph() {
             popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) {
-            FootprintsScreen()
+            FootprintsScreen(
+                selectedTab = footprintsTab,
+                onTabChange = { footprintsTab = it }
+            )
         }
 
         composable(route = "setting") {
