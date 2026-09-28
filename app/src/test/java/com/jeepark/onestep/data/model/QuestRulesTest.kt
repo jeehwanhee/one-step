@@ -122,14 +122,15 @@ class QuestRulesTest {
     @Test
     fun `완료 결과를 사용자에 적용하면 기록이 추가되고 카운트가 오른다`() {
         val existing = PrevQuest(questName = "이전 퀘스트")
-        val user = User(nickname = "테스터", prevQuests = listOf(existing), isolatedCount = 4)
+        val user = User(nickname = "테스터", prevQuests = listOf(existing), questsSinceAssessment = 4, isolatedCount = 4)
         val completion = computeQuestCompletion(user, quest, "답", "2026.09.28 10:00:00")
 
         val updated = completion.applyTo(user)
 
         assertEquals(2, updated.prevQuests.size)
         assertEquals(completion.prevQuest, updated.prevQuests.last())
-        assertEquals(5, updated.isolatedCount)
+        assertEquals(5, updated.questsSinceAssessment)
+        assertEquals(4, updated.isolatedCount) // 레거시 필드는 건드리지 않는다
         assertEquals(completion.newTier, updated.tier)
         assertEquals("테스터", updated.nickname) // 관련 없는 필드는 그대로
     }

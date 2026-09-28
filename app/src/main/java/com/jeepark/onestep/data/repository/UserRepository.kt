@@ -22,6 +22,10 @@ interface UserRepository {
         onFailure: (Exception) -> Unit
     )
 
+    /**
+     * 고립도 설문 제출: 답변·고립도 점수·점수 이력을 저장하고 `questsSinceAssessment`를 0으로 되돌린다
+     * (한 번의 update라 이력 추가와 카운트 리셋이 함께 반영된다). 로그인 정보가 없으면 [onFailure]를 호출한다.
+     */
     fun saveInitQuestions(
         data: InitQuestions,
         onSuccess: () -> Unit,
@@ -44,6 +48,7 @@ interface UserRepository {
         onSuccess: () -> Unit
     )
 
+    /** 퀘스트 완료 결과 저장. 완료 기록을 추가하고 `questsSinceAssessment`를 1 올린다. */
     fun applyQuestCompletion(
         uid: String,
         progress: Int,
@@ -54,8 +59,6 @@ interface UserRepository {
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     )
-
-    fun resetIsolatedCount(uid: String, onSuccess: () -> Unit)
 
     fun applyGiveUp(
         uid: String,

@@ -173,13 +173,6 @@ class MainViewModel(
         activeQuestStore.clear()
     }
 
-    fun resetIsolatedCount() {
-        val uid = currentUid() ?: return
-        repo.resetIsolatedCount(uid) {
-            _user.value = _user.value?.copy(isolatedCount = 0)
-        }
-    }
-
     fun saveGiveUpQuest(
         quest: Quest,
         reason: GiveUpReason,

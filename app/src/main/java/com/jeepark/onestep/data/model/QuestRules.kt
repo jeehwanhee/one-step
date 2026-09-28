@@ -39,12 +39,12 @@ data class QuestCompletion(
     )
 
     fun applyTo(user: User): User = user.copy(
-        progress          = newProgress,
-        tier              = newTier,
-        difficultyQueue   = newDifficultyQueue,
-        questResultsQueue = newResultsQueue,
-        prevQuests        = user.prevQuests + prevQuest,
-        isolatedCount     = user.isolatedCount + 1,
+        progress              = newProgress,
+        tier                  = newTier,
+        difficultyQueue       = newDifficultyQueue,
+        questResultsQueue     = newResultsQueue,
+        prevQuests            = user.prevQuests + prevQuest,
+        questsSinceAssessment = user.questsSinceAssessment + 1,
     )
 }
 

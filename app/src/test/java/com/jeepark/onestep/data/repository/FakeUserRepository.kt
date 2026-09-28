@@ -2,6 +2,8 @@ package com.jeepark.onestep.data.repository
 
 import com.jeepark.onestep.data.model.Gender
 import com.jeepark.onestep.data.model.InitQuestions
+import com.jeepark.onestep.data.model.IsolatedRecord
+import com.jeepark.onestep.data.model.PrevQuest
 import com.jeepark.onestep.data.model.User
 
 /**
@@ -13,6 +15,9 @@ class FakeUserRepository(
     var shouldFail: Boolean = false,
     var failureMessage: String = "테스트 실패"
 ) : UserRepository {
+
+    /** 설문 제출 시 실제 구현이 모델로 계산하는 고립도 점수 대신 기록할 값. */
+    var isolationScore: Int = 50
 
     override fun saveInitUser(
         nickname: String,
@@ -43,11 +48,20 @@ class FakeUserRepository(
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        if (shouldFail) {
+        val current = user
+        // 실제 구현처럼 사용자 문서를 읽지 못하면(로그인 없음·문서 없음 포함) 실패
+        if (shouldFail || current == null) {
             onFailure(Exception(failureMessage))
             return
         }
-        user = user?.copy(initQuestions = data)
+        val now = System.currentTimeMillis()
+        user = current.copy(
+            initQuestions = data,
+            isolated = isolationScore,
+            isolatedLastModified = now,
+            questsSinceAssessment = 0,
+            isolatedHistory = current.isolatedHistory + IsolatedRecord(score = isolationScore, recordedAt = now),
+        )
         onSuccess()
     }
 
@@ -93,18 +107,16 @@ class FakeUserRepository(
             onFailure(Exception(failureMessage))
             return
         }
-        user = user?.copy(
-            progress = progress,
-            tier = tier,
-            difficultyQueue = difficultyQueue,
-            questResultsQueue = resultsQueue,
-            isolatedCount = (user?.isolatedCount ?: 0) + 1
-        )
-        onSuccess()
-    }
-
-    override fun resetIsolatedCount(uid: String, onSuccess: () -> Unit) {
-        user = user?.copy(isolatedCount = 0)
+        user = user?.let { current ->
+            current.copy(
+                progress = progress,
+                tier = tier,
+                difficultyQueue = difficultyQueue,
+                questResultsQueue = resultsQueue,
+                prevQuests = current.prevQuests + prevQuestMap.toPrevQuest(),
+                questsSinceAssessment = current.questsSinceAssessment + 1,
+            )
+        }
         onSuccess()
     }
 
@@ -135,4 +147,14 @@ class FakeUserRepository(
         user = null
         onSuccess()
     }
+
+    // Firestore에 저장되는 완료 기록 Map(QuestCompletion.toPrevQuestMap)을 다시 모델로
+    private fun Map<String, Any>.toPrevQuest() = PrevQuest(
+        questName       = this["questName"] as String,
+        questEXP        = this["questEXP"] as Int,
+        difficulty      = this["difficulty"] as Int,
+        confirmQuestion = this["confirmQuestion"] as String,
+        confirmAnswer   = this["confirmAnswer"] as String,
+        doneDate        = this["doneDate"] as String,
+    )
 }

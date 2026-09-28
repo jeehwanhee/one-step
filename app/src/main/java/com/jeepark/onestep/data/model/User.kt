@@ -15,8 +15,11 @@ data class User(
 
     val isolated: Int = 0,
     val isolatedLastModified: Long = System.currentTimeMillis(),
+    /** 레거시(설문+퀘스트 완료를 함께 세던 옛 카운터). 더는 읽거나 쓰지 않고, 기존 문서와의 호환을 위해 필드만 남겨둔다. */
     val isolatedCount: Int = 0,
     val isolatedHistory: List<IsolatedRecord> = emptyList(),
+    /** 마지막 설문 이후 완료한 퀘스트 수. 재설문 시점 판단에 쓴다(AssessmentRules.kt). 기존 사용자는 0에서 시작한다. */
+    val questsSinceAssessment: Int = 0,
 
     val prevQuests: List<PrevQuest> = emptyList(),
     val difficultyQueue: List<Double> = emptyList(),  // 최근 10개 퀘스트 난이도

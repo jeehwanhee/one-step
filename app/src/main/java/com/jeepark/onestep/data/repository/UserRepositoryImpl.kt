@@ -76,7 +76,11 @@ class UserRepositoryImpl : UserRepository {
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        val uid = auth.currentUser?.uid ?: return
+        val uid = auth.currentUser?.uid
+        if (uid == null) {
+            onFailure(IllegalStateException("로그인된 사용자가 없습니다"))
+            return
+        }
         val outFreqScaled = when (data.outside) {
             0 -> 0.0          // 전혀 안 나감 (0)
             1, 2 -> 1.0       // 주 1~2회 (1)
@@ -111,7 +115,7 @@ class UserRepositoryImpl : UserRepository {
                         "initQuestions", data,
                         "isolated", score,
                         "isolatedLastModified", now,
-                        "isolatedCount", FieldValue.increment(1),
+                        "questsSinceAssessment", 0,
                         "isolatedHistory", FieldValue.arrayUnion(historyEntry)
                     )
                     .addOnSuccessListener { onSuccess() }
@@ -177,15 +181,10 @@ class UserRepositoryImpl : UserRepository {
                 "difficultyQueue" to difficultyQueue,
                 "questResultsQueue" to resultsQueue,
                 "prevQuests" to FieldValue.arrayUnion(prevQuestMap),
-                "isolatedCount" to FieldValue.increment(1)
+                "questsSinceAssessment" to FieldValue.increment(1)
             )
         ).addOnSuccessListener { onSuccess() }
             .addOnFailureListener { onFailure(it) }
-    }
-
-    override fun resetIsolatedCount(uid: String, onSuccess: () -> Unit) {
-        db.collection("users").document(uid).update("isolatedCount", 0)
-            .addOnSuccessListener { onSuccess() }
     }
 
     override fun applyGiveUp(

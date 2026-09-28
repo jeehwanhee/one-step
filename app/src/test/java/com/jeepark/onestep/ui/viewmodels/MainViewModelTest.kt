@@ -3,10 +3,13 @@ package com.jeepark.onestep.ui.viewmodels
 import com.jeepark.onestep.MainDispatcherRule
 import com.jeepark.onestep.data.model.DAILY_QUEST_LIMIT
 import com.jeepark.onestep.data.model.GiveUpReason
+import com.jeepark.onestep.data.model.InitQuestions
+import com.jeepark.onestep.data.model.IsolatedRecord
 import com.jeepark.onestep.data.model.Mood
 import com.jeepark.onestep.data.model.Quest
 import com.jeepark.onestep.data.model.QuestDate
 import com.jeepark.onestep.data.model.User
+import com.jeepark.onestep.data.model.needsAssessment
 import com.jeepark.onestep.data.repository.FakeActiveQuestStore
 import com.jeepark.onestep.data.repository.FakeQuestRepository
 import com.jeepark.onestep.data.repository.FakeUserRepository
@@ -96,7 +99,7 @@ class MainViewModelTest {
 
     @Test
     fun `퀘스트 완료에 성공하면 사용자 상태가 갱신되고 티어업 콜백이 호출된다`() {
-        val f = Fixture(User(tier = 0, progress = 0, isolatedCount = 2))
+        val f = Fixture(User(tier = 0, progress = 0, questsSinceAssessment = 2))
         var tierUp = false
         var success = false
         var error: String? = null
@@ -113,7 +116,9 @@ class MainViewModelTest {
         assertEquals(1, updated.tier) // EXP 15 = tier 0 문턱
         assertEquals(1, updated.prevQuests.size)
         assertEquals("풀 냄새", updated.prevQuests[0].confirmAnswer)
-        assertEquals(3, updated.isolatedCount)
+        assertEquals(3, updated.questsSinceAssessment)
+        assertEquals(updated.questsSinceAssessment, f.userRepo.user!!.questsSinceAssessment) // 저장소와 화면 상태가 일치
+        assertEquals(updated.prevQuests, f.userRepo.user!!.prevQuests)
         assertFalse(f.viewModel.isSavingQuest.value)
         assertTrue(tierUp)
         assertTrue(success)
@@ -292,14 +297,39 @@ class MainViewModelTest {
         assertTrue(f.viewModel.questList.value.isEmpty())
     }
 
-    // ===== 기타 =====
+    // ===== 재설문 =====
+
+    private val surveyed = listOf(IsolatedRecord(score = 50, recordedAt = 1L))
+
+    private fun completeOnce(f: Fixture) = f.viewModel.saveCompletedQuest(
+        quest = quest, answer = "답", onTierUp = {}, onSuccess = {}, onError = {},
+    )
 
     @Test
-    fun `resetIsolatedCount는 사용자의 isolatedCount를 0으로 만든다`() {
-        val f = Fixture(User(isolatedCount = 10))
+    fun `설문 후 아홉 번째 완료까지는 재설문이 필요 없고 열 번째 완료에서 필요해진다`() {
+        val f = Fixture(User(isolatedHistory = surveyed, questsSinceAssessment = 8))
 
-        f.viewModel.resetIsolatedCount()
+        completeOnce(f)
+        assertFalse(needsAssessment(f.viewModel.user.value!!)) // 9번째
 
-        assertEquals(0, f.viewModel.user.value!!.isolatedCount)
+        completeOnce(f)
+        assertTrue(needsAssessment(f.viewModel.user.value!!)) // 10번째
+        assertTrue(needsAssessment(f.userRepo.user!!)) // 저장소 쪽 상태도 같은 판단
+    }
+
+    @Test
+    fun `재설문을 제출하면 카운트가 0으로 돌아가 다시 불러온 사용자는 재설문이 필요 없다`() {
+        val f = Fixture(User(isolatedHistory = surveyed, questsSinceAssessment = 9))
+        completeOnce(f)
+        assertTrue(needsAssessment(f.viewModel.user.value!!))
+
+        var submitted = false
+        f.userRepo.saveInitQuestions(InitQuestions(), onSuccess = { submitted = true }, onFailure = {})
+        f.viewModel.loadUser()
+
+        assertTrue(submitted)
+        assertEquals(0, f.viewModel.user.value!!.questsSinceAssessment)
+        assertEquals(2, f.viewModel.user.value!!.isolatedHistory.size)
+        assertFalse(needsAssessment(f.viewModel.user.value!!))
     }
 }

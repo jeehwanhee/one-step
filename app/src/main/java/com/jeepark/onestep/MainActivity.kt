@@ -194,8 +194,10 @@ fun MyNavGraph() {
         composable(route = "InitQuestion") {
             InitQuestionScreen(
                 onNavigateToMain = {
+                    // 앱 사용 중 재설문이면 이전 main이 백스택에 남아 있으므로 함께 비운다
+                    // (남아 있으면 뒤로가기로 돌아갔을 때 갱신 전 상태로 재설문이 다시 뜬다)
                     navController.navigate("main") {
-                        popUpTo("InitQuestion") { inclusive = true }
+                        popUpTo(0) { inclusive = true }
                     }
                 },
                 onNavigateToInit = {

@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import com.jeepark.onestep.data.model.needsAssessment
 import com.jeepark.onestep.data.repository.UserRepository
 import com.jeepark.onestep.data.repository.UserRepositoryImpl
 import kotlinx.coroutines.delay
@@ -51,9 +52,9 @@ fun InitScreen(
             uid = currentUser.uid,
             onResult = { user ->
                 when {
-                    user == null                                    -> onNavigateToAuth()
-                    user.prevQuests.size / 10 >= user.isolatedCount -> onNavigateToInitQuestion()
-                    else                                            -> onNavigateToMain()
+                    user == null            -> onNavigateToAuth()
+                    needsAssessment(user)   -> onNavigateToInitQuestion()
+                    else                    -> onNavigateToMain()
                 }
             },
             onError = { onNavigateToAuth() }

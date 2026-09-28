@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jeepark.onestep.data.model.MAX_TIER
 import com.jeepark.onestep.data.model.Quest
+import com.jeepark.onestep.data.model.needsAssessment
 import com.jeepark.onestep.ui.components.FlatCard
 import com.jeepark.onestep.ui.components.PrimaryPillButton
 import com.jeepark.onestep.ui.components.flatShadow
@@ -108,12 +109,9 @@ fun MainScreen(
         }
     }
 
+    // 설문 후 퀘스트 10개를 채우면 재설문으로 이동. 카운트 리셋은 설문 제출(저장소)에서 한 번에 처리된다.
     LaunchedEffect(user) {
-        val count = user?.isolatedCount ?: 0
-        if (count >= 10) {
-            vm.resetIsolatedCount()
-            onNavigateToInitQuestion()
-        }
+        if (user?.let(::needsAssessment) == true) onNavigateToInitQuestion()
     }
 
     Box(modifier = modifier.fillMaxSize().background(CreamBackground)) {
