@@ -12,6 +12,7 @@ import com.jeepark.onestep.data.model.User
 import com.jeepark.onestep.data.model.calculateTierProgress
 import com.jeepark.onestep.data.repository.QuestRepository
 import com.jeepark.onestep.data.repository.UserRepository
+import com.jeepark.onestep.data.repository.UserRepositoryImpl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +22,7 @@ import java.util.Date
 import java.util.Locale
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
-    private val repo = UserRepository()
+    private val repo: UserRepository = UserRepositoryImpl()
     private val questRepository = QuestRepository(application)
     private val auth = Firebase.auth
     private val prefs = application.getSharedPreferences("active_quest", Context.MODE_PRIVATE)

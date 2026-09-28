@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import com.jeepark.onestep.data.model.PrevQuest
 import com.jeepark.onestep.data.model.User
 import com.jeepark.onestep.data.repository.UserRepository
+import com.jeepark.onestep.data.repository.UserRepositoryImpl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,8 +12,9 @@ import kotlinx.coroutines.flow.asStateFlow
 // 티어별 해금 동물: 0=병아리(0티어), 1=거북이(1), 2=고양이(2), 3=강아지(3), 4=파랑새(4), 5=곰(5), 6=말(6), 7=돌고래(7)
 private val UNLOCK_TIER = listOf(0, 1, 2, 3, 4, 5, 6, 7)
 
-class CollectionViewModel : ViewModel() {
-    private val repo = UserRepository()
+class CollectionViewModel(
+    private val repo: UserRepository = UserRepositoryImpl()
+) : ViewModel() {
 
     private val _user = MutableStateFlow<User?>(null)
     val user: StateFlow<User?> = _user.asStateFlow()

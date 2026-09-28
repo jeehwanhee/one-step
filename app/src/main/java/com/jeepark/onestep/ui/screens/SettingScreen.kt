@@ -48,6 +48,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.jeepark.onestep.data.repository.UserRepository
+import com.jeepark.onestep.data.repository.UserRepositoryImpl
 import com.jeepark.onestep.ui.viewmodels.AuthViewModel
 import com.jeepark.onestep.util.NotificationHelper
 
@@ -62,7 +63,7 @@ fun SettingScreen(
     onNavigateToInitQuestion: () -> Unit,
     onNavigateBack: () -> Unit,
     authVm: AuthViewModel = viewModel(),
-    repository: UserRepository = remember { UserRepository() }
+    repository: UserRepository = remember { UserRepositoryImpl() }
 ) {
     val context = LocalContext.current
     val prefs   = remember { context.getSharedPreferences("app_settings", Context.MODE_PRIVATE) }
