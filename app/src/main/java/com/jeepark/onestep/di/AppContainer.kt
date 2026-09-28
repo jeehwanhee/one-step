@@ -1,17 +1,34 @@
 package com.jeepark.onestep.di
 
 import android.app.Application
+import android.content.Context
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.firestore
+import com.jeepark.onestep.BuildConfig
+import com.jeepark.onestep.data.model.GeminiClient
+import com.jeepark.onestep.data.model.NetworkClient
+import com.jeepark.onestep.data.model.Place
+import com.jeepark.onestep.data.model.Quest
 import com.jeepark.onestep.data.repository.AccountService
 import com.jeepark.onestep.data.repository.ActiveQuestStore
 import com.jeepark.onestep.data.repository.AuthRepository
 import com.jeepark.onestep.data.repository.FirebaseAuthRepository
+import com.jeepark.onestep.data.repository.FirestoreCollectionSource
+import com.jeepark.onestep.data.repository.GeminiQuestRanker
+import com.jeepark.onestep.data.repository.KmaWeatherProvider
+import com.jeepark.onestep.data.repository.PlaceRepositoryImpl
 import com.jeepark.onestep.data.repository.QuestRepository
 import com.jeepark.onestep.data.repository.QuestRepositoryImpl
 import com.jeepark.onestep.data.repository.SettingsRepository
 import com.jeepark.onestep.data.repository.SharedPrefsActiveQuestStore
 import com.jeepark.onestep.data.repository.SharedPrefsSettingsRepository
+import com.jeepark.onestep.data.repository.SharedPrefsVersionStore
 import com.jeepark.onestep.data.repository.UserRepository
 import com.jeepark.onestep.data.repository.UserRepositoryImpl
+import com.jeepark.onestep.data.repository.VersionedCache
+import com.jeepark.onestep.util.FusedLocationProvider
+import com.jeepark.onestep.util.LocationProvider
 import com.jeepark.onestep.util.NotificationScheduler
 import com.jeepark.onestep.util.WorkManagerNotificationScheduler
 
@@ -29,6 +46,7 @@ class AppContainer(
     createActiveQuestStore: () -> ActiveQuestStore,
     createSettingsRepository: () -> SettingsRepository,
     createNotificationScheduler: () -> NotificationScheduler,
+    createLocationProvider: () -> LocationProvider,
 ) {
     val authRepository: AuthRepository by lazy(createAuthRepository)
     val userRepository: UserRepository by lazy(createUserRepository)
@@ -36,6 +54,7 @@ class AppContainer(
     val activeQuestStore: ActiveQuestStore by lazy(createActiveQuestStore)
     val settingsRepository: SettingsRepository by lazy(createSettingsRepository)
     val notificationScheduler: NotificationScheduler by lazy(createNotificationScheduler)
+    val locationProvider: LocationProvider by lazy(createLocationProvider)
 
     /** 로그아웃·계정 삭제. 위의 저장소들을 조합한다. */
     val accountService: AccountService by lazy {
@@ -45,15 +64,39 @@ class AppContainer(
     companion object {
         /** 실제 구현체(Firebase / SharedPreferences / WorkManager)를 연결한 컨테이너. */
         fun create(app: Application): AppContainer {
-            // 사용자 저장소가 인증 저장소를 함께 쓰므로 같은 인스턴스를 공유한다
+            // 여러 곳이 함께 쓰는 것은 같은 인스턴스를 공유한다
             val auth by lazy { FirebaseAuthRepository(app) }
+            val location by lazy { FusedLocationProvider(app) }
+            val db by lazy { Firebase.firestore }
+            val cachePrefs by lazy {
+                app.getSharedPreferences(SharedPrefsVersionStore.FILE_NAME, Context.MODE_PRIVATE)
+            }
+
+            // Firestore 컬렉션 하나를 버전 키로 캐싱하는 캐시. 버전은 컬렉션 이름으로 만든 키로 기기에 기억한다.
+            fun <T> versionedCache(collection: String, metaDocId: String, parser: (DocumentSnapshot) -> T?) =
+                VersionedCache(
+                    source = FirestoreCollectionSource(db, collection, metaDocId, parser),
+                    versions = SharedPrefsVersionStore(cachePrefs, SharedPrefsVersionStore.keyFor(collection)),
+                )
+
             return AppContainer(
                 createAuthRepository = { auth },
                 createUserRepository = { UserRepositoryImpl(auth) },
-                createQuestRepository = { QuestRepositoryImpl(app) },
+                createQuestRepository = {
+                    QuestRepositoryImpl(
+                        questsCache = versionedCache("quests", "quests_meta") { it.toObject(Quest::class.java) },
+                        places = PlaceRepositoryImpl(
+                            versionedCache("places", "places_meta") { it.toObject(Place::class.java) }
+                        ),
+                        location = location,
+                        weather = KmaWeatherProvider(location, NetworkClient.kmaService, BuildConfig.KMA_API_KEY),
+                        ranker = GeminiQuestRanker(GeminiClient.service, BuildConfig.GEMINI_API_KEY),
+                    )
+                },
                 createActiveQuestStore = { SharedPrefsActiveQuestStore(app) },
                 createSettingsRepository = { SharedPrefsSettingsRepository.create(app) },
                 createNotificationScheduler = { WorkManagerNotificationScheduler(app) },
+                createLocationProvider = { location },
             )
         }
     }

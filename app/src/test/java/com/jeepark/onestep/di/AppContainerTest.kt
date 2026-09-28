@@ -7,6 +7,7 @@ import com.jeepark.onestep.data.repository.FakeQuestRepository
 import com.jeepark.onestep.data.repository.FakeSettingsRepository
 import com.jeepark.onestep.data.repository.FakeUserRepository
 import com.jeepark.onestep.data.model.User
+import com.jeepark.onestep.util.FakeLocationProvider
 import com.jeepark.onestep.util.FakeNotificationScheduler
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -31,6 +32,7 @@ class AppContainerTest {
         val store = Counted { FakeActiveQuestStore() }
         val settings = Counted { FakeSettingsRepository(lastAccessMillis = 1_000L) }
         val scheduler = Counted { FakeNotificationScheduler() }
+        val location = Counted { FakeLocationProvider() }
 
         val container = AppContainer(
             createAuthRepository = auth.provider(),
@@ -39,16 +41,18 @@ class AppContainerTest {
             createActiveQuestStore = store.provider(),
             createSettingsRepository = settings.provider(),
             createNotificationScheduler = scheduler.provider(),
+            createLocationProvider = location.provider(),
         )
 
-        val counts get() = listOf(auth.count, users.count, quests.count, store.count, settings.count, scheduler.count)
+        val counts
+            get() = listOf(auth.count, users.count, quests.count, store.count, settings.count, scheduler.count, location.count)
     }
 
     @Test
     fun `컨테이너를 만들 때는 아무 것도 만들지 않는다`() {
         val f = Fixture()
 
-        assertEquals(listOf(0, 0, 0, 0, 0, 0), f.counts)
+        assertEquals(listOf(0, 0, 0, 0, 0, 0, 0), f.counts)
     }
 
     @Test
@@ -68,7 +72,7 @@ class AppContainerTest {
 
         f.container.questRepository
 
-        assertEquals(listOf(0, 0, 1, 0, 0, 0), f.counts)
+        assertEquals(listOf(0, 0, 1, 0, 0, 0, 0), f.counts)
     }
 
     @Test
@@ -81,6 +85,7 @@ class AppContainerTest {
         assertEquals(FakeActiveQuestStore::class, f.container.activeQuestStore::class)
         assertEquals(FakeSettingsRepository::class, f.container.settingsRepository::class)
         assertEquals(FakeNotificationScheduler::class, f.container.notificationScheduler::class)
+        assertEquals(FakeLocationProvider::class, f.container.locationProvider::class)
     }
 
     @Test
@@ -90,7 +95,7 @@ class AppContainerTest {
         f.container.accountService
 
         // 인증·사용자·설정·알림 예약. 퀘스트 저장소와 진행 중 퀘스트 보관소는 쓰지 않으므로 만들지 않는다
-        assertEquals(listOf(1, 1, 0, 0, 1, 1), f.counts)
+        assertEquals(listOf(1, 1, 0, 0, 1, 1, 0), f.counts)
     }
 
     @Test
@@ -105,7 +110,7 @@ class AppContainerTest {
         assertEquals(1, (f.container.authRepository as FakeAuthRepository).signOutCount)
         assertEquals(0L, f.container.settingsRepository.lastAccessMillis)
         assertFalse((f.container.notificationScheduler as FakeNotificationScheduler).isScheduled)
-        assertEquals(listOf(1, 1, 0, 0, 1, 1), f.counts) // 서비스 안팎에서 써도 각각 한 번만 만들어진다
+        assertEquals(listOf(1, 1, 0, 0, 1, 1, 0), f.counts) // 서비스 안팎에서 써도 각각 한 번만 만들어진다
     }
 
     @Test

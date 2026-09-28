@@ -29,7 +29,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.jeepark.onestep.util.LocationHelper
 import com.jeepark.onestep.util.PermissionRequestPolicy
 import com.jeepark.onestep.ui.components.OneStepBottomBar
 import com.jeepark.onestep.ui.screens.AuthScreen
@@ -83,10 +82,11 @@ fun MyNavGraph() {
         ActivityResultContracts.RequestPermission()
     ) { granted -> permissionPolicy.scheduleIfAllowed(granted) }
 
+    val locationProvider = context.appContainer.locationProvider
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) LocationHelper.updateLocation(context) {}
+        if (granted) locationProvider.refresh()
     }
 
     LaunchedEffect(Unit) {
@@ -98,7 +98,7 @@ fun MyNavGraph() {
             }
         } else {
             // 이미 한 번 요청한 경우 권한 상태에 맞춰 위치 갱신·알림 스케줄
-            LocationHelper.updateLocation(context) {}
+            locationProvider.refresh()
 
             val notifGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 androidx.core.content.ContextCompat.checkSelfPermission(
