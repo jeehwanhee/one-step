@@ -1,30 +1,37 @@
 package com.jeepark.onestep.data.repository
 
-import android.content.Context
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.firestore
-import com.jeepark.onestep.BuildConfig
-import com.jeepark.onestep.data.model.GeminiClient
-import com.jeepark.onestep.data.model.GeminiContent
-import com.jeepark.onestep.data.model.GeminiPart
-import com.jeepark.onestep.data.model.GeminiRequest
-import com.jeepark.onestep.data.model.NetworkClient
-import com.jeepark.onestep.data.model.Quest
-import com.jeepark.onestep.util.LocationHelper
-import org.json.JSONArray
-import org.json.JSONObject
-import kotlin.math.roundToInt
+import com.jeepark.onestep.domain.model.FirestorePaths
+import com.jeepark.onestep.domain.model.GiveUpReason
+import com.jeepark.onestep.domain.model.Quest
+import com.jeepark.onestep.domain.model.QuestFields
+import com.jeepark.onestep.domain.service.SAMPLE_SIZE
+import com.jeepark.onestep.domain.service.findNearestPlace
+import com.jeepark.onestep.domain.service.hasPlaceholders
+import com.jeepark.onestep.domain.service.randomSelection
+import com.jeepark.onestep.domain.service.resolvePlaceholders
+import com.jeepark.onestep.domain.service.sampleByRatio
+import com.jeepark.onestep.platform.location.LocationProvider
+import kotlinx.coroutines.CancellationException
+import kotlin.random.Random
 
-class QuestRepositoryImpl(context: Context) : QuestRepository {
-    private val appContext = context.applicationContext
-    private val db = Firebase.firestore
+/**
+ * 퀘스트 후보를 모아 사용자에게 보여줄 목록을 만든다. 각 단계의 규칙은 순수 함수(QuestSelection·PlaceholderResolver 등)에,
+ * 외부 접근은 주입받은 구성요소(캐시·장소·위치·날씨·추천)에 있고, 이 클래스는 순서를 조립한다.
+ */
+class QuestRepositoryImpl(
+    private val questsCache: VersionedCache<Quest>,
+    private val places: PlaceRepository,
+    private val location: LocationProvider,
+    private val weather: WeatherProvider,
+    private val ranker: QuestRanker,
+    private val random: Random = Random.Default,
+) : QuestRepository {
 
-    private val questsCache = VersionedCache<Quest>(
-        context = appContext,
-        collection = "quests",
-        metaDocId = "quests_meta",
-    ) { doc -> try { doc.toObject(Quest::class.java) } catch (e: Exception) { null } }
+    // 포기 사유 기록에만 쓰므로 그 기능을 실제로 쓸 때까지 Firebase에 접근하지 않는다
+    private val db by lazy { Firebase.firestore }
 
     override suspend fun fetchFilteredQuests(
         ratios: List<Double>,
@@ -34,190 +41,54 @@ class QuestRepositoryImpl(context: Context) : QuestRepository {
         val allQuests = questsCache.load().filter { it.questName.isNotEmpty() }
         if (allQuests.isEmpty()) throw Exception("quests 컬렉션이 비어 있습니다")
 
-        // 2. 비율에 맞게 20개 샘플링
-        val sampled = sampleByRatio(allQuests, ratios, 20)
+        // 2. 비율에 맞게 SAMPLE_SIZE개 샘플링
+        val sampled = sampleByRatio(allQuests, ratios, SAMPLE_SIZE, random)
 
         // 3. {공원}/{도서관} 등 플레이스홀더를 사용자 위치 기반 실제 장소명으로 치환
         val substituted = substitutePlaceholders(sampled)
 
-        // 4. 일일 한도 초과 시 Gemini 건너뛰고 무작위 8개 반환
-        if (!useGemini) {
-            return substituted.shuffled().take(8)
-        }
+        // 4. 일일 한도 초과 시 추천 서비스를 건너뛰고 무작위로 고른다
+        if (!useGemini) return randomSelection(substituted, random)
 
-        // 5. 날씨 조회 (기상청 — 전국 커버)
-        val weather = fetchWeather()
+        // 5. 날씨 조회 (실패해도 "정보 없음"으로 계속 진행)
+        val weatherText = weather.describeCurrentWeather()
 
-        // 6. Gemini로 8개 선별 (실패 시 랜덤 8개 반환)
+        // 6. 추천 서비스로 선별 (실패하면 무작위 선택으로 대신)
         return try {
-            selectWithGemini(substituted, weather)
+            ranker.select(substituted, weatherText)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            // HttpException이면 응답 본문도 출력 (어떤 quota인지 확인용)
-            if (e is retrofit2.HttpException) {
-                val body = try { e.response()?.errorBody()?.string() } catch (_: Exception) { null }
-                android.util.Log.e("QuestRepo", "Gemini ${e.code()} body=$body")
-            } else {
-                android.util.Log.e("QuestRepo", "Gemini 호출 실패", e)
-            }
-            substituted.shuffled().take(8)
+            android.util.Log.e("QuestRepo", "추천 선별 실패, 무작위로 대신함", e)
+            randomSelection(substituted, random)
         }
     }
-
-    private val PLACEHOLDERS = mapOf(
-        "{공원}"          to "park",
-        "{도서관}"        to "library",
-        "{청년공간}"      to "youth_space",
-        "{정신건강센터}"  to "mental_center",
-        "{체육시설}"      to "gym",
-    )
-
-    private val FALLBACK_NAMES = mapOf(
-        "{공원}"          to "근처 공원",
-        "{도서관}"        to "근처 도서관",
-        "{청년공간}"      to "근처 청년공간",
-        "{정신건강센터}"  to "가까운 정신건강복지센터",
-        "{체육시설}"      to "근처 체육시설",
-    )
 
     private suspend fun substitutePlaceholders(quests: List<Quest>): List<Quest> {
         // 어떤 quest에라도 플레이스홀더가 있는 경우만 places 로드
-        val hasAny = quests.any { q -> PLACEHOLDERS.keys.any { it in q.questName || it in q.confirmQuestion } }
-        if (!hasAny) return quests
+        if (!hasPlaceholders(quests)) return quests
 
-        val allPlaces = try { PlaceRepository.loadAll(appContext) } catch (e: Exception) { return quests }
-
-        return quests.map { quest ->
-            var name = quest.questName
-            var question = quest.confirmQuestion
-            for ((placeholder, type) in PLACEHOLDERS) {
-                if (placeholder !in name && placeholder !in question) continue
-                val place = PlaceRepository.findNearestPlace(type, allPlaces)
-                val replacement = place?.name ?: (FALLBACK_NAMES[placeholder] ?: placeholder)
-                name = name.replace(placeholder, replacement)
-                question = question.replace(placeholder, replacement)
-            }
-            quest.copy(questName = name, confirmQuestion = question)
-        }
-    }
-
-    private fun sampleByRatio(all: List<Quest>, ratios: List<Double>, total: Int): List<Quest> {
-        val byLevel = (1..5).associateWith { level ->
-            all.filter { it.difficulty == level }.shuffled()
-        }
-        val result = mutableListOf<Quest>()
-
-        for (level in 1..5) {
-            val count = (ratios.getOrElse(level - 1) { 0.0 } * total).roundToInt()
-            result.addAll((byLevel[level] ?: emptyList()).take(count))
-        }
-
-        // 부족하면 남은 퀘스트로 채움
-        if (result.size < total) {
-            val extras = all.filterNot { it in result }.shuffled()
-            result.addAll(extras.take(total - result.size))
-        }
-
-        return result.take(total)
-    }
-
-    private suspend fun fetchWeather(): String = try {
-        val lat = LocationHelper.currentLat
-        val lng = LocationHelper.currentLng
-        if (lat == null || lng == null) {
-            "정보 없음"
-        } else {
-            val (nx, ny) = LocationHelper.latLngToGrid(lat, lng)
-
-            // 초단기실황 base_time: 매시 정시 발표(약 40분 지연) → 안전하게 1시간 전 정시 사용
-            val cal = java.util.Calendar.getInstance().apply {
-                add(java.util.Calendar.HOUR_OF_DAY, -1)
-            }
-            val baseDate = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.KOREA).format(cal.time)
-            val baseTime = java.text.SimpleDateFormat("HH00", java.util.Locale.KOREA).format(cal.time)
-
-            val resp = NetworkClient.kmaService.getUltraSrtNcst(
-                serviceKey = BuildConfig.KMA_API_KEY,
-                baseDate = baseDate, baseTime = baseTime, nx = nx, ny = ny
-            )
-            val items = resp.response?.body?.items?.item ?: emptyList()
-            val temp = items.firstOrNull { it.category == "T1H" }?.obsrValue
-            val pty  = items.firstOrNull { it.category == "PTY" }?.obsrValue
-            val ptyMsg = when (pty) {
-                "0" -> "강수 없음"
-                "1" -> "비"
-                "2" -> "비/눈"
-                "3" -> "눈"
-                "5" -> "빗방울"
-                "6" -> "빗방울/눈날림"
-                "7" -> "눈날림"
-                else -> "강수 정보 없음"
-            }
-            if (temp != null) "기온 ${temp}°C, $ptyMsg" else "정보 없음"
-        }
-    } catch (e: Exception) {
-        android.util.Log.e("QuestRepo", "기상청 API 호출 실패", e)
-        "정보 없음"
-    }
-
-    private suspend fun selectWithGemini(
-        quests: List<Quest>,
-        weather: String,
-    ): List<Quest> {
-        // JSONObject로 안전하게 직렬화 (퀘스트명에 ", \, 줄바꿈 등 있어도 깨지지 않음)
-        val questsJsonArr = JSONArray()
-        quests.forEachIndexed { i, q ->
-            questsJsonArr.put(JSONObject().apply {
-                put("id", i)
-                put("index", q.index)
-                put("name", q.questName)
-                put("difficulty", q.difficulty)
-            })
-        }
-        val questsJson = questsJsonArr.toString()
-
-        val prompt = """
-            아래 환경 데이터와 퀘스트 목록을 보고, 오늘 활동에 가장 적합한 퀘스트 8개를 골라줘.
-
-            오늘 날씨: $weather
-
-            퀘스트 목록(JSON):
-            $questsJson
-
-            응답 형식: 선택한 퀘스트의 id 숫자만 JSON 배열로 반환. 예: [0,2,5,8,11,14,17,19]
-            다른 텍스트, 마크다운 없이 JSON 배열만.
-        """.trimIndent()
-
-        val response = GeminiClient.service.generateContent(
-            apiKey  = BuildConfig.GEMINI_API_KEY,
-            request = GeminiRequest(listOf(GeminiContent(listOf(GeminiPart(prompt)))))
-        )
-
-        val rawText = response.candidates
-            ?.firstOrNull()?.content?.parts?.firstOrNull()?.text
-            ?: return quests.shuffled().take(8)
-
-        return try {
-            val clean = rawText.trim()
-                .removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
-            val arr = JSONArray(clean)
-            (0 until arr.length())
-                .map { arr.getInt(it) }
-                .mapNotNull { quests.getOrNull(it) }
-                .take(8)
-                .ifEmpty { quests.shuffled().take(8) }
+        val allPlaces = try {
+            places.loadAll()
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            quests.shuffled().take(8)
+            return quests
+        }
+
+        return resolvePlaceholders(quests) { type ->
+            findNearestPlace(type, allPlaces, location.current, random)
         }
     }
 
     /** 해당 퀘스트 문서에 포기 사유를 기록 (통계용, 실패해도 유저 쪽 기록에는 영향 없음). */
-    override fun recordGiveUp(questIndex: Int, reason: Int, onFailure: (Exception) -> Unit) {
-        db.collection("quests")
-            .whereEqualTo("index", questIndex)
+    override fun recordGiveUp(questIndex: Int, reason: GiveUpReason, onFailure: (Exception) -> Unit) {
+        db.collection(FirestorePaths.QUESTS)
+            .whereEqualTo(QuestFields.INDEX, questIndex)
             .get()
             .addOnSuccessListener { snapshot ->
                 snapshot.documents.firstOrNull()?.reference?.update(
-                    "giveUpReasons", FieldValue.arrayUnion(reason)
+                    QuestFields.GIVE_UP_REASONS, FieldValue.arrayUnion(reason.code)
                 )?.addOnFailureListener { onFailure(it) }
             }.addOnFailureListener { onFailure(it) }
     }

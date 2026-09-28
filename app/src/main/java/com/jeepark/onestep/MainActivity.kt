@@ -8,6 +8,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -23,31 +25,25 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.google.firebase.FirebaseApp
-import com.jeepark.onestep.util.LocationHelper
-import com.jeepark.onestep.util.NotificationHelper
+import com.jeepark.onestep.platform.permission.PermissionRequestPolicy
 import com.jeepark.onestep.ui.components.OneStepBottomBar
-import com.jeepark.onestep.ui.screens.AuthScreen
-import com.jeepark.onestep.ui.screens.FootprintsScreen
-import com.jeepark.onestep.ui.screens.InitQuestionScreen
-import com.jeepark.onestep.ui.screens.InitScreen
-import com.jeepark.onestep.ui.screens.MainScreen
-import com.jeepark.onestep.ui.screens.CollectionScreen
-import com.jeepark.onestep.ui.screens.SettingScreen
-import com.jeepark.onestep.ui.screens.SignupScreen
+import com.jeepark.onestep.ui.screens.auth.AuthScreen
+import com.jeepark.onestep.ui.screens.collection.CollectionScreen
+import com.jeepark.onestep.ui.screens.footprints.FootprintsScreen
+import com.jeepark.onestep.ui.screens.main.MainScreen
+import com.jeepark.onestep.ui.screens.settings.SettingScreen
+import com.jeepark.onestep.ui.screens.signup.SignupScreen
+import com.jeepark.onestep.ui.screens.start.InitScreen
+import com.jeepark.onestep.ui.screens.survey.InitQuestionScreen
 import com.jeepark.onestep.ui.theme.OneStepTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        FirebaseApp.initializeApp(this)
-        NotificationHelper.createChannel(this)
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowCompat.getInsetsController(window, window.decorView).apply {
@@ -74,34 +70,35 @@ fun MyNavGraph() {
     val context     = LocalContext.current
     val navController = rememberNavController()
 
-    val prefs = context.getSharedPreferences(NotificationHelper.PREFS_NAME, android.content.Context.MODE_PRIVATE)
+    // 권한을 언제 물어보고 알림을 언제 예약할지는 정책 객체가 정하고, 이 화면에는 실제 요청 창(런처)만 남긴다
+    val permissionPolicy = remember {
+        PermissionRequestPolicy(
+            context.appContainer.settingsRepository,
+            context.appContainer.notificationScheduler,
+        )
+    }
 
     val notifPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted && prefs.getBoolean(NotificationHelper.KEY_NOTIF, true)) {
-            NotificationHelper.schedule(context)
-        }
-    }
+    ) { granted -> permissionPolicy.scheduleIfAllowed(granted) }
 
+    val locationProvider = context.appContainer.locationProvider
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) LocationHelper.updateLocation(context) {}
+        if (granted) locationProvider.refresh()
     }
 
     LaunchedEffect(Unit) {
         // 권한 요청 1회만 (회전·재구성 시 다이얼로그 반복 방지)
-        val alreadyRequested = prefs.getBoolean("perm_requested", false)
-        if (!alreadyRequested) {
+        if (permissionPolicy.shouldRequestPermissions()) {
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
-            prefs.edit().putBoolean("perm_requested", true).apply()
         } else {
             // 이미 한 번 요청한 경우 권한 상태에 맞춰 위치 갱신·알림 스케줄
-            LocationHelper.updateLocation(context) {}
+            locationProvider.refresh()
 
             val notifGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 androidx.core.content.ContextCompat.checkSelfPermission(
@@ -109,9 +106,7 @@ fun MyNavGraph() {
                 ) == android.content.pm.PackageManager.PERMISSION_GRANTED
             } else true
 
-            if (notifGranted && prefs.getBoolean(NotificationHelper.KEY_NOTIF, true)) {
-                NotificationHelper.schedule(context)
-            }
+            permissionPolicy.scheduleIfAllowed(notifGranted)
         }
     }
 
@@ -194,8 +189,10 @@ fun MyNavGraph() {
         composable(route = "InitQuestion") {
             InitQuestionScreen(
                 onNavigateToMain = {
+                    // 앱 사용 중 재설문이면 이전 main이 백스택에 남아 있으므로 함께 비운다
+                    // (남아 있으면 뒤로가기로 돌아갔을 때 갱신 전 상태로 재설문이 다시 뜬다)
                     navController.navigate("main") {
-                        popUpTo("InitQuestion") { inclusive = true }
+                        popUpTo(0) { inclusive = true }
                     }
                 },
                 onNavigateToInit = {

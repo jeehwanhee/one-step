@@ -1,215 +1,130 @@
 package com.jeepark.onestep.data.repository
 
 import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.firestore
-import com.jeepark.onestep.data.model.InitQuestions
-import com.jeepark.onestep.data.model.User
-import com.jeepark.onestep.util.Model_A
+import com.jeepark.onestep.domain.model.FirestorePaths
+import com.jeepark.onestep.domain.model.Gender
+import com.jeepark.onestep.domain.model.InitQuestions
+import com.jeepark.onestep.domain.model.IsolatedRecordFields
+import com.jeepark.onestep.domain.model.User
+import com.jeepark.onestep.domain.model.UserFields
+import com.jeepark.onestep.domain.service.isolationScore
+import kotlinx.coroutines.tasks.await
 
-class UserRepositoryImpl : UserRepository {
+class UserRepositoryImpl(private val auth: AuthRepository) : UserRepository {
     private val db = Firebase.firestore
-    private val auth = Firebase.auth
 
-    override fun saveInitUser(
-        nickname: String,
-        age: Int,
-        gender: Boolean,
-        onSuccess: () -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        val currentUser = Firebase.auth.currentUser
-        if (currentUser == null) {
-            onFailure(IllegalStateException("로그인된 사용자가 없습니다"))
-            return
-        }
-        val uid = currentUser.uid
-        val email = currentUser.email
-        if (email == null) {
-            onFailure(IllegalStateException("사용자 이메일을 가져올 수 없습니다"))
-            return
-        }
+    private fun requireUid(): String =
+        auth.currentUid ?: throw IllegalStateException("로그인된 사용자가 없습니다")
+
+    private fun userDoc(uid: String) = db.collection(FirestorePaths.USERS).document(uid)
+
+    override suspend fun saveInitUser(nickname: String, age: Int, gender: Gender): Result<Unit> = suspendRunCatching {
+        val uid = requireUid()
+        val email = auth.currentEmail ?: throw IllegalStateException("사용자 이메일을 가져올 수 없습니다")
 
         val user = User(
-            uid= uid,
-            email= email,
-            nickname=nickname,
-            age=age,
-            gender=gender,
+            uid = uid,
+            email = email,
+            nickname = nickname,
+            age = age,
+            gender = gender.storedValue,
         )
-        db.collection("users").document(uid)
-            .set(user)
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { onFailure(it) }
+        userDoc(uid).set(user).awaitCompletion()
     }
 
-
-
-    override fun getUser(
-        onSuccess: (User) -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        val uid = auth.currentUser?.uid
-        if (uid == null) {
-            onFailure(IllegalStateException("로그인된 사용자가 없습니다"))
-            return
-        }
-
-        db.collection("users").document(uid).get()
-            .addOnSuccessListener { document ->
-                try {
-                    val user = document.toObject(User::class.java)
-                    if (user != null) onSuccess(user)
-                    else onFailure(Exception("User null"))
-                } catch (e: Exception) {
-                    onFailure(e)
-                }
-            }
-            .addOnFailureListener { onFailure(it) }
+    override suspend fun getUser(): Result<User> = suspendRunCatching {
+        val uid = requireUid()
+        val document = userDoc(uid).get().await()
+        document.toObject(User::class.java) ?: throw Exception("User null")
     }
 
-    override fun saveInitQuestions(
-        data: InitQuestions,
-        onSuccess: () -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        val uid = auth.currentUser?.uid ?: return
-        val outFreqScaled = when (data.outside) {
-            0 -> 0.0          // 전혀 안 나감 (0)
-            1, 2 -> 1.0       // 주 1~2회 (1)
-            3, 4 -> 2.0       // 주 3~4회 (2)
-            5, 6 -> 3.0       // 주 5~6회 (3)
-            7 -> 4.0          // 매일 나감 (4)
-            else -> 0.0       // 예외 처리
-        }
-        getUser(
-            onSuccess = { user ->
-                // 학습 분포 범위를 벗어난 입력은 경계값으로 clamp (외삽 방지)
-                val inputData = doubleArrayOf(
-                    user.age.toDouble().coerceIn(19.0, 38.0),    // 0: age (학습 19~38)
-                    if (user.gender) 0.0 else 1.0,               // 1: gender (남=0.0, 여=1.0)
-                    data.shower.toDouble().coerceIn(0.0, 7.0),   // 2: shower (주간 0~7)
-                    outFreqScaled,                               // 3: out_freq (매핑상 0~4)
-                    data.activeTime.toDouble().coerceIn(0.0, 3.0), // 4: active_time (0~3)
-                    data.hiki.toDouble().coerceIn(0.0, 240.0),   // 5: hiki_period (0~240개월)
-                    data.sleepTime.toDouble().coerceIn(2.0, 20.0), // 6: sleep_hours (2~20)
-                    data.meal.toDouble().coerceIn(0.0, 4.0)      // 7: meal_count (0~4)
-                )
-                val result = Model_A.predict(inputData)
-                val score = (result * 100).toInt()
-                val now = System.currentTimeMillis()
-                val historyEntry = mapOf(
-                    "score" to score,
-                    "recordedAt" to now
-                )
+    override suspend fun saveInitQuestions(data: InitQuestions): Result<Unit> = suspendRunCatching {
+        val uid = requireUid()
+        val user = getUser().getOrThrow()
 
-                db.collection("users").document(uid)
-                    .update(
-                        "initQuestions", data,
-                        "isolated", score,
-                        "isolatedLastModified", now,
-                        "isolatedCount", FieldValue.increment(1),
-                        "isolatedHistory", FieldValue.arrayUnion(historyEntry)
-                    )
-                    .addOnSuccessListener { onSuccess() }
-                    .addOnFailureListener {
-                        onFailure(it)
-                    }
-            },
-            onFailure = { onFailure(it) }
+        val score = isolationScore(user.age, Gender.fromStored(user.gender), data)
+        val now = System.currentTimeMillis()
+        val historyEntry = mapOf(
+            IsolatedRecordFields.SCORE to score,
+            IsolatedRecordFields.RECORDED_AT to now
         )
+
+        userDoc(uid)
+            .update(
+                UserFields.INIT_QUESTIONS, data,
+                UserFields.ISOLATED, score,
+                UserFields.ISOLATED_LAST_MODIFIED, now,
+                UserFields.QUESTS_SINCE_ASSESSMENT, 0,
+                UserFields.ISOLATED_HISTORY, FieldValue.arrayUnion(historyEntry)
+            )
+            .awaitCompletion()
     }
 
-    override fun getUserFromServer(
-        uid: String,
-        onResult: (User?) -> Unit,
-        onError: () -> Unit
-    ) {
-        db.collection("users").document(uid)
-            .get(Source.SERVER)
-            .addOnSuccessListener { doc ->
-                val user = try {
-                    if (doc.exists()) doc.toObject(User::class.java) else null
-                } catch (e: Exception) {
-                    null
-                }
-                onResult(user)
-            }
-            .addOnFailureListener { onError() }
+    override suspend fun getUserFromServer(uid: String): Result<User?> = suspendRunCatching {
+        val doc = userDoc(uid).get(Source.SERVER).await()
+        // 문서가 없으면 null(신규 사용자). 문서를 읽지 못한 경우(예: 모델 변환 실패)는 예외로 실패 처리해서
+        // 기존 사용자를 신규 사용자로 착각해 가입 화면으로 보내지 않는다.
+        if (doc.exists()) doc.toObject(User::class.java) else null
     }
 
-    override fun updateLastAccessDate(uid: String, timestamp: Long) {
-        db.collection("users").document(uid).update("lastAccessDate", timestamp)
+    override suspend fun updateLastAccessDate(uid: String, timestamp: Long): Result<Unit> = suspendRunCatching {
+        userDoc(uid).update(UserFields.LAST_ACCESS_DATE, timestamp).awaitCompletion()
     }
 
-    override fun incrementDailyQuestCount(
+    override suspend fun incrementDailyQuestCount(
         uid: String,
         sameDayAsLast: Boolean,
-        today: String,
-        onSuccess: () -> Unit
-    ) {
+        today: String
+    ): Result<Unit> = suspendRunCatching {
         val update: Map<String, Any> = if (sameDayAsLast) {
-            mapOf("dailyQuestCount" to FieldValue.increment(1))
+            mapOf(UserFields.DAILY_QUEST_COUNT to FieldValue.increment(1))
         } else {
-            mapOf("dailyQuestCount" to 1, "dailyQuestDate" to today)
+            mapOf(UserFields.DAILY_QUEST_COUNT to 1, UserFields.DAILY_QUEST_DATE to today)
         }
-        db.collection("users").document(uid).update(update)
-            .addOnSuccessListener { onSuccess() }
+        userDoc(uid).update(update).awaitCompletion()
     }
 
-    override fun applyQuestCompletion(
+    override suspend fun applyQuestCompletion(
         uid: String,
         progress: Int,
         tier: Int,
         difficultyQueue: List<Double>,
         resultsQueue: List<Int>,
-        prevQuestMap: Map<String, Any>,
-        onSuccess: () -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        db.collection("users").document(uid).update(
+        prevQuestMap: Map<String, Any>
+    ): Result<Unit> = suspendRunCatching {
+        userDoc(uid).update(
             mapOf(
-                "progress" to progress,
-                "tier" to tier,
-                "difficultyQueue" to difficultyQueue,
-                "questResultsQueue" to resultsQueue,
-                "prevQuests" to FieldValue.arrayUnion(prevQuestMap),
-                "isolatedCount" to FieldValue.increment(1)
+                UserFields.PROGRESS to progress,
+                UserFields.TIER to tier,
+                UserFields.DIFFICULTY_QUEUE to difficultyQueue,
+                UserFields.QUEST_RESULTS_QUEUE to resultsQueue,
+                UserFields.PREV_QUESTS to FieldValue.arrayUnion(prevQuestMap),
+                UserFields.QUESTS_SINCE_ASSESSMENT to FieldValue.increment(1)
             )
-        ).addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { onFailure(it) }
+        ).awaitCompletion()
     }
 
-    override fun resetIsolatedCount(uid: String, onSuccess: () -> Unit) {
-        db.collection("users").document(uid).update("isolatedCount", 0)
-            .addOnSuccessListener { onSuccess() }
-    }
-
-    override fun applyGiveUp(
+    override suspend fun applyGiveUp(
         uid: String,
         resultsQueue: List<Int>,
-        giveUpEntry: Map<String, Any>,
-        onSuccess: () -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        db.collection("users").document(uid).update(
+        giveUpEntry: Map<String, Any>
+    ): Result<Unit> = suspendRunCatching {
+        userDoc(uid).update(
             mapOf(
-                "questResultsQueue" to resultsQueue,
-                "giveUpReasons" to FieldValue.arrayUnion(giveUpEntry)
+                UserFields.QUEST_RESULTS_QUEUE to resultsQueue,
+                UserFields.GIVE_UP_REASONS to FieldValue.arrayUnion(giveUpEntry)
             )
-        ).addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { onFailure(it) }
+        ).awaitCompletion()
     }
 
-    override fun updateNotificationAgreed(uid: String, agreed: Boolean) {
-        db.collection("users").document(uid).update("notificationAgreed", agreed)
+    override suspend fun updateNotificationAgreed(uid: String, agreed: Boolean): Result<Unit> = suspendRunCatching {
+        userDoc(uid).update(UserFields.NOTIFICATION_AGREED, agreed).awaitCompletion()
     }
 
-    override fun deleteUser(uid: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
-        db.collection("users").document(uid).delete()
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { onFailure(it) }
+    override suspend fun deleteUser(uid: String): Result<Unit> = suspendRunCatching {
+        userDoc(uid).delete().awaitCompletion()
     }
 }

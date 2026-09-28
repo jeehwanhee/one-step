@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.jeepark.onestep.data.model.Quest
+import com.jeepark.onestep.domain.model.Quest
 import com.jeepark.onestep.ui.components.FlatCard
 import com.jeepark.onestep.ui.components.PrimaryPillButton
 import com.jeepark.onestep.ui.theme.HeadingText

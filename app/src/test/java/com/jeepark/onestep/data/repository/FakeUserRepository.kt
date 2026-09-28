@@ -1,11 +1,15 @@
 package com.jeepark.onestep.data.repository
 
-import com.jeepark.onestep.data.model.InitQuestions
-import com.jeepark.onestep.data.model.User
+import com.jeepark.onestep.domain.model.Gender
+import com.jeepark.onestep.domain.model.InitQuestions
+import com.jeepark.onestep.domain.model.IsolatedRecord
+import com.jeepark.onestep.domain.model.PrevQuest
+import com.jeepark.onestep.domain.model.User
+import kotlinx.coroutines.CompletableDeferred
 
 /**
- * 테스트용 인메모리 가짜 UserRepository. Firebase 없이 동작하며,
- * 모든 콜백은 (실제 Firestore와 달리) 동기적으로 즉시 호출된다.
+ * 테스트용 인메모리 가짜 UserRepository. Firebase 없이 동작한다.
+ * 기본적으로 즉시 응답하고, [writeGate]를 설정하면 쓰기 응답을 원하는 시점까지 미룰 수 있다.
  */
 class FakeUserRepository(
     var user: User? = null,
@@ -13,61 +17,64 @@ class FakeUserRepository(
     var failureMessage: String = "테스트 실패"
 ) : UserRepository {
 
-    override fun saveInitUser(
-        nickname: String,
-        age: Int,
-        gender: Boolean,
-        onSuccess: () -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        if (shouldFail) {
-            onFailure(Exception(failureMessage))
-            return
-        }
-        user = (user ?: User()).copy(nickname = nickname, age = age, gender = gender)
-        onSuccess()
+    /** 설문 제출 시 실제 구현이 모델로 계산하는 고립도 점수 대신 기록할 값. */
+    var isolationScore: Int = 50
+
+    /**
+     * 설정하면 쓰기 계열 호출이 이 게이트가 열릴 때까지 끝나지 않는다.
+     * 서버 확인이 늦거나 오프라인인 상황을 흉내 내서, 응답을 기다리면 안 되는 호출이 실제로 기다리지 않는지 확인하는 데 쓴다.
+     */
+    var writeGate: CompletableDeferred<Unit>? = null
+
+    private suspend fun awaitWriteAck() {
+        writeGate?.await()
     }
 
-    override fun getUser(onSuccess: (User) -> Unit, onFailure: (Exception) -> Unit) {
+    private fun failure(): Result<Nothing> = Result.failure(Exception(failureMessage))
+
+    override suspend fun saveInitUser(nickname: String, age: Int, gender: Gender): Result<Unit> {
+        awaitWriteAck()
+        if (shouldFail) return failure()
+        user = (user ?: User()).copy(nickname = nickname, age = age, gender = gender.storedValue)
+        return Result.success(Unit)
+    }
+
+    override suspend fun getUser(): Result<User> {
         val current = user
-        if (shouldFail || current == null) {
-            onFailure(Exception(failureMessage))
-        } else {
-            onSuccess(current)
-        }
+        return if (shouldFail || current == null) failure() else Result.success(current)
     }
 
-    override fun saveInitQuestions(
-        data: InitQuestions,
-        onSuccess: () -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        if (shouldFail) {
-            onFailure(Exception(failureMessage))
-            return
-        }
-        user = user?.copy(initQuestions = data)
-        onSuccess()
+    override suspend fun saveInitQuestions(data: InitQuestions): Result<Unit> {
+        awaitWriteAck()
+        val current = user
+        // 실제 구현처럼 사용자 문서를 읽지 못하면(로그인 없음·문서 없음 포함) 실패
+        if (shouldFail || current == null) return failure()
+        val now = System.currentTimeMillis()
+        user = current.copy(
+            initQuestions = data,
+            isolated = isolationScore,
+            isolatedLastModified = now,
+            questsSinceAssessment = 0,
+            isolatedHistory = current.isolatedHistory + IsolatedRecord(score = isolationScore, recordedAt = now),
+        )
+        return Result.success(Unit)
     }
 
-    override fun getUserFromServer(uid: String, onResult: (User?) -> Unit, onError: () -> Unit) {
-        if (shouldFail) {
-            onError()
-            return
-        }
-        onResult(user)
-    }
+    override suspend fun getUserFromServer(uid: String): Result<User?> =
+        if (shouldFail) failure() else Result.success(user)
 
-    override fun updateLastAccessDate(uid: String, timestamp: Long) {
+    override suspend fun updateLastAccessDate(uid: String, timestamp: Long): Result<Unit> {
+        awaitWriteAck()
         user = user?.copy(lastAccessDate = timestamp)
+        return Result.success(Unit)
     }
 
-    override fun incrementDailyQuestCount(
+    override suspend fun incrementDailyQuestCount(
         uid: String,
         sameDayAsLast: Boolean,
-        today: String,
-        onSuccess: () -> Unit
-    ) {
+        today: String
+    ): Result<Unit> {
+        awaitWriteAck()
         user?.let { current ->
             user = if (sameDayAsLast) {
                 current.copy(dailyQuestCount = current.dailyQuestCount + 1)
@@ -75,63 +82,63 @@ class FakeUserRepository(
                 current.copy(dailyQuestCount = 1, dailyQuestDate = today)
             }
         }
-        onSuccess()
+        return Result.success(Unit)
     }
 
-    override fun applyQuestCompletion(
+    override suspend fun applyQuestCompletion(
         uid: String,
         progress: Int,
         tier: Int,
         difficultyQueue: List<Double>,
         resultsQueue: List<Int>,
-        prevQuestMap: Map<String, Any>,
-        onSuccess: () -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        if (shouldFail) {
-            onFailure(Exception(failureMessage))
-            return
+        prevQuestMap: Map<String, Any>
+    ): Result<Unit> {
+        awaitWriteAck()
+        if (shouldFail) return failure()
+        user = user?.let { current ->
+            current.copy(
+                progress = progress,
+                tier = tier,
+                difficultyQueue = difficultyQueue,
+                questResultsQueue = resultsQueue,
+                prevQuests = current.prevQuests + prevQuestMap.toPrevQuest(),
+                questsSinceAssessment = current.questsSinceAssessment + 1,
+            )
         }
-        user = user?.copy(
-            progress = progress,
-            tier = tier,
-            difficultyQueue = difficultyQueue,
-            questResultsQueue = resultsQueue,
-            isolatedCount = (user?.isolatedCount ?: 0) + 1
-        )
-        onSuccess()
+        return Result.success(Unit)
     }
 
-    override fun resetIsolatedCount(uid: String, onSuccess: () -> Unit) {
-        user = user?.copy(isolatedCount = 0)
-        onSuccess()
-    }
-
-    override fun applyGiveUp(
+    override suspend fun applyGiveUp(
         uid: String,
         resultsQueue: List<Int>,
-        giveUpEntry: Map<String, Any>,
-        onSuccess: () -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        if (shouldFail) {
-            onFailure(Exception(failureMessage))
-            return
-        }
+        giveUpEntry: Map<String, Any>
+    ): Result<Unit> {
+        awaitWriteAck()
+        if (shouldFail) return failure()
         user = user?.copy(questResultsQueue = resultsQueue)
-        onSuccess()
+        return Result.success(Unit)
     }
 
-    override fun updateNotificationAgreed(uid: String, agreed: Boolean) {
+    override suspend fun updateNotificationAgreed(uid: String, agreed: Boolean): Result<Unit> {
+        awaitWriteAck()
         user = user?.copy(notificationAgreed = agreed)
+        return Result.success(Unit)
     }
 
-    override fun deleteUser(uid: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
-        if (shouldFail) {
-            onFailure(Exception(failureMessage))
-            return
-        }
+    override suspend fun deleteUser(uid: String): Result<Unit> {
+        awaitWriteAck()
+        if (shouldFail) return failure()
         user = null
-        onSuccess()
+        return Result.success(Unit)
     }
+
+    // Firestore에 저장되는 완료 기록 Map(QuestCompletion.toPrevQuestMap)을 다시 모델로
+    private fun Map<String, Any>.toPrevQuest() = PrevQuest(
+        questName       = this["questName"] as String,
+        questEXP        = this["questEXP"] as Int,
+        difficulty      = this["difficulty"] as Int,
+        confirmQuestion = this["confirmQuestion"] as String,
+        confirmAnswer   = this["confirmAnswer"] as String,
+        doneDate        = this["doneDate"] as String,
+    )
 }

@@ -16,7 +16,7 @@
 
 ## 주요 기능
 
-- **초기 고립도 측정** — 서울시 고립은둔청년 실태조사 기반 AI 모델(`Model_A`)이 설문 8문항으로 고립도(0~100)를 산출, 퀘스트 9개 완료마다 자동 재측정(설정에서 수동 재측정 가능)
+- **초기 고립도 측정** — 서울시 고립은둔청년 실태조사 기반 AI 모델(`Model_A`)이 설문 8문항으로 고립도(0~100)를 산출, 퀘스트 10개 완료마다 자동 재측정(설정에서 수동 재측정 가능)
 - **맞춤 퀘스트 추천** — 기분·이전 성공/포기 이력·티어를 반영한 AI 모델(`Model_B`)이 난이도(1.0~5.0)를 산정하고, 날씨·위치를 고려해 Gemini가 오늘의 퀘스트 8개를 선별
 - **위치 기반 퀘스트 치환** — "{공원}에서 산책하기" 같은 템플릿 퀘스트를 GPS 기준 반경 내 실제 공원·도서관 이름으로 치환해 장소 선택의 부담 제거
 - **단계적 보상** — 경험치 → 티어 상승 → 픽셀 동물(병아리~돌고래) 획득, 도감/메인화면 반영 및 동물과의 상호작용
@@ -46,6 +46,23 @@
 |---|---|---|
 | [`app/`](./app) | Android 클라이언트 — 화면, 퀘스트/장소/AI 모델 로직 | Kotlin, Jetpack Compose |
 | [`scripts/`](./scripts) | Firestore 데이터 업로드, AI 모델(Model_A) 재학습 | Python |
+
+### 앱 코드 구조
+
+| 패키지 | 역할 |
+|---|---|
+| `di/` | `AppContainer` — 저장소와 서비스를 한 곳에서 만들어 ViewModel에 넘김(수동 DI) |
+| `domain/model` | `User`·`Quest`·`Place` 등 모델과 `Gender`·`Mood`·`GiveUpReason`. Firestore 필드 이름은 `FirestoreSchema.kt`에 있고 바꾸면 기존 사용자 데이터가 읽히지 않음 |
+| `domain/rules` | 티어, 재설문 시점, 일일 한도, 활동 통계, 가입 입력 검증 같은 순수 규칙 |
+| `domain/service` | 고립도 산출, 난이도, 퀘스트 선별·순위, 장소 찾기·치환 |
+| `domain/ml` | XGBoost를 Java로 변환한 `Model_A`(고립도)·`Model_B`(난이도) |
+| `data/repository` | 저장소 인터페이스와 구현(Firestore, Firebase Auth, Gemini, 기상청) |
+| `data/remote` | 네트워크 클라이언트, API 응답 모델, 기상청 격자·발표 시각 계산, Firestore 컬렉션 소스 |
+| `data/local` | 이 기기에 저장하는 값(SharedPreferences) |
+| `platform/` | 위치, 알림(WorkManager), 권한 요청 — Android 프레임워크와 맞닿는 부분 |
+| `ui/screens/<기능>` | 화면과 그 ViewModel (`start`·`auth`·`signup`·`survey`·`main`·`collection`·`footprints`·`settings`) |
+| `ui/animal`, `ui/park` | 동물 목록·스프라이트, 공원 장면 |
+| `ui/components`, `ui/theme` | 공용 컴포넌트, 테마 |
 
 ---
 

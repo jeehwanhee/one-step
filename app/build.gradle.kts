@@ -76,6 +76,10 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Android의 org.json은 단위 테스트에서 껍데기(stub)라서, 프롬프트 생성·응답 해석 테스트용으로 실제 구현을 쓴다
+    testImplementation("org.json:json:20240303")
+    // 서버 오류(HttpException)를 만들어 보는 테스트용. 앱이 Retrofit을 통해 이미 쓰는 것과 같은 버전
+    testImplementation("com.squareup.okhttp3:okhttp:4.12.0")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
