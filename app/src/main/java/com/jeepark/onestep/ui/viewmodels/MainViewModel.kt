@@ -2,17 +2,26 @@ package com.jeepark.onestep.ui.viewmodels
 
 import android.app.Application
 import android.content.Context
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
-import com.jeepark.onestep.data.model.PrevQuest
 import com.jeepark.onestep.data.model.Quest
 import com.jeepark.onestep.data.model.User
-import com.jeepark.onestep.data.model.calculateTierProgress
+import com.jeepark.onestep.data.model.computeQuestCompletion
+import com.jeepark.onestep.data.model.giveUpResultsQueue
+import com.jeepark.onestep.data.model.hasReachedDailyLimit
+import com.jeepark.onestep.data.model.incrementedDailyCount
+import com.jeepark.onestep.data.repository.ActiveQuestStore
 import com.jeepark.onestep.data.repository.QuestRepository
+import com.jeepark.onestep.data.repository.QuestRepositoryImpl
+import com.jeepark.onestep.data.repository.SharedPrefsActiveQuestStore
 import com.jeepark.onestep.data.repository.UserRepository
 import com.jeepark.onestep.data.repository.UserRepositoryImpl
+import com.jeepark.onestep.util.NotificationHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,11 +30,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class MainViewModel(application: Application) : AndroidViewModel(application) {
-    private val repo: UserRepository = UserRepositoryImpl()
-    private val questRepository = QuestRepository(application)
-    private val auth = Firebase.auth
-    private val prefs = application.getSharedPreferences("active_quest", Context.MODE_PRIVATE)
+class MainViewModel(
+    private val repo: UserRepository,
+    private val questRepository: QuestRepository,
+    private val activeQuestStore: ActiveQuestStore,
+    private val currentUid: () -> String?,
+    private val onUserLoaded: (User) -> Unit = {},
+) : ViewModel() {
 
     private val _user = MutableStateFlow<User?>(null)
     val user: StateFlow<User?> = _user.asStateFlow()
@@ -47,7 +58,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         loadUser()
-        loadActiveQuestFromPrefs()
+        _activeQuest.value = activeQuestStore.load()
     }
 
     fun loadUser() {
@@ -56,14 +67,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             onSuccess = { user ->
                 _user.value = user
                 // 접속일 갱신
-                val uid = auth.currentUser?.uid ?: return@getUser
-                val now = System.currentTimeMillis()
-                repo.updateLastAccessDate(uid, now)
-                com.jeepark.onestep.util.NotificationHelper.saveLastAccess(getApplication())
-                // Firestore의 알림 동의 여부를 SharedPreferences에 동기화
-                val prefs = getApplication<android.app.Application>()
-                    .getSharedPreferences(com.jeepark.onestep.util.NotificationHelper.PREFS_NAME, android.content.Context.MODE_PRIVATE)
-                prefs.edit().putBoolean(com.jeepark.onestep.util.NotificationHelper.KEY_NOTIF, user.notificationAgreed).apply()
+                val uid = currentUid() ?: return@getUser
+                repo.updateLastAccessDate(uid, System.currentTimeMillis())
+                onUserLoaded(user)
             },
             onFailure = { e ->
                 android.util.Log.e("MainViewModel", "사용자 정보 로드 실패", e)
@@ -74,24 +80,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun todayDate() = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
 
-    fun isDailyLimitReached(): Boolean {
-        val user = _user.value ?: return false
-        return user.dailyQuestDate == todayDate() && user.dailyQuestCount >= 20
-    }
+    fun isDailyLimitReached(): Boolean = hasReachedDailyLimit(_user.value, todayDate())
 
     private fun incrementDailyCount() {
         val currentUser = _user.value ?: return
-        val uid = auth.currentUser?.uid ?: return
+        val uid = currentUid() ?: return
         val today = todayDate()
         val sameDay = currentUser.dailyQuestDate == today
 
         // 같은 날이면 원자적 증가(race-free), 날짜가 바뀌었으면 1로 리셋
         repo.incrementDailyQuestCount(uid, sameDay, today) {
-            _user.value = if (sameDay) {
-                currentUser.copy(dailyQuestCount = currentUser.dailyQuestCount + 1)
-            } else {
-                currentUser.copy(dailyQuestCount = 1, dailyQuestDate = today)
-            }
+            _user.value = incrementedDailyCount(currentUser, today)
         }
     }
 
@@ -136,54 +135,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         onError: (String) -> Unit
     ) {
         val currentUser = _user.value ?: return
-        val uid = auth.currentUser?.uid ?: return
+        val uid = currentUid() ?: return
 
         _isSavingQuest.value = true
 
-        val (newProgress, newTier, didTierUp) = calculateTierProgress(
-            progress = currentUser.progress,
-            tier     = currentUser.tier,
-            exp      = quest.questEXP
-        )
-
-        val newDifficultyQueue = (currentUser.difficultyQueue + quest.difficulty.toDouble()).takeLast(10)
-        val newResultsQueue    = (currentUser.questResultsQueue + 1).takeLast(10)
-
-        val prevQuestMap = mapOf(
-            "questName"       to quest.questName,
-            "questEXP"        to quest.questEXP,
-            "difficulty"      to quest.difficulty,
-            "confirmQuestion" to quest.confirmQuestion,
-            "confirmAnswer"   to answer,
-            "doneDate"        to SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault()).format(Date())
-        )
+        val doneDate   = SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault()).format(Date())
+        val completion = computeQuestCompletion(currentUser, quest, answer, doneDate)
 
         repo.applyQuestCompletion(
             uid             = uid,
-            progress        = newProgress,
-            tier            = newTier,
-            difficultyQueue = newDifficultyQueue,
-            resultsQueue    = newResultsQueue,
-            prevQuestMap    = prevQuestMap,
+            progress        = completion.newProgress,
+            tier            = completion.newTier,
+            difficultyQueue = completion.newDifficultyQueue,
+            resultsQueue    = completion.newResultsQueue,
+            prevQuestMap    = completion.toPrevQuestMap(),
             onSuccess = {
-                val newPrevQuest = PrevQuest(
-                    questName       = quest.questName,
-                    questEXP        = quest.questEXP,
-                    difficulty      = quest.difficulty,
-                    confirmQuestion = quest.confirmQuestion,
-                    confirmAnswer   = answer,
-                    doneDate        = SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault()).format(Date())
-                )
-                _user.value = currentUser.copy(
-                    progress          = newProgress,
-                    tier              = newTier,
-                    difficultyQueue   = newDifficultyQueue,
-                    questResultsQueue = newResultsQueue,
-                    prevQuests        = currentUser.prevQuests + newPrevQuest,
-                    isolatedCount     = currentUser.isolatedCount + 1
-                )
+                _user.value = completion.applyTo(currentUser)
                 _isSavingQuest.value = false
-                if (didTierUp) onTierUp()
+                if (completion.didTierUp) onTierUp()
                 onSuccess()
             },
             onFailure = { e ->
@@ -197,33 +166,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun startQuest(quest: Quest) {
         _activeQuest.value = quest
-        prefs.edit()
-            .putInt("index", quest.index)
-            .putString("questName", quest.questName)
-            .putInt("difficulty", quest.difficulty)
-            .putString("confirmQuestion", quest.confirmQuestion)
-            .putInt("questEXP", quest.questEXP)
-            .apply()
+        activeQuestStore.save(quest)
     }
 
     fun clearActiveQuest() {
         _activeQuest.value = null
-        prefs.edit().clear().apply()
-    }
-
-    private fun loadActiveQuestFromPrefs() {
-        val name = prefs.getString("questName", null) ?: return
-        _activeQuest.value = Quest(
-            index           = prefs.getInt("index", 0),
-            questName       = name,
-            difficulty      = prefs.getInt("difficulty", 1),
-            confirmQuestion = prefs.getString("confirmQuestion", "") ?: "",
-            questEXP        = prefs.getInt("questEXP", 0)
-        )
+        activeQuestStore.clear()
     }
 
     fun resetIsolatedCount() {
-        val uid = auth.currentUser?.uid ?: return
+        val uid = currentUid() ?: return
         repo.resetIsolatedCount(uid) {
             _user.value = _user.value?.copy(isolatedCount = 0)
         }
@@ -236,9 +188,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         onError: (String) -> Unit
     ) {
         val currentUser = _user.value ?: return
-        val uid = auth.currentUser?.uid ?: return
+        val uid = currentUid() ?: return
 
-        val newResultsQueue = (currentUser.questResultsQueue + 0).takeLast(10)
+        val newResultsQueue = giveUpResultsQueue(currentUser)
 
         val giveUpEntry = mapOf(
             "questName" to quest.questName,
@@ -263,6 +215,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // quests 문서: 해당 퀘스트의 포기 사유 추가 (통계용, 실패해도 위 흐름과 무관)
         questRepository.recordGiveUp(quest.index, reason) { e ->
             android.util.Log.e("MainViewModel", "saveGiveUpQuest quest update failed", e)
+        }
+    }
+
+    companion object {
+        /** 실제 구현체(Firestore/SharedPreferences/FirebaseAuth)를 연결한 ViewModel 팩토리. */
+        fun factory(app: Application): ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                MainViewModel(
+                    repo             = UserRepositoryImpl(),
+                    questRepository  = QuestRepositoryImpl(app),
+                    activeQuestStore = SharedPrefsActiveQuestStore(app),
+                    currentUid       = { Firebase.auth.currentUser?.uid },
+                    onUserLoaded     = { user -> syncNotificationSettings(app, user) },
+                )
+            }
+        }
+
+        // 사용자 로딩 후: 마지막 접속 시각 저장 + Firestore의 알림 동의 여부를 SharedPreferences에 동기화
+        private fun syncNotificationSettings(app: Application, user: User) {
+            NotificationHelper.saveLastAccess(app)
+            app.getSharedPreferences(NotificationHelper.PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(NotificationHelper.KEY_NOTIF, user.notificationAgreed)
+                .apply()
         }
     }
 }
