@@ -1,7 +1,6 @@
 package com.jeepark.onestep.data.repository
 
 import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.firestore
@@ -10,9 +9,8 @@ import com.jeepark.onestep.data.model.InitQuestions
 import com.jeepark.onestep.data.model.User
 import com.jeepark.onestep.data.model.isolationScore
 
-class UserRepositoryImpl : UserRepository {
+class UserRepositoryImpl(private val auth: AuthRepository) : UserRepository {
     private val db = Firebase.firestore
-    private val auth = Firebase.auth
 
     override fun saveInitUser(
         nickname: String,
@@ -21,13 +19,12 @@ class UserRepositoryImpl : UserRepository {
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        val currentUser = Firebase.auth.currentUser
-        if (currentUser == null) {
+        val uid = auth.currentUid
+        if (uid == null) {
             onFailure(IllegalStateException("로그인된 사용자가 없습니다"))
             return
         }
-        val uid = currentUser.uid
-        val email = currentUser.email
+        val email = auth.currentEmail
         if (email == null) {
             onFailure(IllegalStateException("사용자 이메일을 가져올 수 없습니다"))
             return
@@ -52,7 +49,7 @@ class UserRepositoryImpl : UserRepository {
         onSuccess: (User) -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        val uid = auth.currentUser?.uid
+        val uid = auth.currentUid
         if (uid == null) {
             onFailure(IllegalStateException("로그인된 사용자가 없습니다"))
             return
@@ -76,7 +73,7 @@ class UserRepositoryImpl : UserRepository {
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        val uid = auth.currentUser?.uid
+        val uid = auth.currentUid
         if (uid == null) {
             onFailure(IllegalStateException("로그인된 사용자가 없습니다"))
             return

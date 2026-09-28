@@ -1,6 +1,5 @@
 package com.jeepark.onestep.ui.screens
 
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -45,12 +44,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
+import com.jeepark.onestep.data.repository.DeleteResult
+import com.jeepark.onestep.data.repository.SettingsRepository
 import com.jeepark.onestep.data.repository.UserRepository
 import com.jeepark.onestep.appContainer
 import com.jeepark.onestep.ui.viewmodels.AuthViewModel
-import com.jeepark.onestep.util.NotificationHelper
+import com.jeepark.onestep.util.NotificationScheduler
 
 private val S_BG      = Color(0xFFFDF8F0)
 private val S_CARD    = Color(0xFFFFFFFF)
@@ -63,19 +62,20 @@ fun SettingScreen(
     onNavigateToInitQuestion: () -> Unit,
     onNavigateBack: () -> Unit,
     authVm: AuthViewModel = viewModel(factory = AuthViewModel.Factory),
-    repository: UserRepository = LocalContext.current.appContainer.userRepository
+    repository: UserRepository = LocalContext.current.appContainer.userRepository,
+    settings: SettingsRepository = LocalContext.current.appContainer.settingsRepository,
+    scheduler: NotificationScheduler = LocalContext.current.appContainer.notificationScheduler
 ) {
     val context = LocalContext.current
-    val prefs   = remember { context.getSharedPreferences("app_settings", Context.MODE_PRIVATE) }
 
     var nickname      by remember { mutableStateOf("") }
     var email         by remember { mutableStateOf("") }
-    var notifEnabled  by remember { mutableStateOf(prefs.getBoolean("notification_enabled", true)) }
+    var notifEnabled  by remember { mutableStateOf(settings.notificationsEnabled) }
     var showLogout    by remember { mutableStateOf(false) }
     var showDelete    by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        email = Firebase.auth.currentUser?.email ?: ""
+        email = authVm.currentEmail ?: ""
         repository.getUser(
             onSuccess = { user -> nickname = user.nickname },
             onFailure = {}
@@ -143,12 +143,11 @@ fun SettingScreen(
                 checked         = notifEnabled,
                 onCheckedChange = { enabled ->
                     notifEnabled = enabled
-                    prefs.edit().putBoolean(NotificationHelper.KEY_NOTIF, enabled).apply()
-                    Firebase.auth.currentUser?.uid?.let { uid ->
+                    settings.setNotificationsEnabled(enabled)
+                    authVm.currentUid?.let { uid ->
                         repository.updateNotificationAgreed(uid, enabled)
                     }
-                    if (enabled) NotificationHelper.schedule(context)
-                    else NotificationHelper.cancel(context)
+                    if (enabled) scheduler.schedule() else scheduler.cancel()
                 }
             )
         }
@@ -191,7 +190,7 @@ fun SettingScreen(
             text             = { Text("로그아웃 하시겠어요?") },
             confirmButton    = {
                 TextButton(onClick = {
-                    authVm.signOut(context)
+                    authVm.signOut()
                     showLogout = false
                     onNavigateToMain()
                 }) { Text("로그아웃", color = Color(0xFFE05050)) }
@@ -210,11 +209,12 @@ fun SettingScreen(
             text             = { Text("탈퇴하면 모든 데이터가 삭제되며\n복구할 수 없어요. 정말 탈퇴하시겠어요?") },
             confirmButton    = {
                 TextButton(onClick = {
-                    authVm.deleteAccount(
-                        context   = context,
-                        onSuccess = { showDelete = false; onNavigateToMain() },
-                        onFailure = { showDelete = false }
-                    )
+                    authVm.deleteAccount { result ->
+                        showDelete = false
+                        // 데이터가 이미 지워졌다면(인증 삭제만 실패해도) 로그아웃된 상태이므로 시작 화면으로 돌아간다.
+                        // 데이터 삭제 자체가 실패한 경우에만 아무것도 바뀌지 않았으니 설정 화면에 남는다.
+                        if (result != DeleteResult.Failed) onNavigateToMain()
+                    }
                 }) { Text("탈퇴하기", color = Color(0xFFE05050)) }
             },
             dismissButton    = {

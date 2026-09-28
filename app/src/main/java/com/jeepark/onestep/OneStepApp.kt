@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.AP
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.google.firebase.FirebaseApp
 import com.jeepark.onestep.di.AppContainer
-import com.jeepark.onestep.util.NotificationHelper
 
 /**
  * 프로세스가 시작될 때 한 번 실행되는 앱 초기화 지점.
@@ -20,8 +19,8 @@ class OneStepApp : Application() {
     override fun onCreate() {
         super.onCreate()
         FirebaseApp.initializeApp(this)
-        NotificationHelper.createChannel(this)
         container = AppContainer.create(this)
+        container.notificationScheduler.createChannel()
     }
 }
 

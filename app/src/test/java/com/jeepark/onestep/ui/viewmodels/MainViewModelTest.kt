@@ -11,7 +11,9 @@ import com.jeepark.onestep.data.model.QuestDate
 import com.jeepark.onestep.data.model.User
 import com.jeepark.onestep.data.model.needsAssessment
 import com.jeepark.onestep.data.repository.FakeActiveQuestStore
+import com.jeepark.onestep.data.repository.FakeAuthRepository
 import com.jeepark.onestep.data.repository.FakeQuestRepository
+import com.jeepark.onestep.data.repository.FakeSettingsRepository
 import com.jeepark.onestep.data.repository.FakeUserRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -49,13 +51,14 @@ class MainViewModelTest {
         val userRepo = FakeUserRepository(user = user, shouldFail = failUserLoad)
         val questRepo = FakeQuestRepository()
         val store = FakeActiveQuestStore(activeQuest)
-        val loadedUsers = mutableListOf<User>()
+        val auth = FakeAuthRepository(uid = uid)
+        val settings = FakeSettingsRepository(lastAccessMillis = 0L, lastCheckInMark = 7)
         val viewModel = MainViewModel(
             repo = userRepo,
             questRepository = questRepo,
             activeQuestStore = store,
-            currentUid = { uid },
-            onUserLoaded = { loadedUsers.add(it) },
+            authRepository = auth,
+            settingsRepository = settings,
             clock = fixedClock,
         )
     }
@@ -72,27 +75,45 @@ class MainViewModelTest {
         assertEquals(user, f.viewModel.user.value)
         assertEquals(quest, f.viewModel.activeQuest.value)
         assertNull(f.viewModel.loadError.value)
-        assertEquals(listOf(user), f.loadedUsers)
-        assertEquals(fixedClock.millis(), f.userRepo.user!!.lastAccessDate) // 접속일 갱신
+        assertEquals(fixedClock.millis(), f.userRepo.user!!.lastAccessDate) // 서버의 접속일 갱신
     }
 
     @Test
-    fun `사용자 로드에 실패하면 loadError가 채워지고 onUserLoaded는 호출되지 않는다`() {
+    fun `사용자를 불러오면 이 기기의 접속 기록을 갱신하고 안부 알림 단계를 처음으로 돌린다`() {
+        val f = Fixture(User(uid = "uid-1"))
+
+        assertEquals(fixedClock.millis(), f.settings.lastAccessMillis)
+        assertEquals(0, f.settings.lastCheckInMark) // 픽스처에서 7로 시작
+    }
+
+    @Test
+    fun `서버의 알림 동의 여부가 기기의 알림 설정에 반영된다`() {
+        val agreed = Fixture(User(uid = "uid-1", notificationAgreed = true))
+        val declined = Fixture(User(uid = "uid-1", notificationAgreed = false))
+
+        assertTrue(agreed.settings.notificationsEnabled)
+        assertFalse(declined.settings.notificationsEnabled)
+    }
+
+    @Test
+    fun `사용자 로드에 실패하면 loadError가 채워지고 접속 기록은 건드리지 않는다`() {
         val f = Fixture(User(), failUserLoad = true)
 
         assertNull(f.viewModel.user.value)
         assertNotNull(f.viewModel.loadError.value)
-        assertTrue(f.loadedUsers.isEmpty())
+        assertEquals(0L, f.settings.lastAccessMillis)
+        assertEquals(7, f.settings.lastCheckInMark) // 손대지 않음
     }
 
     @Test
-    fun `로그인 uid가 없으면 사용자는 채워지지만 접속일 갱신과 onUserLoaded는 건너뛴다`() {
+    fun `로그인 uid가 없으면 사용자는 채워지지만 접속 기록 갱신은 건너뛴다`() {
         val user = User(nickname = "테스터", lastAccessDate = 0L)
         val f = Fixture(user, uid = null)
 
         assertEquals(user, f.viewModel.user.value)
-        assertTrue(f.loadedUsers.isEmpty())
         assertEquals(0L, f.userRepo.user!!.lastAccessDate)
+        assertEquals(0L, f.settings.lastAccessMillis)
+        assertEquals(7, f.settings.lastCheckInMark)
     }
 
     // ===== 퀘스트 완료 =====

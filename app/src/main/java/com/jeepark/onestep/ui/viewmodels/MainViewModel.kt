@@ -1,14 +1,10 @@
 package com.jeepark.onestep.ui.viewmodels
 
-import android.app.Application
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
 import com.jeepark.onestep.data.model.GiveUpReason
 import com.jeepark.onestep.data.model.Mood
 import com.jeepark.onestep.data.model.Quest
@@ -19,10 +15,11 @@ import com.jeepark.onestep.data.model.giveUpResultsQueue
 import com.jeepark.onestep.data.model.hasReachedDailyLimit
 import com.jeepark.onestep.data.model.incrementedDailyCount
 import com.jeepark.onestep.data.repository.ActiveQuestStore
+import com.jeepark.onestep.data.repository.AuthRepository
 import com.jeepark.onestep.data.repository.QuestRepository
+import com.jeepark.onestep.data.repository.SettingsRepository
 import com.jeepark.onestep.data.repository.UserRepository
 import com.jeepark.onestep.oneStepApp
-import com.jeepark.onestep.util.NotificationHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,8 +30,8 @@ class MainViewModel(
     private val repo: UserRepository,
     private val questRepository: QuestRepository,
     private val activeQuestStore: ActiveQuestStore,
-    private val currentUid: () -> String?,
-    private val onUserLoaded: (User) -> Unit = {},
+    private val authRepository: AuthRepository,
+    private val settingsRepository: SettingsRepository,
     private val clock: Clock = Clock.systemDefaultZone(),
 ) : ViewModel() {
 
@@ -66,10 +63,12 @@ class MainViewModel(
         repo.getUser(
             onSuccess = { user ->
                 _user.value = user
-                // 접속일 갱신
-                val uid = currentUid() ?: return@getUser
-                repo.updateLastAccessDate(uid, clock.millis())
-                onUserLoaded(user)
+                val uid = authRepository.currentUid ?: return@getUser
+                val now = clock.millis()
+                repo.updateLastAccessDate(uid, now)
+                // 이 기기의 안부 알림 기준: 접속 시각을 갱신하고, 서버에 저장된 알림 동의 여부를 기기 설정에 맞춘다
+                settingsRepository.recordAccess(now)
+                settingsRepository.setNotificationsEnabled(user.notificationAgreed)
             },
             onFailure = { e ->
                 android.util.Log.e("MainViewModel", "사용자 정보 로드 실패", e)
@@ -82,7 +81,7 @@ class MainViewModel(
 
     private fun incrementDailyCount() {
         val currentUser = _user.value ?: return
-        val uid = currentUid() ?: return
+        val uid = authRepository.currentUid ?: return
         val today = QuestDate.todayKey(clock)
         val sameDay = currentUser.dailyQuestDate == today
 
@@ -133,7 +132,7 @@ class MainViewModel(
         onError: (String) -> Unit
     ) {
         val currentUser = _user.value ?: return
-        val uid = currentUid() ?: return
+        val uid = authRepository.currentUid ?: return
 
         _isSavingQuest.value = true
 
@@ -178,7 +177,7 @@ class MainViewModel(
         onError: (String) -> Unit
     ) {
         val currentUser = _user.value ?: return
-        val uid = currentUid() ?: return
+        val uid = authRepository.currentUid ?: return
 
         val newResultsQueue = giveUpResultsQueue(currentUser)
 
@@ -212,24 +211,15 @@ class MainViewModel(
         /** 앱 컨테이너의 실제 구현체를 연결한 ViewModel 팩토리. */
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                val app = oneStepApp()
+                val container = oneStepApp().container
                 MainViewModel(
-                    repo             = app.container.userRepository,
-                    questRepository  = app.container.questRepository,
-                    activeQuestStore = app.container.activeQuestStore,
-                    currentUid       = { Firebase.auth.currentUser?.uid },
-                    onUserLoaded     = { user -> syncNotificationSettings(app, user) },
+                    repo               = container.userRepository,
+                    questRepository    = container.questRepository,
+                    activeQuestStore   = container.activeQuestStore,
+                    authRepository     = container.authRepository,
+                    settingsRepository = container.settingsRepository,
                 )
             }
-        }
-
-        // 사용자 로딩 후: 마지막 접속 시각 저장 + Firestore의 알림 동의 여부를 SharedPreferences에 동기화
-        private fun syncNotificationSettings(app: Application, user: User) {
-            NotificationHelper.saveLastAccess(app)
-            app.getSharedPreferences(NotificationHelper.PREFS_NAME, Context.MODE_PRIVATE)
-                .edit()
-                .putBoolean(NotificationHelper.KEY_NOTIF, user.notificationAgreed)
-                .apply()
         }
     }
 }

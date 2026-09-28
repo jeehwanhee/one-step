@@ -9,7 +9,7 @@ import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.jeepark.onestep.MainActivity
 import com.jeepark.onestep.R
-import java.util.concurrent.TimeUnit
+import com.jeepark.onestep.appContainer
 
 class NotificationWorker(
     private val context: Context,
@@ -17,32 +17,13 @@ class NotificationWorker(
 ) : Worker(context, params) {
 
     override fun doWork(): Result {
-        val prefs = context.getSharedPreferences(
-            NotificationHelper.PREFS_NAME, Context.MODE_PRIVATE
-        )
-
-        val notifEnabled = prefs.getBoolean(NotificationHelper.KEY_NOTIF, true)
-        if (!notifEnabled) return Result.success()
-
-        val lastAccess = prefs.getLong(NotificationHelper.KEY_LAST_ACCESS, 0L)
-        if (lastAccess == 0L) {
-            // 메인 화면에 도달한 적 없는 사용자에게는 안부를 보내지 않는다
-            NotificationHelper.cancel(context)
-            return Result.success()
-        }
-
-        val daysSince = TimeUnit.MILLISECONDS
-            .toDays(System.currentTimeMillis() - lastAccess).toInt()
-        val lastSentMark = prefs.getInt(NotificationHelper.KEY_LAST_CHECKIN_MARK, 0)
-
-        val mark = CheckInPolicy.latestDueMark(daysSince, lastSentMark)
-            ?: return Result.success()
-        val message = CheckInPolicy.MESSAGES[mark] ?: return Result.success()
-
-        sendNotification(message)
-        prefs.edit().putInt(NotificationHelper.KEY_LAST_CHECKIN_MARK, mark).apply()
-
-        if (mark == CheckInPolicy.FINAL_MARK) NotificationHelper.cancel(context)
+        val container = context.appContainer
+        // 보낼지 말지의 판단과 기록은 CheckInRunner에, 실제 알림 표시만 이 워커에 남긴다
+        CheckInRunner(
+            settings  = container.settingsRepository,
+            scheduler = container.notificationScheduler,
+            send      = ::sendNotification,
+        ).run()
         return Result.success()
     }
 

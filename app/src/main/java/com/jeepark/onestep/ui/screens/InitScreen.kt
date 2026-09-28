@@ -26,9 +26,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
 import com.jeepark.onestep.data.model.needsAssessment
+import com.jeepark.onestep.data.repository.AuthRepository
 import com.jeepark.onestep.data.repository.UserRepository
 import com.jeepark.onestep.appContainer
 import kotlinx.coroutines.delay
@@ -38,19 +37,20 @@ fun InitScreen(
     onNavigateToAuth: () -> Unit,
     onNavigateToMain: () -> Unit,
     onNavigateToInitQuestion: () -> Unit,
-    repository: UserRepository = LocalContext.current.appContainer.userRepository
+    repository: UserRepository = LocalContext.current.appContainer.userRepository,
+    authRepository: AuthRepository = LocalContext.current.appContainer.authRepository
 ) {
     LaunchedEffect(Unit) {
-        val currentUser = Firebase.auth.currentUser
+        val uid = authRepository.currentUid
         delay(1500)
 
-        if (currentUser == null) {
+        if (uid == null) {
             onNavigateToAuth()
             return@LaunchedEffect
         }
 
         repository.getUserFromServer(
-            uid = currentUser.uid,
+            uid = uid,
             onResult = { user ->
                 when {
                     user == null            -> onNavigateToAuth()

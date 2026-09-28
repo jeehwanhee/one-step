@@ -1,49 +1,47 @@
 package com.jeepark.onestep.ui.viewmodels
 
-import android.content.Context
 import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.ApiException
-import com.google.firebase.Firebase
-import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.auth.auth
-import com.jeepark.onestep.R
+import com.jeepark.onestep.data.repository.AccountService
+import com.jeepark.onestep.data.repository.AuthRepository
+import com.jeepark.onestep.data.repository.DeleteResult
+import com.jeepark.onestep.data.repository.SignInResult
 import com.jeepark.onestep.data.repository.UserRepository
 import com.jeepark.onestep.oneStepApp
+import kotlinx.coroutines.launch
 
 class AuthViewModel(
-    private val userRepository: UserRepository
+    private val authRepository: AuthRepository,
+    private val userRepository: UserRepository,
+    private val accountService: AccountService,
 ) : ViewModel() {
-    private val auth = Firebase.auth
 
-    fun getGoogleSignInClient(context: Context): GoogleSignInClient {
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(context.getString(R.string.default_web_client_id))
-            .requestEmail()
-            .build()
-        return GoogleSignIn.getClient(context, gso)
-    }
+    val currentUid: String? get() = authRepository.currentUid
 
+    val currentEmail: String? get() = authRepository.currentEmail
+
+    fun googleSignInIntent(): Intent = authRepository.googleSignInIntent()
+
+    /**
+     * 구글 로그인 결과 처리. 로그인에 성공하면 서버에 사용자 문서가 있는지로 기존/신규 사용자를 가른다.
+     * 사용자가 로그인 화면을 직접 닫은 경우에는 아무 콜백도 부르지 않는다.
+     */
     fun login(
         data: Intent?,
         onNewUser: () -> Unit,
         onExistingUser: () -> Unit,
         onError: () -> Unit
     ) {
-        try {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-            val account = task.getResult(ApiException::class.java)
-            val credential = GoogleAuthProvider.getCredential(account.idToken, null)
-
-            auth.signInWithCredential(credential)
-                .addOnSuccessListener {
-                    val uid = auth.currentUser?.uid ?: run { onError(); return@addOnSuccessListener }
+        viewModelScope.launch {
+            when (authRepository.signInWithGoogle(data)) {
+                SignInResult.Cancelled -> Unit
+                SignInResult.Failed -> onError()
+                SignInResult.Success -> {
+                    val uid = authRepository.currentUid ?: run { onError(); return@launch }
                     // isNewUser 대신 Firestore 문서 존재 여부로 신규 유저 판별
                     userRepository.getUserFromServer(
                         uid = uid,
@@ -52,53 +50,28 @@ class AuthViewModel(
                         onError = { onError() }
                     )
                 }
-                .addOnFailureListener { e ->
-                    onError()
-                }
-        } catch (e: ApiException) {
-            if (e.statusCode != 12501) onError() // 12501 = 사용자가 직접 취소
-        } catch (e: Exception) {
-            onError()
+            }
         }
     }
 
-    fun signOut(context: Context) {
-        auth.signOut()
-        getGoogleSignInClient(context).signOut()
-    }
+    fun signOut() = accountService.signOut()
 
-    fun deleteAccount(
-        context: Context,
-        onSuccess: () -> Unit,
-        onFailure: () -> Unit
-    ) {
-        val user = auth.currentUser ?: run { onFailure(); return }
-        val uid  = user.uid
-        userRepository.deleteUser(
-            uid = uid,
-            onSuccess = {
-                // Firestore 삭제 성공 → Auth 계정 삭제 결과까지 확인
-                user.delete()
-                    .addOnSuccessListener {
-                        auth.signOut()
-                        getGoogleSignInClient(context).signOut()
-                        onSuccess()
-                    }
-                    .addOnFailureListener {
-                        // Auth 삭제 실패(예: 최근 로그인 필요) → 데이터는 이미 삭제됨
-                        auth.signOut()
-                        getGoogleSignInClient(context).signOut()
-                        onFailure()
-                    }
-            },
-            onFailure = { onFailure() }
-        )
+    /** 계정 삭제. 결과에 따라 화면이 어디로 갈지는 호출한 쪽이 정한다([DeleteResult] 참고). */
+    fun deleteAccount(onResult: (DeleteResult) -> Unit) {
+        viewModelScope.launch { onResult(accountService.deleteAccount()) }
     }
 
     companion object {
         /** 앱 컨테이너의 실제 구현체를 연결한 ViewModel 팩토리. */
         val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer { AuthViewModel(oneStepApp().container.userRepository) }
+            initializer {
+                val container = oneStepApp().container
+                AuthViewModel(
+                    authRepository = container.authRepository,
+                    userRepository = container.userRepository,
+                    accountService = container.accountService,
+                )
+            }
         }
     }
 }

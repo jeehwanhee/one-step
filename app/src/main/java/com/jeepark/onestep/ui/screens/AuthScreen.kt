@@ -23,7 +23,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,7 +42,6 @@ fun AuthScreen(
     onNavigateToSignup: () -> Unit,
     screenModel: AuthViewModel = viewModel(factory = AuthViewModel.Factory)
 ) {
-    val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -128,10 +126,7 @@ fun AuthScreen(
                         .fillMaxWidth()
                         .height(54.dp),
                     text = "Google 로그인",
-                    onClick = {
-                        val signInClient = screenModel.getGoogleSignInClient(context)
-                        googleSignInLauncher.launch(signInClient.signInIntent)
-                    },
+                    onClick = { googleSignInLauncher.launch(screenModel.googleSignInIntent()) },
                     textColor = HeadingText,
                     containerColor = white,
                     borderColor = SecondaryBorder,

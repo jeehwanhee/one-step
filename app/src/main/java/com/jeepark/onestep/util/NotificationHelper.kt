@@ -13,10 +13,6 @@ object NotificationHelper {
 
     const val CHANNEL_ID   = "onestep_daily"
     const val WORK_NAME    = "daily_notification"
-    const val PREFS_NAME   = "app_settings"
-    const val KEY_NOTIF    = "notification_enabled"
-    const val KEY_LAST_ACCESS = "last_access_date"
-    const val KEY_LAST_CHECKIN_MARK = "last_checkin_mark"
 
     fun createChannel(context: Context) {
         val channel = NotificationChannel(
@@ -54,13 +50,5 @@ object NotificationHelper {
 
     fun cancel(context: Context) {
         WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
-    }
-
-    fun saveLastAccess(context: Context) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putLong(KEY_LAST_ACCESS, System.currentTimeMillis())
-            .putInt(KEY_LAST_CHECKIN_MARK, 0)
-            .apply()
     }
 }

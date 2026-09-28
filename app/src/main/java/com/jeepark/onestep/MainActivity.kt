@@ -30,7 +30,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.jeepark.onestep.util.LocationHelper
-import com.jeepark.onestep.util.NotificationHelper
 import com.jeepark.onestep.ui.components.OneStepBottomBar
 import com.jeepark.onestep.ui.screens.AuthScreen
 import com.jeepark.onestep.ui.screens.FootprintsScreen
@@ -71,14 +70,13 @@ fun MyNavGraph() {
     val context     = LocalContext.current
     val navController = rememberNavController()
 
-    val prefs = context.getSharedPreferences(NotificationHelper.PREFS_NAME, android.content.Context.MODE_PRIVATE)
+    val settings  = context.appContainer.settingsRepository
+    val scheduler = context.appContainer.notificationScheduler
 
     val notifPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted && prefs.getBoolean(NotificationHelper.KEY_NOTIF, true)) {
-            NotificationHelper.schedule(context)
-        }
+        if (granted && settings.notificationsEnabled) scheduler.schedule()
     }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -89,13 +87,12 @@ fun MyNavGraph() {
 
     LaunchedEffect(Unit) {
         // 권한 요청 1회만 (회전·재구성 시 다이얼로그 반복 방지)
-        val alreadyRequested = prefs.getBoolean("perm_requested", false)
-        if (!alreadyRequested) {
+        if (!settings.permissionsRequested) {
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
-            prefs.edit().putBoolean("perm_requested", true).apply()
+            settings.markPermissionsRequested()
         } else {
             // 이미 한 번 요청한 경우 권한 상태에 맞춰 위치 갱신·알림 스케줄
             LocationHelper.updateLocation(context) {}
@@ -106,9 +103,7 @@ fun MyNavGraph() {
                 ) == android.content.pm.PackageManager.PERMISSION_GRANTED
             } else true
 
-            if (notifGranted && prefs.getBoolean(NotificationHelper.KEY_NOTIF, true)) {
-                NotificationHelper.schedule(context)
-            }
+            if (notifGranted && settings.notificationsEnabled) scheduler.schedule()
         }
     }
 
