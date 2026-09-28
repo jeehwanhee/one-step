@@ -43,12 +43,24 @@ jobs:
                     "package_name": "com.jeepark.onestep"
                   }
                 },
-                "oauth_client": [],
+                "oauth_client": [
+                  {
+                    "client_id": "000000000000-dummydummydummydummydummydummy00.apps.googleusercontent.com",
+                    "client_type": 3
+                  }
+                ],
                 "api_key": [
                   { "current_key": "AIzaSyDUMMYCIKEY0000000000000000000000" }
                 ],
                 "services": {
-                  "appinvite_service": { "other_platform_oauth_client": [] }
+                  "appinvite_service": {
+                    "other_platform_oauth_client": [
+                      {
+                        "client_id": "000000000000-dummydummydummydummydummydummy00.apps.googleusercontent.com",
+                        "client_type": 3
+                      }
+                    ]
+                  }
                 }
               }
             ],
