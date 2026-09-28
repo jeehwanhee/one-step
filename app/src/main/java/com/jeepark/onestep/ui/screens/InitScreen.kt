@@ -22,43 +22,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.jeepark.onestep.data.model.needsAssessment
-import com.jeepark.onestep.data.repository.AuthRepository
-import com.jeepark.onestep.data.repository.UserRepository
-import com.jeepark.onestep.appContainer
-import kotlinx.coroutines.delay
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jeepark.onestep.ui.viewmodels.InitViewModel
+import com.jeepark.onestep.ui.viewmodels.StartDestination
 
 @Composable
 fun InitScreen(
     onNavigateToAuth: () -> Unit,
     onNavigateToMain: () -> Unit,
     onNavigateToInitQuestion: () -> Unit,
-    repository: UserRepository = LocalContext.current.appContainer.userRepository,
-    authRepository: AuthRepository = LocalContext.current.appContainer.authRepository
+    vm: InitViewModel = viewModel(factory = InitViewModel.Factory)
 ) {
     LaunchedEffect(Unit) {
-        val uid = authRepository.currentUid
-        delay(1500)
-
-        if (uid == null) {
-            onNavigateToAuth()
-            return@LaunchedEffect
+        vm.destination.collect { destination ->
+            when (destination) {
+                StartDestination.Auth         -> onNavigateToAuth()
+                StartDestination.InitQuestion -> onNavigateToInitQuestion()
+                StartDestination.Main         -> onNavigateToMain()
+            }
         }
-
-        repository.getUserFromServer(uid).fold(
-            onSuccess = { user ->
-                when {
-                    user == null            -> onNavigateToAuth()
-                    needsAssessment(user)   -> onNavigateToInitQuestion()
-                    else                    -> onNavigateToMain()
-                }
-            },
-            onFailure = { onNavigateToAuth() }
-        )
     }
 
     val alpha = remember { Animatable(0f) }

@@ -30,6 +30,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.jeepark.onestep.util.LocationHelper
+import com.jeepark.onestep.util.PermissionRequestPolicy
 import com.jeepark.onestep.ui.components.OneStepBottomBar
 import com.jeepark.onestep.ui.screens.AuthScreen
 import com.jeepark.onestep.ui.screens.FootprintsScreen
@@ -70,14 +71,17 @@ fun MyNavGraph() {
     val context     = LocalContext.current
     val navController = rememberNavController()
 
-    val settings  = context.appContainer.settingsRepository
-    val scheduler = context.appContainer.notificationScheduler
+    // 권한을 언제 물어보고 알림을 언제 예약할지는 정책 객체가 정하고, 이 화면에는 실제 요청 창(런처)만 남긴다
+    val permissionPolicy = remember {
+        PermissionRequestPolicy(
+            context.appContainer.settingsRepository,
+            context.appContainer.notificationScheduler,
+        )
+    }
 
     val notifPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted && settings.notificationsEnabled) scheduler.schedule()
-    }
+    ) { granted -> permissionPolicy.scheduleIfAllowed(granted) }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -87,12 +91,11 @@ fun MyNavGraph() {
 
     LaunchedEffect(Unit) {
         // 권한 요청 1회만 (회전·재구성 시 다이얼로그 반복 방지)
-        if (!settings.permissionsRequested) {
+        if (permissionPolicy.shouldRequestPermissions()) {
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
-            settings.markPermissionsRequested()
         } else {
             // 이미 한 번 요청한 경우 권한 상태에 맞춰 위치 갱신·알림 스케줄
             LocationHelper.updateLocation(context) {}
@@ -103,7 +106,7 @@ fun MyNavGraph() {
                 ) == android.content.pm.PackageManager.PERMISSION_GRANTED
             } else true
 
-            if (notifGranted && settings.notificationsEnabled) scheduler.schedule()
+            permissionPolicy.scheduleIfAllowed(notifGranted)
         }
     }
 

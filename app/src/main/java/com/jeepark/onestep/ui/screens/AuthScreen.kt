@@ -18,6 +18,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -34,6 +35,7 @@ import com.jeepark.onestep.ui.theme.MutedText
 import com.jeepark.onestep.ui.theme.SecondaryBorder
 import com.jeepark.onestep.ui.theme.white
 import com.jeepark.onestep.ui.viewmodels.AuthViewModel
+import com.jeepark.onestep.ui.viewmodels.LoginResult
 import kotlinx.coroutines.launch
 
 @Composable
@@ -47,17 +49,19 @@ fun AuthScreen(
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        screenModel.login(
-            data           = result.data,
-            onNewUser      = onNavigateToSignup,
-            onExistingUser = onNavigateToMain,
-            onError        = {
-                scope.launch {
+    ) { result -> screenModel.onSignInResult(result.data) }
+
+    LaunchedEffect(Unit) {
+        screenModel.results.collect { result ->
+            when (result) {
+                LoginResult.NewUser      -> onNavigateToSignup()
+                LoginResult.ExistingUser -> onNavigateToMain()
+                // 스낵바가 사라질 때까지 기다리면 그 사이 도착한 화면 이동이 밀리므로 따로 띄운다
+                LoginResult.Error        -> scope.launch {
                     snackbarHostState.showSnackbar("로그인에 실패했어요. 다시 시도해주세요.")
                 }
             }
-        )
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {

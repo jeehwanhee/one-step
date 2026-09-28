@@ -26,12 +26,9 @@ import androidx.compose.material3.TextButton
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,55 +36,49 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.jeepark.onestep.data.model.InitQuestions
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jeepark.onestep.data.model.INIT_QUESTIONS
 import com.jeepark.onestep.ui.components.PagerNavigationButton
 import com.jeepark.onestep.ui.components.TextInput
-import com.jeepark.onestep.data.repository.UserRepository
-import com.jeepark.onestep.appContainer
 import com.jeepark.onestep.ui.theme.CreamBackground
 import com.jeepark.onestep.ui.theme.HeadingText
 import com.jeepark.onestep.ui.theme.PrimaryGreen
 import com.jeepark.onestep.ui.theme.SecondaryBackground
 import com.jeepark.onestep.ui.theme.SecondaryBorder
+import com.jeepark.onestep.ui.viewmodels.InitQuestionEvent
+import com.jeepark.onestep.ui.viewmodels.InitQuestionViewModel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @Composable
 fun InitQuestionScreen(
     modifier: Modifier = Modifier,
     onNavigateToMain: () -> Unit,
     onNavigateToInit: () -> Unit,
-    repository: UserRepository = LocalContext.current.appContainer.userRepository
+    vm: InitQuestionViewModel = viewModel(factory = InitQuestionViewModel.Factory)
 ) {
     // 뒤로가기 완전 차단 — 설문 완료 전까지 이탈 불가
     BackHandler { /* 막기 */ }
 
-    val answers    = remember { mutableStateListOf(-1, -1, -1, -1, -1, -1) }
-    var isLoading  by remember { mutableStateOf(false) }
-    val scope      = rememberCoroutineScope()
-    val pagerState = rememberPagerState(pageCount = { 6 })
-    val questions  = listOf(
-        "어제 식사 횟수",
-        "어제 수면 시간",
-        "지난 일주일 동안의\n샤워 횟수",
-        "지난 일주일 동안\n밖에 나간 일 수",
-        "일이나 학업을\n하지 않은 기간 (월)",
-        "주된 활동 시간\n0(새벽) 1(오전) 2(오후) 3(저녁)"
-    )
-    // 각 문항의 (최솟값, 최댓값)
-    val ranges = listOf(
-        0 to 10,   // 식사 횟수
-        0 to 24,   // 수면 시간
-        0 to 7,   // 샤워 횟수
-        0 to 7,    // 외출 일 수
-        0 to 600,  // 미취업 기간 (월)
-        0 to 3     // 활동 시간대
-    )
+    val state by vm.state.collectAsState()
+    val pagerState = rememberPagerState(pageCount = { state.pageCount })
+
+    // 현재 문항은 ViewModel이 정하고, 페이저는 그 문항으로 넘어가기만 한다
+    LaunchedEffect(state.currentPage) {
+        if (pagerState.currentPage != state.currentPage) pagerState.scrollToPage(state.currentPage)
+    }
+
+    LaunchedEffect(Unit) {
+        vm.events.collect { event ->
+            when (event) {
+                InitQuestionEvent.Completed -> onNavigateToMain()
+                InitQuestionEvent.Failed    -> onNavigateToInit()
+            }
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(CreamBackground)) {
 
@@ -112,7 +103,7 @@ fun InitQuestionScreen(
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text     = "${pagerState.currentPage + 1} / 6",
+                    text     = "${state.currentPage + 1} / ${state.pageCount}",
                     fontSize = 13.sp,
                     color    = Color.White.copy(alpha = 0.85f)
                 )
@@ -121,7 +112,7 @@ fun InitQuestionScreen(
 
         // 진행 바
         LinearProgressIndicator(
-            progress          = { (pagerState.currentPage + 1) / 6f },
+            progress          = { (state.currentPage + 1) / state.pageCount.toFloat() },
             modifier          = Modifier
                 .fillMaxWidth()
                 .height(4.dp)
@@ -153,7 +144,7 @@ fun InitQuestionScreen(
                     verticalArrangement = Arrangement.Top
                 ) {
                     Text(
-                        text       = questions[pageIndex],
+                        text       = INIT_QUESTIONS[pageIndex].title,
                         fontSize   = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color      = HeadingText,
@@ -170,16 +161,12 @@ fun InitQuestionScreen(
                         }
                     }
 
-                    val (minVal, maxVal) = ranges[pageIndex]
                     TextInput(
                         modifier      = Modifier.focusRequester(focusRequester),
                         isDigit       = true,
                         placeholder   = "답변을 입력해주세요",
-                        onValueChange = { newValue ->
-                            val v = newValue.toIntOrNull()
-                            answers[pageIndex] = if (v == null) -1 else v.coerceIn(minVal, maxVal)
-                        },
-                        text = if (answers[pageIndex] == -1) "" else answers[pageIndex].toString(),
+                        onValueChange = { newValue -> vm.onAnswerChange(pageIndex, newValue) },
+                        text          = state.answers[pageIndex]?.toString() ?: "",
                     )
                 }
             }
@@ -192,16 +179,11 @@ fun InitQuestionScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 28.dp, vertical = 20.dp)
             ) {
-                if (pagerState.currentPage > 0) {
+                if (state.canGoBack) {
                     PagerNavigationButton(
                         icon      = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                         modifier  = Modifier.align(Alignment.CenterStart),
-                        onClick   = {
-                            scope.launch {
-                                if (pagerState.currentPage > 0)
-                                    pagerState.scrollToPage(pagerState.currentPage - 1)
-                            }
-                        }
+                        onClick   = vm::goBack
                     )
                 }
 
@@ -211,8 +193,8 @@ fun InitQuestionScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
-                    repeat(pagerState.pageCount) { i ->
-                        val isCurrent = pagerState.currentPage == i
+                    repeat(state.pageCount) { i ->
+                        val isCurrent = state.currentPage == i
                         Box(
                             modifier = Modifier
                                 .size(if (isCurrent) 10.dp else 7.dp)
@@ -222,37 +204,20 @@ fun InitQuestionScreen(
                     }
                 }
 
-                if (answers[pagerState.currentPage] >= 0) {
-                    if (pagerState.currentPage < 5) {
+                if (state.canGoNext) {
+                    if (!state.isLastPage) {
                         PagerNavigationButton(
                             icon     = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                             modifier = Modifier.align(Alignment.CenterEnd),
-                            onClick  = {
-                                scope.launch {
-                                    pagerState.scrollToPage(pagerState.currentPage + 1)
-                                }
-                            }
+                            onClick  = vm::goNext
                         )
                     } else {
                         TextButton(
                             modifier = Modifier.align(Alignment.CenterEnd),
-                            enabled  = !isLoading,
-                            onClick  = {
-                                isLoading = true
-                                scope.launch {
-                                    onClickSubmit(
-                                        onNavigateToMain = onNavigateToMain,
-                                        onNavigateToInit = {
-                                            isLoading = false
-                                            onNavigateToInit()
-                                        },
-                                        answers    = answers,
-                                        repository = repository
-                                    )
-                                }
-                            },
+                            enabled  = !state.isSubmitting,
+                            onClick  = vm::submit,
                         ) {
-                            if (isLoading) {
+                            if (state.isSubmitting) {
                                 CircularProgressIndicator(
                                     modifier    = Modifier.size(20.dp),
                                     color       = PrimaryGreen,
@@ -274,27 +239,6 @@ fun InitQuestionScreen(
             Spacer(Modifier.height(12.dp))
         }
     }
-}
-
-suspend fun onClickSubmit(
-    onNavigateToMain: () -> Unit,
-    onNavigateToInit: () -> Unit,
-    answers: List<Int>,
-    repository: UserRepository
-) {
-    val initQ = InitQuestions(
-        meal       = answers[0],
-        sleepTime  = answers[1],
-        shower     = answers[2],
-        outside    = answers[3],
-        hiki       = answers[4],
-        activeTime = answers[5],
-    )
-
-    repository.saveInitQuestions(initQ).fold(
-        onSuccess = { onNavigateToMain() },
-        onFailure = { onNavigateToInit() },
-    )
 }
 
 @Preview(showBackground = true)

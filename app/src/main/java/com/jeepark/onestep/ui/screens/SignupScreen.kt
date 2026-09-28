@@ -22,12 +22,10 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,42 +38,45 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jeepark.onestep.data.model.Gender
-import com.jeepark.onestep.data.model.User
 import com.jeepark.onestep.ui.components.BottomButton
 import com.jeepark.onestep.ui.components.InputWithWarning
 import com.jeepark.onestep.ui.components.SelectButton
 import com.jeepark.onestep.ui.components.TextInput
-import com.jeepark.onestep.data.repository.UserRepository
-import com.jeepark.onestep.appContainer
 import com.jeepark.onestep.ui.theme.CreamBackground
 import com.jeepark.onestep.ui.theme.MutedText
 import com.jeepark.onestep.ui.theme.PrimaryGreen
 import com.jeepark.onestep.ui.theme.SecondaryBorder
-import kotlinx.coroutines.launch
+import com.jeepark.onestep.ui.viewmodels.NicknameError
+import com.jeepark.onestep.ui.viewmodels.SignupEvent
+import com.jeepark.onestep.ui.viewmodels.SignupViewModel
 
 @Composable
 fun SignupScreen(
     modifier: Modifier = Modifier,
     onNavigateToInitQuestion: () -> Unit,
     onNavigateToInit: () -> Unit,
-    repository: UserRepository = LocalContext.current.appContainer.userRepository
+    vm: SignupViewModel = viewModel(factory = SignupViewModel.Factory)
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val state by vm.state.collectAsState()
 
-    var nickname       by remember { mutableStateOf("") }
-    var age            by remember { mutableIntStateOf(0) }
-    var gender         by remember { mutableStateOf(Gender.MALE) }
-    var agreeTerms     by remember { mutableStateOf(false) }
-    var agreePrivacy   by remember { mutableStateOf(false) }
-    val enabled  = nickname.isNotEmpty() && age != 0 && agreeTerms && agreePrivacy
+    LaunchedEffect(Unit) {
+        vm.events.collect { event ->
+            when (event) {
+                SignupEvent.Completed -> onNavigateToInitQuestion()
+                is SignupEvent.Failed -> {
+                    Toast.makeText(context, "회원가입에 실패했습니다: ${event.message}", Toast.LENGTH_SHORT).show()
+                    onNavigateToInit()
+                }
+            }
+        }
+    }
 
-    val nicknameRegex = "^[가-힣a-zA-Z0-9]*$".toRegex()
-    val warning = if (!nickname.matches(nicknameRegex)) {
-        "한글, 영어, 숫자만 가능합니다."
-    } else {
-        ""
+    val warning = when (state.nicknameError) {
+        NicknameError.InvalidCharacters -> "한글, 영어, 숫자만 가능합니다."
+        null                            -> ""
     }
 
     Box(modifier = Modifier.fillMaxSize().background(CreamBackground)) {
@@ -119,8 +120,8 @@ fun SignupScreen(
                 inputComp = {
                     TextInput(
                         placeholder   = "닉네임",
-                        onValueChange = { newValue -> nickname = newValue },
-                        text          = nickname,
+                        onValueChange = vm::onNicknameChange,
+                        text          = state.nickname,
                     )
                 },
                 warningText = warning
@@ -128,24 +129,24 @@ fun SignupScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            if (nickname.isNotEmpty()) {
+            if (state.showAgeField) {
                 TextInput(
                     isDigit       = true,
                     placeholder   = "나이",
-                    onValueChange = { newValue -> age = newValue.toIntOrNull() ?: 0 },
-                    text          = if (age != 0) age.toString() else "",
+                    onValueChange = vm::onAgeChange,
+                    text          = state.age?.toString() ?: "",
                 )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            if (nickname.isNotEmpty() && age != 0) {
+            if (state.showGenderField) {
                 SelectButton(
                     leftText     = "남자",
                     rightText    = "여자",
-                    leftOnClick  = { gender = Gender.MALE },
-                    rightOnClick = { gender = Gender.FEMALE },
-                    isSelectedLeft = gender == Gender.MALE
+                    leftOnClick  = { vm.onGenderSelected(Gender.MALE) },
+                    rightOnClick = { vm.onGenderSelected(Gender.FEMALE) },
+                    isSelectedLeft = state.gender == Gender.MALE
                 )
             }
 
@@ -153,16 +154,16 @@ fun SignupScreen(
 
             // 약관 동의
             ConsentRow(
-                checked  = agreeTerms,
-                onToggle = { agreeTerms = !agreeTerms },
+                checked  = state.agreeTerms,
+                onToggle = vm::onTermsToggled,
                 label    = "이용약관",
                 url      = "https://marmalade-locket-e42.notion.site/33c74db951cd80249c4dc61ed6817ba6?source=copy_link",
                 context  = context
             )
             Spacer(Modifier.height(8.dp))
             ConsentRow(
-                checked  = agreePrivacy,
-                onToggle = { agreePrivacy = !agreePrivacy },
+                checked  = state.agreePrivacy,
+                onToggle = vm::onPrivacyToggled,
                 label    = "개인정보 처리방침",
                 url      = "https://marmalade-locket-e42.notion.site/33c74db951cd8022a9c2f5d195d648b7?source=copy_link",
                 context  = context
@@ -174,20 +175,8 @@ fun SignupScreen(
                     .fillMaxWidth()
                     .height(54.dp),
                 text    = "프로필 만들기",
-                onClick = {
-                    scope.launch {
-                        saveUserInFirebase(
-                            nickname,
-                            age,
-                            gender,
-                            repository,
-                            onNavigateToInitQuestion,
-                            onNavigateToInit,
-                            context
-                        )
-                    }
-                },
-                enabled = enabled,
+                onClick = vm::submit,
+                enabled = state.canSubmit,
             )
         }
     }
@@ -237,22 +226,4 @@ private fun ConsentRow(
             )
         )
     }
-}
-
-suspend fun saveUserInFirebase(
-    nickname: String,
-    age: Int,
-    gender: Gender,
-    repository: UserRepository,
-    onNavigateToInitQuestion: () -> Unit,
-    onNavigateToInit: () -> Unit,
-    context: android.content.Context
-) {
-    repository.saveInitUser(nickname = nickname, age = age, gender = gender).fold(
-        onSuccess = { onNavigateToInitQuestion() },
-        onFailure = { e ->
-            Toast.makeText(context, "회원가입에 실패했습니다: ${e.message}", Toast.LENGTH_SHORT).show()
-            onNavigateToInit()
-        }
-    )
 }

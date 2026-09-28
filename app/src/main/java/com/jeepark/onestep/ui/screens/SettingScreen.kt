@@ -32,11 +32,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,13 +43,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.jeepark.onestep.data.repository.DeleteResult
-import com.jeepark.onestep.data.repository.SettingsRepository
-import com.jeepark.onestep.data.repository.UserRepository
-import com.jeepark.onestep.appContainer
-import com.jeepark.onestep.ui.viewmodels.AuthViewModel
-import com.jeepark.onestep.util.NotificationScheduler
-import kotlinx.coroutines.launch
+import com.jeepark.onestep.ui.viewmodels.SettingsEvent
+import com.jeepark.onestep.ui.viewmodels.SettingsViewModel
 
 private val S_BG      = Color(0xFFFDF8F0)
 private val S_CARD    = Color(0xFFFFFFFF)
@@ -63,23 +56,17 @@ fun SettingScreen(
     onNavigateToMain: () -> Unit,
     onNavigateToInitQuestion: () -> Unit,
     onNavigateBack: () -> Unit,
-    authVm: AuthViewModel = viewModel(factory = AuthViewModel.Factory),
-    repository: UserRepository = LocalContext.current.appContainer.userRepository,
-    settings: SettingsRepository = LocalContext.current.appContainer.settingsRepository,
-    scheduler: NotificationScheduler = LocalContext.current.appContainer.notificationScheduler
+    vm: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory)
 ) {
     val context = LocalContext.current
-    val scope   = rememberCoroutineScope()
-
-    var nickname      by remember { mutableStateOf("") }
-    var email         by remember { mutableStateOf("") }
-    var notifEnabled  by remember { mutableStateOf(settings.notificationsEnabled) }
-    var showLogout    by remember { mutableStateOf(false) }
-    var showDelete    by remember { mutableStateOf(false) }
+    val state by vm.state.collectAsState()
 
     LaunchedEffect(Unit) {
-        email = authVm.currentEmail ?: ""
-        repository.getUser().onSuccess { user -> nickname = user.nickname }
+        vm.events.collect { event ->
+            when (event) {
+                SettingsEvent.LeftAccount -> onNavigateToMain()
+            }
+        }
     }
 
     Column(
@@ -121,14 +108,14 @@ fun SettingScreen(
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Text(
-                    text       = nickname.ifEmpty { "이름 없음" },
+                    text       = state.nickname.ifEmpty { "이름 없음" },
                     fontSize   = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     color      = Color(0xFF2A2A2A)
                 )
                 Spacer(Modifier.height(3.dp))
                 Text(
-                    text     = email,
+                    text     = state.email,
                     fontSize = 13.sp,
                     color    = Color(0xFF888888)
                 )
@@ -140,16 +127,8 @@ fun SettingScreen(
         SettingCard {
             SwitchRow(
                 label           = "알림",
-                checked         = notifEnabled,
-                onCheckedChange = { enabled ->
-                    notifEnabled = enabled
-                    settings.setNotificationsEnabled(enabled)
-                    authVm.currentUid?.let { uid ->
-                        // 서버 확인을 기다리지 않는다(오프라인이어도 토글은 바로 반영). 실패해도 화면은 그대로 둔다.
-                        scope.launch { repository.updateNotificationAgreed(uid, enabled) }
-                    }
-                    if (enabled) scheduler.schedule() else scheduler.cancel()
-                }
+                checked         = state.notificationsEnabled,
+                onCheckedChange = vm::onNotificationsToggled
             )
         }
 
@@ -171,55 +150,44 @@ fun SettingScreen(
         Spacer(Modifier.height(36.dp))
 
         SettingCard {
-            PlainRow("로그아웃") { showLogout = true }
+            PlainRow("로그아웃") { vm.showLogoutDialog() }
         }
 
         Spacer(Modifier.height(36.dp))
 
         SettingCard {
-            PlainRow(label = "계정 탈퇴", textColor = Color(0xFFE05050)) { showDelete = true }
+            PlainRow(label = "계정 탈퇴", textColor = Color(0xFFE05050)) { vm.showDeleteDialog() }
         }
 
         Spacer(Modifier.height(40.dp))
     }
 
     // 로그아웃 다이얼로그
-    if (showLogout) {
+    if (state.showLogoutDialog) {
         AlertDialog(
-            onDismissRequest = { showLogout = false },
+            onDismissRequest = vm::dismissLogoutDialog,
             title            = { Text("로그아웃") },
             text             = { Text("로그아웃 하시겠어요?") },
             confirmButton    = {
-                TextButton(onClick = {
-                    authVm.signOut()
-                    showLogout = false
-                    onNavigateToMain()
-                }) { Text("로그아웃", color = Color(0xFFE05050)) }
+                TextButton(onClick = vm::confirmLogout) { Text("로그아웃", color = Color(0xFFE05050)) }
             },
             dismissButton    = {
-                TextButton(onClick = { showLogout = false }) { Text("취소") }
+                TextButton(onClick = vm::dismissLogoutDialog) { Text("취소") }
             }
         )
     }
 
     // 탈퇴 다이얼로그
-    if (showDelete) {
+    if (state.showDeleteDialog) {
         AlertDialog(
-            onDismissRequest = { showDelete = false },
+            onDismissRequest = vm::dismissDeleteDialog,
             title            = { Text("계정 탈퇴") },
             text             = { Text("탈퇴하면 모든 데이터가 삭제되며\n복구할 수 없어요. 정말 탈퇴하시겠어요?") },
             confirmButton    = {
-                TextButton(onClick = {
-                    authVm.deleteAccount { result ->
-                        showDelete = false
-                        // 데이터가 이미 지워졌다면(인증 삭제만 실패해도) 로그아웃된 상태이므로 시작 화면으로 돌아간다.
-                        // 데이터 삭제 자체가 실패한 경우에만 아무것도 바뀌지 않았으니 설정 화면에 남는다.
-                        if (result != DeleteResult.Failed) onNavigateToMain()
-                    }
-                }) { Text("탈퇴하기", color = Color(0xFFE05050)) }
+                TextButton(onClick = vm::confirmDelete) { Text("탈퇴하기", color = Color(0xFFE05050)) }
             },
             dismissButton    = {
-                TextButton(onClick = { showDelete = false }) { Text("취소") }
+                TextButton(onClick = vm::dismissDeleteDialog) { Text("취소") }
             }
         )
     }
