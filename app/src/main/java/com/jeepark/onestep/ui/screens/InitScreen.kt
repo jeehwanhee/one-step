@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.jeepark.onestep.data.repository.UserRepository
+import com.jeepark.onestep.data.repository.UserRepositoryImpl
 import kotlinx.coroutines.delay
 
 @Composable
@@ -35,7 +36,7 @@ fun InitScreen(
     onNavigateToAuth: () -> Unit,
     onNavigateToMain: () -> Unit,
     onNavigateToInitQuestion: () -> Unit,
-    repository: UserRepository = remember { UserRepository() }
+    repository: UserRepository = remember { UserRepositoryImpl() }
 ) {
     LaunchedEffect(Unit) {
         val currentUser = Firebase.auth.currentUser

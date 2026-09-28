@@ -70,9 +70,7 @@ fun MainScreen(
 ) {
     val context = LocalContext.current
     val vm: MainViewModel = viewModel(
-        factory = androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory(
-            context.applicationContext as android.app.Application
-        )
+        factory = MainViewModel.factory(context.applicationContext as android.app.Application)
     )
     val user by vm.user.collectAsState()
     val questList by vm.questList.collectAsState()

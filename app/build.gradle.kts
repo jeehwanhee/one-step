@@ -53,6 +53,14 @@ android {
         compose = true
         buildConfig = true
     }
+
+    testOptions {
+        unitTests {
+            // android.util.Log 등 안드로이드 프레임워크 호출이 유닛테스트(JVM)에서
+            // 예외 대신 기본값을 반환하도록 함 (Robolectric 없이 순수 JUnit 유지).
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 dependencies {
@@ -67,6 +75,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

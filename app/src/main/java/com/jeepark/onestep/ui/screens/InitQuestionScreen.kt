@@ -47,6 +47,7 @@ import com.jeepark.onestep.data.model.InitQuestions
 import com.jeepark.onestep.ui.components.PagerNavigationButton
 import com.jeepark.onestep.ui.components.TextInput
 import com.jeepark.onestep.data.repository.UserRepository
+import com.jeepark.onestep.data.repository.UserRepositoryImpl
 import com.jeepark.onestep.ui.theme.CreamBackground
 import com.jeepark.onestep.ui.theme.HeadingText
 import com.jeepark.onestep.ui.theme.PrimaryGreen
@@ -60,7 +61,7 @@ fun InitQuestionScreen(
     modifier: Modifier = Modifier,
     onNavigateToMain: () -> Unit,
     onNavigateToInit: () -> Unit,
-    repository: UserRepository = remember { UserRepository() }
+    repository: UserRepository = remember { UserRepositoryImpl() }
 ) {
     // 뒤로가기 완전 차단 — 설문 완료 전까지 이탈 불가
     BackHandler { /* 막기 */ }
