@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.jeepark.onestep.data.model.GiveUpReason
 import com.jeepark.onestep.ui.components.FlatCard
 import com.jeepark.onestep.ui.components.PrimaryPillButton
 import com.jeepark.onestep.ui.theme.HeadingText
@@ -38,14 +39,9 @@ import com.jeepark.onestep.ui.theme.SecondaryBorder
 @Composable
 fun GiveUpReasonDialog(
     onDismiss: () -> Unit,
-    onSubmit: (Int) -> Unit
+    onSubmit: (GiveUpReason) -> Unit
 ) {
-    val reasons = listOf(
-        1 to "퀘스트가 어려워서",
-        2 to "현재 퀘스트를 진행할 상황이 아니라서",
-        3 to "퀘스트를 진행할 컨디션이 아니라서"
-    )
-    var selected by remember { mutableStateOf(-1) }
+    var selected by remember { mutableStateOf<GiveUpReason?>(null) }
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         FlatCard(
@@ -58,8 +54,8 @@ fun GiveUpReasonDialog(
             ) {
                 Text("포기 사유를 선택해주세요", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = HeadingText)
 
-                reasons.forEach { (id, label) ->
-                    val isSelected = selected == id
+                GiveUpReason.entries.forEach { reason ->
+                    val isSelected = selected == reason
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -69,11 +65,11 @@ fun GiveUpReasonDialog(
                             .clickable(
                                 indication = null,
                                 interactionSource = remember { MutableInteractionSource() }
-                            ) { selected = id }
+                            ) { selected = reason }
                             .padding(horizontal = 16.dp, vertical = 14.dp)
                     ) {
                         Text(
-                            text      = label,
+                            text      = reason.label(),
                             fontSize  = 13.sp,
                             color     = if (isSelected) PrimaryGreen else MutedText,
                             fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
@@ -83,8 +79,8 @@ fun GiveUpReasonDialog(
 
                 PrimaryPillButton(
                     text = "포기하기",
-                    onClick = { if (selected >= 0) onSubmit(selected) },
-                    enabled = selected >= 0,
+                    onClick = { selected?.let(onSubmit) },
+                    enabled = selected != null,
                     minHeight = 52.dp
                 )
 
@@ -101,4 +97,10 @@ fun GiveUpReasonDialog(
             }
         }
     }
+}
+
+private fun GiveUpReason.label(): String = when (this) {
+    GiveUpReason.TOO_HARD      -> "퀘스트가 어려워서"
+    GiveUpReason.BAD_SITUATION -> "현재 퀘스트를 진행할 상황이 아니라서"
+    GiveUpReason.LOW_CONDITION -> "퀘스트를 진행할 컨디션이 아니라서"
 }

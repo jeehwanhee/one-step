@@ -9,6 +9,7 @@ import com.jeepark.onestep.data.model.GeminiClient
 import com.jeepark.onestep.data.model.GeminiContent
 import com.jeepark.onestep.data.model.GeminiPart
 import com.jeepark.onestep.data.model.GeminiRequest
+import com.jeepark.onestep.data.model.GiveUpReason
 import com.jeepark.onestep.data.model.NetworkClient
 import com.jeepark.onestep.data.model.Quest
 import com.jeepark.onestep.util.LocationHelper
@@ -211,13 +212,13 @@ class QuestRepositoryImpl(context: Context) : QuestRepository {
     }
 
     /** 해당 퀘스트 문서에 포기 사유를 기록 (통계용, 실패해도 유저 쪽 기록에는 영향 없음). */
-    override fun recordGiveUp(questIndex: Int, reason: Int, onFailure: (Exception) -> Unit) {
+    override fun recordGiveUp(questIndex: Int, reason: GiveUpReason, onFailure: (Exception) -> Unit) {
         db.collection("quests")
             .whereEqualTo("index", questIndex)
             .get()
             .addOnSuccessListener { snapshot ->
                 snapshot.documents.firstOrNull()?.reference?.update(
-                    "giveUpReasons", FieldValue.arrayUnion(reason)
+                    "giveUpReasons", FieldValue.arrayUnion(reason.code)
                 )?.addOnFailureListener { onFailure(it) }
             }.addOnFailureListener { onFailure(it) }
     }

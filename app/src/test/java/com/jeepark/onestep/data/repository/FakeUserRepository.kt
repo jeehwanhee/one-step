@@ -1,5 +1,6 @@
 package com.jeepark.onestep.data.repository
 
+import com.jeepark.onestep.data.model.Gender
 import com.jeepark.onestep.data.model.InitQuestions
 import com.jeepark.onestep.data.model.User
 
@@ -16,7 +17,7 @@ class FakeUserRepository(
     override fun saveInitUser(
         nickname: String,
         age: Int,
-        gender: Boolean,
+        gender: Gender,
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     ) {
@@ -24,7 +25,7 @@ class FakeUserRepository(
             onFailure(Exception(failureMessage))
             return
         }
-        user = (user ?: User()).copy(nickname = nickname, age = age, gender = gender)
+        user = (user ?: User()).copy(nickname = nickname, age = age, gender = gender.storedValue)
         onSuccess()
     }
 

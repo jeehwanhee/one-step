@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jeepark.onestep.data.model.EXPAMOUNT
+import com.jeepark.onestep.data.model.MAX_TIER
 import com.jeepark.onestep.ui.components.flatShadow
 import com.jeepark.onestep.ui.screens.collection.AnimalProfileCard
 import com.jeepark.onestep.ui.theme.AmberText
@@ -77,9 +78,9 @@ fun CollectionScreen(
     val unlockedAnimals  by vm.unlockedAnimals.collectAsState()
     val loadError        by vm.loadError.collectAsState()
 
-    val tier     = (user?.tier ?: 0).coerceIn(0, 7)
+    val tier     = (user?.tier ?: 0).coerceIn(0, MAX_TIER)
     val progress = user?.progress ?: 0
-    val threshold = if (tier < EXPAMOUNT.size) EXPAMOUNT[tier] else EXPAMOUNT.last()
+    val threshold = if (tier < MAX_TIER) EXPAMOUNT[tier] else EXPAMOUNT.last()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -179,7 +180,7 @@ private fun CollectionHeader(
     )
     LaunchedEffect(targetFraction) { animFraction = targetFraction }
 
-    val isMaxTier  = tier >= 7
+    val isMaxTier  = tier >= MAX_TIER
 
     Column(
         modifier = Modifier

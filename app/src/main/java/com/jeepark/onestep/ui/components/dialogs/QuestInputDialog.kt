@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.jeepark.onestep.data.model.Mood
 import com.jeepark.onestep.ui.components.FlatCard
 import com.jeepark.onestep.ui.theme.HeadingText
 import com.jeepark.onestep.ui.theme.MutedText
@@ -49,15 +50,13 @@ import com.jeepark.onestep.ui.theme.SecondaryBorder
 fun QuestInputDialog(
     isLoading: Boolean,
     onDismiss: () -> Unit,
-    onSearch: (mood: Int) -> Unit
+    onSearch: (mood: Mood) -> Unit
 ) {
-    var selectedMood  by remember { mutableStateOf(-1) }
+    var selectedMood  by remember { mutableStateOf<Mood?>(null) }
     var visible       by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
     val scale by animateFloatAsState(if (visible) 1f else 0.94f, animationSpec = tween(200), label = "scale")
     val alpha by animateFloatAsState(if (visible) 1f else 0f,    animationSpec = tween(200), label = "alpha")
-
-    val moods = listOf("매우 나쁨", "나쁨", "보통", "좋음", "매우 좋음")
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         FlatCard(
@@ -86,16 +85,16 @@ fun QuestInputDialog(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    moods.forEachIndexed { i, mood ->
-                        MoodChip(mood, selectedMood == i) { if (!isLoading) selectedMood = i }
+                    Mood.entries.forEach { mood ->
+                        MoodChip(mood.label(), selectedMood == mood) { if (!isLoading) selectedMood = mood }
                     }
                 }
 
                 // 퀘스트 찾기 버튼
                 Button(
-                    onClick  = { if (selectedMood >= 0 && !isLoading) onSearch(selectedMood) },
+                    onClick  = { selectedMood?.let { if (!isLoading) onSearch(it) } },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled  = selectedMood >= 0 && !isLoading,
+                    enabled  = selectedMood != null && !isLoading,
                     shape    = RoundedCornerShape(14.dp),
                     colors   = ButtonDefaults.buttonColors(
                         containerColor         = PrimaryGreen,
@@ -136,6 +135,14 @@ fun QuestInputDialog(
             }
         }
     }
+}
+
+private fun Mood.label(): String = when (this) {
+    Mood.VERY_BAD  -> "매우 나쁨"
+    Mood.BAD       -> "나쁨"
+    Mood.NEUTRAL   -> "보통"
+    Mood.GOOD      -> "좋음"
+    Mood.VERY_GOOD -> "매우 좋음"
 }
 
 @Composable

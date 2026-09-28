@@ -1,5 +1,6 @@
 package com.jeepark.onestep.data.repository
 
+import com.jeepark.onestep.data.model.GiveUpReason
 import com.jeepark.onestep.data.model.Quest
 
 /**
@@ -13,5 +14,5 @@ interface QuestRepository {
     ): List<Quest>
 
     /** 해당 퀘스트 문서에 포기 사유를 기록 (통계용, 실패해도 유저 쪽 기록에는 영향 없음). */
-    fun recordGiveUp(questIndex: Int, reason: Int, onFailure: (Exception) -> Unit = {})
+    fun recordGiveUp(questIndex: Int, reason: GiveUpReason, onFailure: (Exception) -> Unit = {})
 }

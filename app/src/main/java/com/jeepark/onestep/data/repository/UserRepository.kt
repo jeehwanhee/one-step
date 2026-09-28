@@ -1,5 +1,6 @@
 package com.jeepark.onestep.data.repository
 
+import com.jeepark.onestep.data.model.Gender
 import com.jeepark.onestep.data.model.InitQuestions
 import com.jeepark.onestep.data.model.User
 
@@ -11,7 +12,7 @@ interface UserRepository {
     fun saveInitUser(
         nickname: String,
         age: Int,
-        gender: Boolean,
+        gender: Gender,
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     )

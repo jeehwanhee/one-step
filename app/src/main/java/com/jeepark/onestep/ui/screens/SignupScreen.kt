@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jeepark.onestep.data.model.Gender
 import com.jeepark.onestep.data.model.User
 import com.jeepark.onestep.ui.components.BottomButton
 import com.jeepark.onestep.ui.components.InputWithWarning
@@ -62,7 +63,7 @@ fun SignupScreen(
 
     var nickname       by remember { mutableStateOf("") }
     var age            by remember { mutableIntStateOf(0) }
-    var gender         by remember { mutableStateOf(true) }
+    var gender         by remember { mutableStateOf(Gender.MALE) }
     var agreeTerms     by remember { mutableStateOf(false) }
     var agreePrivacy   by remember { mutableStateOf(false) }
     val enabled  = nickname.isNotEmpty() && age != 0 && agreeTerms && agreePrivacy
@@ -139,9 +140,9 @@ fun SignupScreen(
                 SelectButton(
                     leftText     = "남자",
                     rightText    = "여자",
-                    leftOnClick  = { gender = true },
-                    rightOnClick = { gender = false },
-                    isSelectedLeft = gender
+                    leftOnClick  = { gender = Gender.MALE },
+                    rightOnClick = { gender = Gender.FEMALE },
+                    isSelectedLeft = gender == Gender.MALE
                 )
             }
 
@@ -236,7 +237,7 @@ private fun ConsentRow(
 fun saveUserInFirebase(
     nickname: String,
     age: Int,
-    gender: Boolean,
+    gender: Gender,
     repository: UserRepository,
     onNavigateToInitQuestion: () -> Unit,
     onNavigateToInit: () -> Unit,

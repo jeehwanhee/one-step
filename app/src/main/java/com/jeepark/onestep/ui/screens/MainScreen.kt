@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jeepark.onestep.data.model.MAX_TIER
 import com.jeepark.onestep.data.model.Quest
 import com.jeepark.onestep.ui.components.FlatCard
 import com.jeepark.onestep.ui.components.PrimaryPillButton
@@ -78,7 +79,7 @@ fun MainScreen(
     val activeQuest by vm.activeQuest.collectAsState()
     val isSavingQuest by vm.isSavingQuest.collectAsState()
     val loadError by vm.loadError.collectAsState()
-    val tier = (user?.tier ?: 0).coerceIn(0, 7)
+    val tier = (user?.tier ?: 0).coerceIn(0, MAX_TIER)
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -86,7 +87,6 @@ fun MainScreen(
     var showSuggestDialog by remember { mutableStateOf(false) }
     var showVerifyDialog  by remember { mutableStateOf(false) }
     var showGiveUpDialog  by remember { mutableStateOf(false) }
-    var selectedMood      by remember { mutableStateOf(-1) }
     var currentQuestIndex by remember { mutableStateOf(0) }
     var currentQuest      by remember { mutableStateOf<Quest?>(null) }
     var showTierUp        by remember { mutableStateOf(false) }
@@ -209,9 +209,8 @@ fun MainScreen(
             isLoading = isLoadingQuests,
             onDismiss = { if (!isLoadingQuests) showInputDialog = false },
             onSearch  = { mood ->
-                selectedMood = mood
                 vm.loadFilteredQuests(
-                    mood    = mood + 1,
+                    mood    = mood,
                     onReady = { quests ->
                         showInputDialog   = false
                         currentQuestIndex = 0

@@ -1,8 +1,10 @@
 package com.jeepark.onestep.util
 
+import com.jeepark.onestep.data.model.Mood
+
 fun getQuestDifficulty(
     isolation: Double,    // 0: 고립도 (0~100)
-    mood: Int,           // 1: 현재 기분 (1~5)
+    mood: Mood,          // 1: 현재 기분 (level 1~5)
     prevSuccess: Int,    // 2: 최근 10개 중 성공 개수 (0~10)
     prevDiff: Double,    // 3: 최근 10개 평균 난이도 (1.0~5.0)
     tier: Int        // 4: 티어
@@ -10,7 +12,7 @@ fun getQuestDifficulty(
 
     val inputData = doubleArrayOf(
         isolation,
-        mood.toDouble(),
+        mood.level.toDouble(),
         prevSuccess.toDouble(),
         prevDiff,
         tier.toDouble() // 모델에 0.0 ~ 7.0으로 전달됨

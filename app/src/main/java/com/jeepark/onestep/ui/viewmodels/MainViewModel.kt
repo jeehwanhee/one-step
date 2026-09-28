@@ -9,6 +9,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import com.jeepark.onestep.data.model.GiveUpReason
+import com.jeepark.onestep.data.model.Mood
 import com.jeepark.onestep.data.model.Quest
 import com.jeepark.onestep.data.model.User
 import com.jeepark.onestep.data.model.computeQuestCompletion
@@ -95,7 +97,7 @@ class MainViewModel(
     }
 
     fun loadFilteredQuests(
-        mood: Int,
+        mood: Mood,
         onReady: (List<Quest>) -> Unit,
         onError: (String) -> Unit
     ) {
@@ -183,7 +185,7 @@ class MainViewModel(
 
     fun saveGiveUpQuest(
         quest: Quest,
-        reason: Int,
+        reason: GiveUpReason,
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
@@ -194,7 +196,7 @@ class MainViewModel(
 
         val giveUpEntry = mapOf(
             "questName" to quest.questName,
-            "reason"    to reason
+            "reason"    to reason.code
         )
 
         // users 문서: 실패 이력 + 포기 사유 추가 (이게 성공해야 activeQuest를 지움)

@@ -2,6 +2,8 @@ package com.jeepark.onestep.ui.viewmodels
 
 import com.jeepark.onestep.MainDispatcherRule
 import com.jeepark.onestep.data.model.DAILY_QUEST_LIMIT
+import com.jeepark.onestep.data.model.GiveUpReason
+import com.jeepark.onestep.data.model.Mood
 import com.jeepark.onestep.data.model.Quest
 import com.jeepark.onestep.data.model.User
 import com.jeepark.onestep.data.repository.FakeActiveQuestStore
@@ -180,11 +182,11 @@ class MainViewModelTest {
         val f = Fixture(User(questResultsQueue = listOf(1, 1)))
         var success = false
 
-        f.viewModel.saveGiveUpQuest(quest, reason = 2, onSuccess = { success = true }, onError = {})
+        f.viewModel.saveGiveUpQuest(quest, reason = GiveUpReason.BAD_SITUATION, onSuccess = { success = true }, onError = {})
 
         assertEquals(listOf(1, 1, 0), f.viewModel.user.value!!.questResultsQueue)
         assertTrue(success)
-        assertEquals(listOf(7 to 2), f.questRepo.giveUpRecords)
+        assertEquals(listOf(7 to GiveUpReason.BAD_SITUATION), f.questRepo.giveUpRecords)
     }
 
     @Test
@@ -195,7 +197,7 @@ class MainViewModelTest {
         var success = false
         var error: String? = null
 
-        f.viewModel.saveGiveUpQuest(quest, reason = 2, onSuccess = { success = true }, onError = { error = it })
+        f.viewModel.saveGiveUpQuest(quest, reason = GiveUpReason.BAD_SITUATION, onSuccess = { success = true }, onError = { error = it })
 
         assertEquals("저장하지 못했어요. 다시 시도해주세요", error)
         assertFalse(success)
@@ -226,7 +228,7 @@ class MainViewModelTest {
         f.questRepo.quests = fetched
         var ready: List<Quest>? = null
 
-        f.viewModel.loadFilteredQuests(mood = 3, onReady = { ready = it }, onError = {})
+        f.viewModel.loadFilteredQuests(mood = Mood.NEUTRAL, onReady = { ready = it }, onError = {})
 
         assertEquals(fetched, f.viewModel.questList.value)
         assertEquals(fetched, ready)
@@ -242,7 +244,7 @@ class MainViewModelTest {
         f.questRepo.quests = listOf(quest)
         var ready = false
 
-        f.viewModel.loadFilteredQuests(mood = 3, onReady = { ready = true }, onError = {})
+        f.viewModel.loadFilteredQuests(mood = Mood.NEUTRAL, onReady = { ready = true }, onError = {})
 
         assertEquals(false, f.questRepo.lastUseGemini)
         assertEquals(DAILY_QUEST_LIMIT, f.viewModel.user.value!!.dailyQuestCount)
@@ -255,7 +257,7 @@ class MainViewModelTest {
         f.questRepo.fetchError = Exception("네트워크 오류")
         var error: String? = null
 
-        f.viewModel.loadFilteredQuests(mood = 3, onReady = {}, onError = { error = it })
+        f.viewModel.loadFilteredQuests(mood = Mood.NEUTRAL, onReady = {}, onError = { error = it })
 
         assertEquals("네트워크 오류", error)
         assertFalse(f.viewModel.isLoadingQuests.value)

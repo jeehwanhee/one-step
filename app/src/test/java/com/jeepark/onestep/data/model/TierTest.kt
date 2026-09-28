@@ -53,13 +53,19 @@ class TierTest {
 
     @Test
     fun `최고 티어에서는 더 오르지 않고 진행도만 누적된다`() {
-        // Arrange: EXPAMOUNT.size == 7 이므로 tier 7이 최고 티어
+        // Arrange: MAX_TIER가 최고 티어
         // Act
-        val result = calculateTierProgress(progress = 100, tier = EXPAMOUNT.size, exp = 50)
+        val result = calculateTierProgress(progress = 100, tier = MAX_TIER, exp = 50)
         // Assert
         assertEquals(150, result.newProgress)
-        assertEquals(EXPAMOUNT.size, result.newTier)
+        assertEquals(MAX_TIER, result.newTier)
         assertFalse(result.didTierUp)
+    }
+
+    @Test
+    fun `최고 티어는 티어별 경험치 문턱 개수와 같고 동물 8마리에 대응하는 7이다`() {
+        assertEquals(EXPAMOUNT.size, MAX_TIER)
+        assertEquals(7, MAX_TIER) // 티어 0..7 = 동물 8마리 해금 단계. 바꾸면 공원·진척도 화면도 함께 손봐야 한다
     }
 
     @Test

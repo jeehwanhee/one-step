@@ -5,6 +5,7 @@ import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.firestore
+import com.jeepark.onestep.data.model.Gender
 import com.jeepark.onestep.data.model.InitQuestions
 import com.jeepark.onestep.data.model.User
 import com.jeepark.onestep.util.Model_A
@@ -16,7 +17,7 @@ class UserRepositoryImpl : UserRepository {
     override fun saveInitUser(
         nickname: String,
         age: Int,
-        gender: Boolean,
+        gender: Gender,
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     ) {
@@ -37,7 +38,7 @@ class UserRepositoryImpl : UserRepository {
             email= email,
             nickname=nickname,
             age=age,
-            gender=gender,
+            gender=gender.storedValue,
         )
         db.collection("users").document(uid)
             .set(user)
@@ -89,7 +90,7 @@ class UserRepositoryImpl : UserRepository {
                 // 학습 분포 범위를 벗어난 입력은 경계값으로 clamp (외삽 방지)
                 val inputData = doubleArrayOf(
                     user.age.toDouble().coerceIn(19.0, 38.0),    // 0: age (학습 19~38)
-                    if (user.gender) 0.0 else 1.0,               // 1: gender (남=0.0, 여=1.0)
+                    if (Gender.fromStored(user.gender) == Gender.MALE) 0.0 else 1.0, // 1: gender (남=0.0, 여=1.0)
                     data.shower.toDouble().coerceIn(0.0, 7.0),   // 2: shower (주간 0~7)
                     outFreqScaled,                               // 3: out_freq (매핑상 0~4)
                     data.activeTime.toDouble().coerceIn(0.0, 3.0), // 4: active_time (0~3)
