@@ -1,7 +1,7 @@
 package com.jeepark.onestep.data.repository
 
-import com.jeepark.onestep.data.model.Quest
-import com.jeepark.onestep.data.model.SELECTION_SIZE
+import com.jeepark.onestep.domain.model.Quest
+import com.jeepark.onestep.domain.service.SELECTION_SIZE
 
 /**
  * 테스트용 가짜 QuestRanker. 기본으로는 받은 후보의 앞에서부터 [SELECTION_SIZE]개를 돌려주고,

@@ -1,10 +1,10 @@
 package com.jeepark.onestep.data.repository
 
-import com.jeepark.onestep.data.model.GeminiCandidate
-import com.jeepark.onestep.data.model.GeminiContent
-import com.jeepark.onestep.data.model.GeminiPart
-import com.jeepark.onestep.data.model.GeminiResponse
-import com.jeepark.onestep.data.model.Quest
+import com.jeepark.onestep.data.remote.GeminiCandidate
+import com.jeepark.onestep.data.remote.GeminiContent
+import com.jeepark.onestep.data.remote.GeminiPart
+import com.jeepark.onestep.data.remote.GeminiResponse
+import com.jeepark.onestep.domain.model.Quest
 import kotlinx.coroutines.test.runTest
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals

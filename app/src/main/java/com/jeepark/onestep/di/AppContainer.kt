@@ -6,32 +6,32 @@ import com.google.firebase.Firebase
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.firestore
 import com.jeepark.onestep.BuildConfig
-import com.jeepark.onestep.data.model.FirestorePaths
-import com.jeepark.onestep.data.model.GeminiClient
-import com.jeepark.onestep.data.model.NetworkClient
-import com.jeepark.onestep.data.model.Place
-import com.jeepark.onestep.data.model.Quest
+import com.jeepark.onestep.data.local.SharedPrefsActiveQuestStore
+import com.jeepark.onestep.data.local.SharedPrefsSettingsRepository
+import com.jeepark.onestep.data.local.SharedPrefsVersionStore
+import com.jeepark.onestep.data.remote.FirestoreCollectionSource
+import com.jeepark.onestep.data.remote.GeminiClient
+import com.jeepark.onestep.data.remote.NetworkClient
 import com.jeepark.onestep.data.repository.AccountService
 import com.jeepark.onestep.data.repository.ActiveQuestStore
 import com.jeepark.onestep.data.repository.AuthRepository
 import com.jeepark.onestep.data.repository.FirebaseAuthRepository
-import com.jeepark.onestep.data.repository.FirestoreCollectionSource
 import com.jeepark.onestep.data.repository.GeminiQuestRanker
 import com.jeepark.onestep.data.repository.KmaWeatherProvider
 import com.jeepark.onestep.data.repository.PlaceRepositoryImpl
 import com.jeepark.onestep.data.repository.QuestRepository
 import com.jeepark.onestep.data.repository.QuestRepositoryImpl
 import com.jeepark.onestep.data.repository.SettingsRepository
-import com.jeepark.onestep.data.repository.SharedPrefsActiveQuestStore
-import com.jeepark.onestep.data.repository.SharedPrefsSettingsRepository
-import com.jeepark.onestep.data.repository.SharedPrefsVersionStore
 import com.jeepark.onestep.data.repository.UserRepository
 import com.jeepark.onestep.data.repository.UserRepositoryImpl
 import com.jeepark.onestep.data.repository.VersionedCache
-import com.jeepark.onestep.util.FusedLocationProvider
-import com.jeepark.onestep.util.LocationProvider
-import com.jeepark.onestep.util.NotificationScheduler
-import com.jeepark.onestep.util.WorkManagerNotificationScheduler
+import com.jeepark.onestep.domain.model.FirestorePaths
+import com.jeepark.onestep.domain.model.Place
+import com.jeepark.onestep.domain.model.Quest
+import com.jeepark.onestep.platform.location.FusedLocationProvider
+import com.jeepark.onestep.platform.location.LocationProvider
+import com.jeepark.onestep.platform.notification.NotificationScheduler
+import com.jeepark.onestep.platform.notification.WorkManagerNotificationScheduler
 
 /**
  * 앱 전체가 함께 쓰는 의존성을 한 곳에서 만들고 보관한다(수동 DI, 별도 라이브러리 없음).

@@ -1,14 +1,14 @@
 package com.jeepark.onestep.data.repository
 
-import com.jeepark.onestep.data.model.Coordinates
-import com.jeepark.onestep.data.model.KmaBody
-import com.jeepark.onestep.data.model.KmaItem
-import com.jeepark.onestep.data.model.KmaItems
-import com.jeepark.onestep.data.model.KmaResponse
-import com.jeepark.onestep.data.model.KmaResponseBody
-import com.jeepark.onestep.data.model.WEATHER_UNKNOWN
-import com.jeepark.onestep.data.model.toKmaGrid
-import com.jeepark.onestep.util.FakeLocationProvider
+import com.jeepark.onestep.data.remote.KmaBody
+import com.jeepark.onestep.data.remote.KmaItem
+import com.jeepark.onestep.data.remote.KmaItems
+import com.jeepark.onestep.data.remote.KmaResponse
+import com.jeepark.onestep.data.remote.KmaResponseBody
+import com.jeepark.onestep.data.remote.WEATHER_UNKNOWN
+import com.jeepark.onestep.data.remote.toKmaGrid
+import com.jeepark.onestep.domain.model.Coordinates
+import com.jeepark.onestep.platform.location.FakeLocationProvider
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test

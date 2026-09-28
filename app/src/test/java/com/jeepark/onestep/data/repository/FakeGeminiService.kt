@@ -1,8 +1,8 @@
 package com.jeepark.onestep.data.repository
 
-import com.jeepark.onestep.data.model.GeminiRequest
-import com.jeepark.onestep.data.model.GeminiResponse
-import com.jeepark.onestep.data.model.GeminiService
+import com.jeepark.onestep.data.remote.GeminiRequest
+import com.jeepark.onestep.data.remote.GeminiResponse
+import com.jeepark.onestep.data.remote.GeminiService
 
 /** 테스트용 가짜 GeminiService. 받은 요청을 기록하고, 정해 둔 응답이나 예외를 돌려준다. */
 class FakeGeminiService : GeminiService {

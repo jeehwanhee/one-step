@@ -16,7 +16,6 @@ import com.jeepark.onestep.ui.theme.PrimaryGreen
 import com.jeepark.onestep.ui.theme.SecondaryBorder
 import com.jeepark.onestep.ui.theme.text_Bold_20
 import com.jeepark.onestep.ui.theme.text_Bold_24
-import com.jeepark.onestep.ui.theme.text_Bold_28
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

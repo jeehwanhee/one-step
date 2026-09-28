@@ -1,10 +1,10 @@
 package com.jeepark.onestep.data.repository
 
-import com.jeepark.onestep.data.model.Gender
-import com.jeepark.onestep.data.model.InitQuestions
-import com.jeepark.onestep.data.model.IsolatedRecord
-import com.jeepark.onestep.data.model.PrevQuest
-import com.jeepark.onestep.data.model.User
+import com.jeepark.onestep.domain.model.Gender
+import com.jeepark.onestep.domain.model.InitQuestions
+import com.jeepark.onestep.domain.model.IsolatedRecord
+import com.jeepark.onestep.domain.model.PrevQuest
+import com.jeepark.onestep.domain.model.User
 import kotlinx.coroutines.CompletableDeferred
 
 /**

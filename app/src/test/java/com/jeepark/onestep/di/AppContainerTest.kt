@@ -5,9 +5,9 @@ import com.jeepark.onestep.data.repository.FakeAuthRepository
 import com.jeepark.onestep.data.repository.FakeQuestRepository
 import com.jeepark.onestep.data.repository.FakeSettingsRepository
 import com.jeepark.onestep.data.repository.FakeUserRepository
-import com.jeepark.onestep.data.model.User
-import com.jeepark.onestep.util.FakeLocationProvider
-import com.jeepark.onestep.util.FakeNotificationScheduler
+import com.jeepark.onestep.domain.model.User
+import com.jeepark.onestep.platform.location.FakeLocationProvider
+import com.jeepark.onestep.platform.notification.FakeNotificationScheduler
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Test

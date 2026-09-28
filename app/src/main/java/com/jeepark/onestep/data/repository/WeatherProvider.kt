@@ -1,11 +1,11 @@
 package com.jeepark.onestep.data.repository
 
-import com.jeepark.onestep.data.model.KmaService
-import com.jeepark.onestep.data.model.WEATHER_UNKNOWN
-import com.jeepark.onestep.data.model.describeWeather
-import com.jeepark.onestep.data.model.kmaBaseTime
-import com.jeepark.onestep.data.model.toKmaGrid
-import com.jeepark.onestep.util.LocationProvider
+import com.jeepark.onestep.data.remote.KmaService
+import com.jeepark.onestep.data.remote.WEATHER_UNKNOWN
+import com.jeepark.onestep.data.remote.describeWeather
+import com.jeepark.onestep.data.remote.kmaBaseTime
+import com.jeepark.onestep.data.remote.toKmaGrid
+import com.jeepark.onestep.platform.location.LocationProvider
 import kotlinx.coroutines.CancellationException
 import java.time.Clock
 import java.time.ZonedDateTime

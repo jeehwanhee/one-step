@@ -8,6 +8,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -23,22 +25,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.jeepark.onestep.util.PermissionRequestPolicy
+import com.jeepark.onestep.platform.permission.PermissionRequestPolicy
 import com.jeepark.onestep.ui.components.OneStepBottomBar
-import com.jeepark.onestep.ui.screens.AuthScreen
-import com.jeepark.onestep.ui.screens.FootprintsScreen
-import com.jeepark.onestep.ui.screens.InitQuestionScreen
-import com.jeepark.onestep.ui.screens.InitScreen
-import com.jeepark.onestep.ui.screens.MainScreen
-import com.jeepark.onestep.ui.screens.CollectionScreen
-import com.jeepark.onestep.ui.screens.SettingScreen
-import com.jeepark.onestep.ui.screens.SignupScreen
+import com.jeepark.onestep.ui.screens.auth.AuthScreen
+import com.jeepark.onestep.ui.screens.collection.CollectionScreen
+import com.jeepark.onestep.ui.screens.footprints.FootprintsScreen
+import com.jeepark.onestep.ui.screens.main.MainScreen
+import com.jeepark.onestep.ui.screens.settings.SettingScreen
+import com.jeepark.onestep.ui.screens.signup.SignupScreen
+import com.jeepark.onestep.ui.screens.start.InitScreen
+import com.jeepark.onestep.ui.screens.survey.InitQuestionScreen
 import com.jeepark.onestep.ui.theme.OneStepTheme
 
 class MainActivity : ComponentActivity() {

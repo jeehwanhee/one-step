@@ -1,7 +1,7 @@
 package com.jeepark.onestep.data.repository
 
-import com.jeepark.onestep.data.model.User
-import com.jeepark.onestep.util.FakeNotificationScheduler
+import com.jeepark.onestep.domain.model.User
+import com.jeepark.onestep.platform.notification.FakeNotificationScheduler
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

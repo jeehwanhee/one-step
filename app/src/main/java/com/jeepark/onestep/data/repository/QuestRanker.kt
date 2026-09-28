@@ -1,13 +1,13 @@
 package com.jeepark.onestep.data.repository
 
-import com.jeepark.onestep.data.model.GeminiContent
-import com.jeepark.onestep.data.model.GeminiPart
-import com.jeepark.onestep.data.model.GeminiRequest
-import com.jeepark.onestep.data.model.GeminiService
-import com.jeepark.onestep.data.model.Quest
-import com.jeepark.onestep.data.model.buildRankingPrompt
-import com.jeepark.onestep.data.model.parseRankedSelection
-import com.jeepark.onestep.data.model.randomSelection
+import com.jeepark.onestep.data.remote.GeminiContent
+import com.jeepark.onestep.data.remote.GeminiPart
+import com.jeepark.onestep.data.remote.GeminiRequest
+import com.jeepark.onestep.data.remote.GeminiService
+import com.jeepark.onestep.domain.model.Quest
+import com.jeepark.onestep.domain.service.buildRankingPrompt
+import com.jeepark.onestep.domain.service.parseRankedSelection
+import com.jeepark.onestep.domain.service.randomSelection
 import kotlinx.coroutines.CancellationException
 import kotlin.random.Random
 

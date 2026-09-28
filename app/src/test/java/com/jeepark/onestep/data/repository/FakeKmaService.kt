@@ -1,7 +1,7 @@
 package com.jeepark.onestep.data.repository
 
-import com.jeepark.onestep.data.model.KmaResponse
-import com.jeepark.onestep.data.model.KmaService
+import com.jeepark.onestep.data.remote.KmaResponse
+import com.jeepark.onestep.data.remote.KmaService
 
 /** 테스트용 가짜 KmaService. 받은 요청을 기록하고, 정해 둔 응답이나 예외를 돌려준다. */
 class FakeKmaService : KmaService {

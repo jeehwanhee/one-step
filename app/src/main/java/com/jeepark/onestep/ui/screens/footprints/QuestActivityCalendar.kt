@@ -32,8 +32,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.jeepark.onestep.data.model.PrevQuest
-import com.jeepark.onestep.data.model.doneDay
+import com.jeepark.onestep.domain.model.PrevQuest
+import com.jeepark.onestep.domain.rules.doneDay
 import com.jeepark.onestep.ui.components.FlatCard
 import com.jeepark.onestep.ui.theme.CardSurface
 import com.jeepark.onestep.ui.theme.HeadingText

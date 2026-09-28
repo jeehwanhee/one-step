@@ -4,13 +4,13 @@ import com.google.firebase.Firebase
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.firestore
-import com.jeepark.onestep.data.model.FirestorePaths
-import com.jeepark.onestep.data.model.Gender
-import com.jeepark.onestep.data.model.InitQuestions
-import com.jeepark.onestep.data.model.IsolatedRecordFields
-import com.jeepark.onestep.data.model.User
-import com.jeepark.onestep.data.model.UserFields
-import com.jeepark.onestep.data.model.isolationScore
+import com.jeepark.onestep.domain.model.FirestorePaths
+import com.jeepark.onestep.domain.model.Gender
+import com.jeepark.onestep.domain.model.InitQuestions
+import com.jeepark.onestep.domain.model.IsolatedRecordFields
+import com.jeepark.onestep.domain.model.User
+import com.jeepark.onestep.domain.model.UserFields
+import com.jeepark.onestep.domain.service.isolationScore
 import kotlinx.coroutines.tasks.await
 
 class UserRepositoryImpl(private val auth: AuthRepository) : UserRepository {

@@ -1,6 +1,6 @@
 package com.jeepark.onestep.data.repository
 
-import com.jeepark.onestep.util.NotificationScheduler
+import com.jeepark.onestep.platform.notification.NotificationScheduler
 
 /** 계정 삭제의 결과. */
 enum class DeleteResult {

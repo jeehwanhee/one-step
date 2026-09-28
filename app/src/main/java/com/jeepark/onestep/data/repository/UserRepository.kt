@@ -1,8 +1,8 @@
 package com.jeepark.onestep.data.repository
 
-import com.jeepark.onestep.data.model.Gender
-import com.jeepark.onestep.data.model.InitQuestions
-import com.jeepark.onestep.data.model.User
+import com.jeepark.onestep.domain.model.Gender
+import com.jeepark.onestep.domain.model.InitQuestions
+import com.jeepark.onestep.domain.model.User
 
 /**
  * 사용자 데이터 접근 인터페이스. ViewModel은 이 인터페이스에만 의존하고,

@@ -1,7 +1,7 @@
 package com.jeepark.onestep.data.repository
 
-import com.jeepark.onestep.data.model.GiveUpReason
-import com.jeepark.onestep.data.model.Quest
+import com.jeepark.onestep.domain.model.GiveUpReason
+import com.jeepark.onestep.domain.model.Quest
 
 /** 테스트용 가짜 QuestRepository. 네트워크/Firestore 없이 미리 정해둔 결과를 돌려준다. */
 class FakeQuestRepository : QuestRepository {

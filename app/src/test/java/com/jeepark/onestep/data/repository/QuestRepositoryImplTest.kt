@@ -1,12 +1,12 @@
 package com.jeepark.onestep.data.repository
 
-import com.jeepark.onestep.data.model.Coordinates
-import com.jeepark.onestep.data.model.DIFFICULTY_LEVELS
-import com.jeepark.onestep.data.model.Place
-import com.jeepark.onestep.data.model.Quest
-import com.jeepark.onestep.data.model.SAMPLE_SIZE
-import com.jeepark.onestep.data.model.SELECTION_SIZE
-import com.jeepark.onestep.util.FakeLocationProvider
+import com.jeepark.onestep.domain.model.Coordinates
+import com.jeepark.onestep.domain.model.Place
+import com.jeepark.onestep.domain.model.Quest
+import com.jeepark.onestep.domain.service.DIFFICULTY_LEVELS
+import com.jeepark.onestep.domain.service.SAMPLE_SIZE
+import com.jeepark.onestep.domain.service.SELECTION_SIZE
+import com.jeepark.onestep.platform.location.FakeLocationProvider
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

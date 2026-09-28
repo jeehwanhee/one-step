@@ -1,6 +1,6 @@
 package com.jeepark.onestep.data.repository
 
-import com.jeepark.onestep.data.model.Place
+import com.jeepark.onestep.domain.model.Place
 
 /** 테스트용 가짜 PlaceRepository. */
 class FakePlaceRepository(var places: List<Place> = emptyList()) : PlaceRepository {

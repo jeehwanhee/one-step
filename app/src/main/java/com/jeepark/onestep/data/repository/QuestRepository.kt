@@ -1,7 +1,7 @@
 package com.jeepark.onestep.data.repository
 
-import com.jeepark.onestep.data.model.GiveUpReason
-import com.jeepark.onestep.data.model.Quest
+import com.jeepark.onestep.domain.model.GiveUpReason
+import com.jeepark.onestep.domain.model.Quest
 
 /**
  * 퀘스트 조회/기록 인터페이스. MainViewModel은 이 인터페이스에만 의존하고,

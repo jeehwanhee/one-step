@@ -22,7 +22,7 @@ import com.jeepark.onestep.ui.theme.CardSurface
 import java.util.Locale
 
 // 발자취(FootprintsScreen)의 "통계" 탭에서 쓰는 통계 섹션.
-// 값 계산은 data/model/QuestStats.kt(순수 함수)에 있고, 이 파일은 표시만 맡는다.
+// 값 계산은 domain/rules/QuestStats.kt(순수 함수)에 있고, 이 파일은 표시만 맡는다.
 
 @Composable
 fun StatsColumn(
