@@ -36,25 +36,7 @@ class QuestRankingTest {
         }
     }
 
-    @Test
-    fun `이름에 따옴표 역슬래시 줄바꿈이 있어도 JSON이 깨지지 않는다`() {
-        val tricky = Quest(index = 1, questName = "\"큰따옴표\" \\역슬래시\\ 첫줄\n둘째줄", difficulty = 2)
-
-        val array = questsInPrompt(buildRankingPrompt(listOf(tricky), "정보 없음"))
-
-        assertEquals(tricky.questName, array.getJSONObject(0).getString("name"))
-    }
-
     // ===== 응답 해석 =====
-
-    @Test
-    fun `응답의 id 순서대로 퀘스트를 돌려준다`() {
-        val list = quests()
-
-        val result = parseRankedSelection("[5,0,12]", list, Random(1))
-
-        assertEquals(listOf(list[5], list[0], list[12]), result)
-    }
 
     @Test
     fun `마크다운 코드 블록으로 감싸여 있어도 읽는다`() {

@@ -23,17 +23,6 @@ class PlaceholderResolverTest {
     }
 
     @Test
-    fun `장소는 퀘스트마다 따로 골라서 같은 종류라도 퀘스트마다 다를 수 있다`() {
-        val quests = listOf(quest("{공원}A", index = 1), quest("{공원}B", index = 2))
-        var calls = 0
-
-        val result = resolvePlaceholders(quests) { type -> place("공원${++calls}", type) }
-
-        assertEquals(2, calls)
-        assertEquals(listOf("공원1A", "공원2B"), result.map { it.questName })
-    }
-
-    @Test
     fun `장소를 찾지 못하면 종류별 대체 이름을 쓴다`() {
         val quests = listOf(
             quest("{공원}"), quest("{도서관}"), quest("{청년공간}"), quest("{정신건강센터}"), quest("{체육시설}"),

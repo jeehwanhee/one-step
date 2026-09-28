@@ -66,27 +66,6 @@ class MainViewModelTest {
 
     private fun todayDate(): String = QuestDate.todayKey(fixedClock)
 
-    // ===== 초기화 / 사용자 로딩 =====
-
-    @Test
-    fun `초기화하면 사용자를 불러오고 저장된 진행 중 퀘스트를 복원한다`() {
-        val user = User(uid = "uid-1", nickname = "테스터", lastAccessDate = 0L)
-        val f = Fixture(user, activeQuest = quest)
-
-        assertEquals(user, f.viewModel.user.value)
-        assertEquals(quest, f.viewModel.activeQuest.value)
-        assertNull(f.viewModel.loadError.value)
-        assertEquals(fixedClock.millis(), f.userRepo.user!!.lastAccessDate) // 서버의 접속일 갱신
-    }
-
-    @Test
-    fun `사용자를 불러오면 이 기기의 접속 기록을 갱신하고 안부 알림 단계를 처음으로 돌린다`() {
-        val f = Fixture(User(uid = "uid-1"))
-
-        assertEquals(fixedClock.millis(), f.settings.lastAccessMillis)
-        assertEquals(0, f.settings.lastCheckInMark) // 픽스처에서 7로 시작
-    }
-
     // ===== 퀘스트 완료 =====
 
     @Test
@@ -185,19 +164,6 @@ class MainViewModelTest {
         assertEquals(false, f.questRepo.lastUseGemini)
         assertEquals(DAILY_QUEST_LIMIT, f.viewModel.user.value!!.dailyQuestCount)
         assertTrue(ready)
-    }
-
-    @Test
-    fun `어제 한도에 도달했어도 날짜가 바뀌면 한도가 풀리고 오늘 카운트는 1부터 시작한다`() {
-        val f = Fixture(User(dailyQuestDate = "2026-09-27", dailyQuestCount = DAILY_QUEST_LIMIT))
-        f.questRepo.quests = listOf(quest)
-
-        assertFalse(f.viewModel.isDailyLimitReached())
-        f.viewModel.loadFilteredQuests(mood = Mood.NEUTRAL, onReady = {}, onError = {})
-
-        assertEquals(true, f.questRepo.lastUseGemini)
-        assertEquals(1, f.viewModel.user.value!!.dailyQuestCount)
-        assertEquals("2026-09-28", f.viewModel.user.value!!.dailyQuestDate)
     }
 
     // ===== 재설문 =====

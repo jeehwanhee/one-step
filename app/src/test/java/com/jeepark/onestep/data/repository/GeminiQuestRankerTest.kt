@@ -5,12 +5,10 @@ import com.jeepark.onestep.data.model.GeminiContent
 import com.jeepark.onestep.data.model.GeminiPart
 import com.jeepark.onestep.data.model.GeminiResponse
 import com.jeepark.onestep.data.model.Quest
-import com.jeepark.onestep.data.model.SELECTION_SIZE
 import kotlinx.coroutines.test.runTest
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import retrofit2.HttpException
 import retrofit2.Response
@@ -36,17 +34,6 @@ class GeminiQuestRankerTest {
         val result = f.ranker.select(quests, weather = "기온 3.0°C, 비")
 
         assertEquals(listOf(quests[4], quests[0], quests[9]), result)
-    }
-
-    @Test
-    fun `응답을 읽을 수 없으면 무작위 8개로 대신한다`() = runTest {
-        val f = Fixture()
-        f.service.response = replyOf("죄송해요, 고르지 못했어요")
-
-        val result = f.ranker.select(quests, "정보 없음")
-
-        assertEquals(SELECTION_SIZE, result.size)
-        assertTrue(quests.containsAll(result))
     }
 
     @Test

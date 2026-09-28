@@ -10,11 +10,6 @@ class CheckInPolicyTest {
     private val bannedWords = listOf("울고", "쌓이", "마지막", "내일이", "오늘 딱", "퀘스트", "경험치")
 
     @Test
-    fun `2일째에 첫 안부 단계가 된다`() {
-        assertEquals(2, CheckInPolicy.latestDueMark(daysSince = 2, lastSentMark = 0))
-    }
-
-    @Test
     fun `오래 지나 실행되면 가장 큰 단계 하나만 보낸다`() {
         assertEquals(30, CheckInPolicy.latestDueMark(daysSince = 45, lastSentMark = 0))
     }

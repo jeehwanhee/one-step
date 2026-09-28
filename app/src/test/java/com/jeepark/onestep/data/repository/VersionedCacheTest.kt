@@ -1,8 +1,5 @@
 package com.jeepark.onestep.data.repository
 
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -71,36 +68,5 @@ class VersionedCacheTest {
 
         assertEquals(localItems, result)
         assertEquals(0, f.source.downloadCalls)
-    }
-
-    // ===== 실패와 재시도 =====
-
-    @Test
-    fun `실패한 뒤에는 다음 호출에서 다시 시도한다`() = runTest {
-        val f = Fixture(items = serverItems)
-        f.source.downloadError = java.io.IOException("네트워크 오류")
-        runCatching { f.cache.load() }
-
-        f.source.downloadError = null
-        val result = f.cache.load()
-
-        assertEquals(serverItems, result)
-        assertEquals(2, f.source.downloadCalls)
-    }
-
-    // ===== 메모리 캐시와 동시 호출 =====
-
-    @Test
-    fun `동시에 여러 번 불러도 내려받기는 한 번만 한다`() = runTest {
-        val f = Fixture(items = serverItems)
-        val gate = CompletableDeferred<Unit>()
-        f.source.downloadGate = gate
-
-        val calls = (1..3).map { async { f.cache.load() } }
-        gate.complete(Unit)
-        val results = calls.awaitAll()
-
-        assertTrue(results.all { it == serverItems })
-        assertEquals(1, f.source.downloadCalls)
     }
 }

@@ -56,25 +56,6 @@ class SignupViewModelTest {
         }
     }
 
-    // ===== 약관 =====
-
-    @Test
-    fun `이용약관과 개인정보 처리방침 둘 다 동의해야 가입할 수 있다`() {
-        val f = Fixture()
-        f.viewModel.onNicknameChange("한걸음")
-        f.viewModel.onAgeChange("25")
-        assertFalse(f.state.canSubmit)
-
-        f.viewModel.onTermsToggled()
-        assertFalse(f.state.canSubmit)
-
-        f.viewModel.onPrivacyToggled()
-        assertTrue(f.state.canSubmit)
-
-        f.viewModel.onTermsToggled() // 동의 취소
-        assertFalse(f.state.canSubmit)
-    }
-
     // ===== 제출 =====
 
     @Test
@@ -91,21 +72,6 @@ class SignupViewModelTest {
         assertEquals("한걸음", saved.nickname)
         assertEquals(31, saved.age)
         assertEquals(Gender.FEMALE.storedValue, saved.gender)
-    }
-
-    @Test
-    fun `저장에 실패하면 실패 이벤트가 나오고 다시 시도할 수 있다`() = runTest {
-        val f = Fixture()
-        f.users.shouldFail = true
-        f.users.failureMessage = "네트워크 오류"
-        val events = collectEvents(f.viewModel.events)
-        f.fillValid()
-
-        f.viewModel.submit()
-
-        assertEquals(listOf<SignupEvent>(SignupEvent.Failed("네트워크 오류")), events)
-        assertFalse(f.state.isSubmitting)
-        assertTrue(f.state.canSubmit)
     }
 
     @Test

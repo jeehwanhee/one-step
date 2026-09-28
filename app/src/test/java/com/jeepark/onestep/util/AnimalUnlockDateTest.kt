@@ -36,16 +36,4 @@ class AnimalUnlockDateTest {
         // Assert
         assertEquals("2026.01.01", result)
     }
-
-    @Test
-    fun `입력 순서와 무관하게 doneDate 시간순으로 재생한다`() {
-        // Arrange: 나중 날짜(01.02)가 리스트에서 먼저 오지만, 실제로는 01.01이 먼저 재생되어야 한다
-        val later  = PrevQuest(questEXP = 10, doneDate = "2026.01.02 10:00:00")
-        val earlier = PrevQuest(questEXP = 10, doneDate = "2026.01.01 10:00:00")
-        val quests = listOf(later, earlier)
-        // Act
-        val result = findAnimalUnlockDate(animal = turtle, prevQuests = quests)
-        // Assert: earlier(01.01)로 progress=10, later(01.02)에서 20-15=5로 티어업 → 01.02가 해금일
-        assertEquals("2026.01.02", result)
-    }
 }

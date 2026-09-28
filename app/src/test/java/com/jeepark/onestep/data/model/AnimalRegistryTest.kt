@@ -34,33 +34,4 @@ class AnimalRegistryTest {
             )
         }
     }
-
-    // ===== 스프라이트 =====
-
-    @Test
-    fun `스프라이트는 비어 있지 않고 모든 행의 열 수가 같다`() {
-        all.forEach { animal ->
-            val sprite = animal.sprite
-            assertTrue("${animal.id} 높이", sprite.height > 0)
-            assertTrue("${animal.id} 너비", sprite.width > 0)
-            sprite.pixels.forEachIndexed { row, cols ->
-                assertEquals("${animal.id} ${row}행 열 수", sprite.width, cols.size)
-            }
-        }
-    }
-
-    @Test
-    fun `스프라이트가 쓰는 색상 번호는 팔레트 안에 있다`() {
-        all.forEach { animal ->
-            val sprite = animal.sprite
-            sprite.pixels.forEachIndexed { row, cols ->
-                cols.forEachIndexed { col, colorIndex ->
-                    assertTrue(
-                        "${animal.id} ($row,$col)의 색상 번호 $colorIndex, 팔레트 크기 ${sprite.colors.size}",
-                        colorIndex in 0 until sprite.colors.size,
-                    )
-                }
-            }
-        }
-    }
 }

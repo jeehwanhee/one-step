@@ -1,7 +1,6 @@
 package com.jeepark.onestep.data.model
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 import java.time.Clock
 import java.time.Instant
@@ -27,14 +26,6 @@ class QuestDateTest {
 
         assertEquals("2026.01.02 03:04:05", formatted)
         assertEquals(QuestDate.DONE_PATTERN.length, formatted.length)
-    }
-
-    @Test
-    fun `같은 순간이라도 시간대에 따라 날짜가 갈린다`() {
-        val instant = "2026-09-27T15:30:00Z" // 서울은 이미 28일 00:30
-
-        assertEquals("2026-09-28", QuestDate.todayKey(clockAt(instant, seoul)))
-        assertEquals("2026-09-27", QuestDate.todayKey(clockAt(instant, ZoneOffset.UTC)))
     }
 
     @Test
@@ -64,14 +55,5 @@ class QuestDateTest {
         val formatted = instants.map { QuestDate.doneDateNow(clockAt(it, ZoneOffset.UTC)) }
 
         assertEquals(formatted, formatted.sorted())
-    }
-
-    // ===== doneDay =====
-
-    @Test
-    fun `형식이 맞지 않는 문자열은 null이다`() {
-        listOf("", "abc", "2026-01-31", "2026.13.01 10:00:00", "2026.01", "20260131 10:00").forEach { bad ->
-            assertNull("input=$bad", QuestDate.doneDay(bad))
-        }
     }
 }

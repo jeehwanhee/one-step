@@ -2,8 +2,6 @@ package com.jeepark.onestep.util
 
 /** 테스트용 가짜 NotificationScheduler. 호출 횟수와 현재 예약 여부를 기록한다. */
 class FakeNotificationScheduler : NotificationScheduler {
-    var channelCreateCount = 0
-        private set
     var scheduleCount = 0
         private set
     var cancelCount = 0
@@ -13,9 +11,7 @@ class FakeNotificationScheduler : NotificationScheduler {
     var isScheduled = false
         private set
 
-    override fun createChannel() {
-        channelCreateCount++
-    }
+    override fun createChannel() = Unit
 
     override fun schedule() {
         scheduleCount++

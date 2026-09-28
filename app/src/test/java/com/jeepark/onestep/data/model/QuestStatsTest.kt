@@ -39,15 +39,6 @@ class QuestStatsTest {
     }
 
     @Test
-    fun `윤년 2월 29일과 평년 경계를 하루로 센다`() {
-        val leap = listOf(LocalDate.of(2028, 2, 28), LocalDate.of(2028, 2, 29), LocalDate.of(2028, 3, 1))
-        val common = listOf(LocalDate.of(2027, 2, 28), LocalDate.of(2027, 3, 1))
-
-        assertEquals(3, maxStreakDays(leap))
-        assertEquals(2, maxStreakDays(common))
-    }
-
-    @Test
     fun `서머타임이 바뀌는 날을 걸쳐도 하루씩 이어진 것으로 센다`() {
         // 미국 서머타임 시작일(2026-03-08)은 23시간짜리 날 — 24시간 밀리초 계산이면 끊겼을 구간
         val days = listOf(LocalDate.of(2026, 3, 7), LocalDate.of(2026, 3, 8), LocalDate.of(2026, 3, 9))

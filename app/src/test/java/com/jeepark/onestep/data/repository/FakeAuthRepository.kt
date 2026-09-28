@@ -18,7 +18,6 @@ class FakeAuthRepository(
         private set
     var deleteAuthCount = 0
         private set
-    val signInIntents = mutableListOf<Intent?>()
 
     override val currentUid: String? get() = uid
 
@@ -26,10 +25,7 @@ class FakeAuthRepository(
 
     override fun googleSignInIntent(): Intent = Intent()
 
-    override suspend fun signInWithGoogle(data: Intent?): SignInResult {
-        signInIntents.add(data)
-        return signInResult
-    }
+    override suspend fun signInWithGoogle(data: Intent?): SignInResult = signInResult
 
     override fun signOut() {
         signOutCount++

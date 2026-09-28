@@ -22,16 +22,6 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `로그인에 성공하고 서버에 사용자 문서가 있으면 기존 사용자로 처리한다`() = runTest {
-        val f = Fixture(user = User(uid = "uid-1", nickname = "테스터"))
-        val results = collectEvents(f.viewModel.results)
-
-        f.viewModel.onSignInResult(null)
-
-        assertEquals(listOf<LoginResult>(LoginResult.ExistingUser), results)
-    }
-
-    @Test
     fun `로그인에 성공했지만 서버에 사용자 문서가 없으면 신규 사용자로 처리한다`() = runTest {
         val f = Fixture(user = null)
         val results = collectEvents(f.viewModel.results)

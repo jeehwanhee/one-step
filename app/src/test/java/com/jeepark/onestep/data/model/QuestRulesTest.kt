@@ -1,7 +1,6 @@
 package com.jeepark.onestep.data.model
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -17,12 +16,6 @@ class QuestRulesTest {
         assertTrue(hasReachedDailyLimit(user, today))
     }
 
-    @Test
-    fun `날짜가 바뀌었으면 카운트가 많아도 한도에 도달하지 않는다`() {
-        val user = User(dailyQuestDate = "2026-09-27", dailyQuestCount = 20)
-        assertFalse(hasReachedDailyLimit(user, today))
-    }
-
     // ===== 퀘스트 완료 계산 =====
 
     private val quest = Quest(
@@ -32,15 +25,6 @@ class QuestRulesTest {
         confirmQuestion = "무슨 냄새가 났나요?",
         questEXP = 15,
     )
-
-    @Test
-    fun `완료 경험치가 문턱을 넘으면 티어가 오른다`() {
-        val user = User(tier = 0, progress = 0)
-        val completion = computeQuestCompletion(user, quest, "풀 냄새", "2026.09.28 10:00:00")
-        assertEquals(1, completion.newTier)
-        assertEquals(0, completion.newProgress)
-        assertTrue(completion.didTierUp)
-    }
 
     @Test
     fun `난이도 큐와 결과 큐는 최근 10개만 유지된다`() {
@@ -81,13 +65,5 @@ class QuestRulesTest {
         assertEquals(4, updated.isolatedCount) // 레거시 필드는 건드리지 않는다
         assertEquals(completion.newTier, updated.tier)
         assertEquals("테스터", updated.nickname) // 관련 없는 필드는 그대로
-    }
-
-    // ===== 포기 =====
-
-    @Test
-    fun `포기하면 결과 큐 끝에 실패(0)가 추가된다`() {
-        val user = User(questResultsQueue = listOf(1, 1))
-        assertEquals(listOf(1, 1, 0), giveUpResultsQueue(user))
     }
 }

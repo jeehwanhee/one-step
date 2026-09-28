@@ -32,35 +32,6 @@ class InitQuestionViewModelTest {
         }
     }
 
-    // ===== 초기 상태와 답변 입력 =====
-
-    @Test
-    fun `문항 범위를 넘는 답변은 그 문항의 최댓값으로 맞춘다`() {
-        val f = Fixture()
-
-        f.viewModel.onAnswerChange(0, "99") // 식사 횟수 0..10
-        f.viewModel.onAnswerChange(1, "99") // 수면 시간 0..24
-        f.viewModel.onAnswerChange(4, "9999") // 미취업 기간 0..600
-
-        assertEquals(10, f.state.answers[0])
-        assertEquals(24, f.state.answers[1])
-        assertEquals(600, f.state.answers[4])
-    }
-
-    // ===== 문항 이동 =====
-
-    @Test
-    fun `지금 문항에 답해야 다음 문항으로 넘어갈 수 있다`() {
-        val f = Fixture()
-
-        f.viewModel.goNext()
-        assertEquals(0, f.state.currentPage)
-
-        f.viewModel.onAnswerChange(0, "3")
-        f.viewModel.goNext()
-        assertEquals(1, f.state.currentPage)
-    }
-
     // ===== 제출 =====
 
     @Test

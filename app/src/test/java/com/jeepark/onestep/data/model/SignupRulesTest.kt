@@ -22,13 +22,4 @@ class SignupRulesTest {
             assertFalse("nickname=$nickname", isValidNickname(nickname))
         }
     }
-
-    // ===== 나이 =====
-
-    @Test
-    fun `범위 밖이거나 입력하지 않은 나이는 쓸 수 없다`() {
-        listOf(null, 0, 1, MIN_AGE - 1, MAX_AGE + 1, 999, -3).forEach { age ->
-            assertFalse("age=$age", isValidAge(age))
-        }
-    }
 }

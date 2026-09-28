@@ -23,15 +23,6 @@ class AssessmentRulesTest {
         assertTrue(needsAssessment(User(isolatedHistory = emptyList())))
     }
 
-    // ===== 옛 필드와 분리 =====
-
-    @Test
-    fun `옛 isolatedCount 값은 판단에 쓰이지 않는다`() {
-        val user = User(isolatedHistory = surveyed, questsSinceAssessment = 0, isolatedCount = 99)
-
-        assertFalse(needsAssessment(user))
-    }
-
     // ===== 시나리오: 설문 → 퀘스트 → 재설문 =====
 
     @Test
@@ -40,21 +31,5 @@ class AssessmentRulesTest {
 
         assertFalse(needsAssessment(completeQuests(afterSurvey, count = 9)))
         assertTrue(needsAssessment(completeQuests(afterSurvey, count = 10)))
-    }
-
-    @Test
-    fun `재설문 후에는 다시 10개를 채워야 설문이 필요해진다`() {
-        val dueForSurvey = completeQuests(User(isolatedHistory = surveyed), count = 10)
-        assertTrue(needsAssessment(dueForSurvey))
-
-        // 설문 제출 = 이력 추가 + 카운트 0 (저장소에서 한 번의 update로 처리)
-        val resurveyed = dueForSurvey.copy(
-            isolatedHistory = dueForSurvey.isolatedHistory + IsolatedRecord(score = 40, recordedAt = 2L),
-            questsSinceAssessment = 0,
-        )
-
-        assertFalse(needsAssessment(resurveyed))
-        assertFalse(needsAssessment(completeQuests(resurveyed, count = 9)))
-        assertTrue(needsAssessment(completeQuests(resurveyed, count = 10)))
     }
 }

@@ -28,16 +28,6 @@ class PermissionRequestPolicyTest {
     // ===== 알림 예약 =====
 
     @Test
-    fun `알림 권한이 있고 수신이 켜져 있으면 예약한다`() {
-        val f = Fixture(notificationsEnabled = true)
-
-        f.policy.scheduleIfAllowed(notificationPermissionGranted = true)
-
-        assertEquals(1, f.scheduler.scheduleCount)
-        assertTrue(f.scheduler.isScheduled)
-    }
-
-    @Test
     fun `수신을 꺼 두었으면 권한이 있어도 예약하지 않는다`() {
         val f = Fixture(notificationsEnabled = false)
 

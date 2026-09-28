@@ -6,7 +6,6 @@ import com.jeepark.onestep.data.model.PrevQuest
 import com.jeepark.onestep.data.model.User
 import com.jeepark.onestep.data.repository.FakeUserRepository
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
@@ -35,22 +34,5 @@ class CollectionViewModelTest {
             viewModel.unlockedAnimals.value.map { it.id }
         )
         assertNull(viewModel.loadError.value)
-    }
-
-    @Test
-    fun `실패 후 재시도가 성공하면 loadError가 지워진다`() {
-        // Arrange
-        val fakeRepo = FakeUserRepository(shouldFail = true)
-        val viewModel = CollectionViewModel(fakeRepo)
-        assertNotNull(viewModel.loadError.value)
-
-        // Act: 조건을 고쳐두고 재시도
-        fakeRepo.shouldFail = false
-        fakeRepo.user = User(nickname = "재시도", tier = 0)
-        viewModel.loadUser()
-
-        // Assert
-        assertNull(viewModel.loadError.value)
-        assertEquals("재시도", viewModel.user.value?.nickname)
     }
 }

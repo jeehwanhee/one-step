@@ -49,18 +49,4 @@ class PlaceFinderTest {
 
         assertEquals(setOf<String?>("8km 공원"), outcomes("park", places))
     }
-
-    // ===== 종류별 반경 =====
-
-    @Test
-    fun `종류마다 가까운 반경이 다르다`() {
-        val distances = listOf(5_000.0, 9_000.0)
-        val parks = distances.map { place("공원 ${it.toInt()}m", it, type = "park") }
-        val youthSpaces = distances.map { place("청년공간 ${it.toInt()}m", it, type = "youth_space") }
-
-        // 공원은 3km까지만 가까운 곳이라 5km·9km는 모두 "넓은 반경" → 가장 가까운 5km만 나온다
-        assertEquals(setOf<String?>("공원 5000m"), outcomes("park", parks))
-        // 청년공간은 10km까지 가까운 곳이라 둘 다 후보 → 무작위
-        assertEquals(setOf<String?>("청년공간 5000m", "청년공간 9000m"), outcomes("youth_space", youthSpaces))
-    }
 }

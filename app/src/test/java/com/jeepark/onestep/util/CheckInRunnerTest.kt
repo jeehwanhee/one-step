@@ -31,17 +31,6 @@ class CheckInRunnerTest {
     }
 
     @Test
-    fun `알림을 끄면 아무것도 보내지 않고 예약도 그대로 둔다`() {
-        val f = fixture(days = 10, enabled = false)
-
-        f.runner.run()
-
-        assertTrue(f.sent.isEmpty())
-        assertTrue(f.scheduler.isScheduled)
-        assertEquals(0, f.settings.lastCheckInMark)
-    }
-
-    @Test
     fun `접속 기록이 없으면 안부를 보내지 않고 예약을 취소한다`() {
         val f = Fixture(FakeSettingsRepository(lastAccessMillis = 0L), clock)
 

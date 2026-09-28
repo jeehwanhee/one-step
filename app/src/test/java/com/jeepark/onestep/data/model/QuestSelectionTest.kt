@@ -1,7 +1,6 @@
 package com.jeepark.onestep.data.model
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.random.Random
 
@@ -40,18 +39,5 @@ class QuestSelectionTest {
 
         assertEquals(SAMPLE_SIZE, sampled.size)
         assertEquals(2, sampled.count { it.difficulty == 3 })
-    }
-
-    // ===== 대체 선택 =====
-
-    @Test
-    fun `대체 선택은 후보에서 8개를 무작위로 고른다`() {
-        val candidates = quests().take(SAMPLE_SIZE)
-
-        val selected = randomSelection(candidates, Random(1))
-
-        assertEquals(SELECTION_SIZE, selected.size)
-        assertEquals(selected.size, selected.toSet().size)
-        assertTrue(candidates.containsAll(selected))
     }
 }

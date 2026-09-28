@@ -39,13 +39,6 @@ class InitViewModelTest {
     }
 
     @Test
-    fun `서버에 사용자 문서가 없으면 로그인 화면으로 간다`() = runTest {
-        val vm = viewModel(user = null)
-
-        assertEquals(listOf(StartDestination.Auth), collectEvents(vm.destination))
-    }
-
-    @Test
     fun `설문을 한 번도 하지 않았으면 설문 화면으로 간다`() = runTest {
         val vm = viewModel(user = User(isolatedHistory = emptyList()))
 

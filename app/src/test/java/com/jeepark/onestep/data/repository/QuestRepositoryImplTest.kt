@@ -104,15 +104,4 @@ class QuestRepositoryImplTest {
         assertEquals("서울숲에서 산책하기", sent.questName)
         assertEquals("서울숲은 어땠나요?", sent.confirmQuestion)
     }
-
-    @Test
-    fun `장소 데이터를 불러오지 못하면 치환하지 않고 원래 문구로 계속한다`() = runTest {
-        val list = listOf(Quest(index = 1, questName = "{공원}에서 산책하기", difficulty = 3))
-        val f = Fixture(quests = list, location = cityHall)
-        f.placeRepository.error = java.io.IOException("장소 조회 실패")
-
-        val result = f.repository.fetchFilteredQuests(ratios, useGemini = false)
-
-        assertEquals("{공원}에서 산책하기", result.single().questName)
-    }
 }

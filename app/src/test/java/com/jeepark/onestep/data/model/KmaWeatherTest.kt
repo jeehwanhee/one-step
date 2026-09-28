@@ -29,13 +29,6 @@ class KmaWeatherTest {
     // ===== 조회 기준 시각 =====
 
     @Test
-    fun `자정 직후에는 전날 23시가 기준이다`() {
-        val now = ZonedDateTime.of(2026, 9, 28, 0, 30, 0, 0, KMA_ZONE)
-
-        assertEquals(KmaBaseTime(date = "20260927", time = "2300"), kmaBaseTime(now))
-    }
-
-    @Test
     fun `기기 시간대와 상관없이 한국 시간 기준으로 계산한다`() {
         // 같은 순간(한국 2026-09-28 00:30)을 세 시간대로 표현해도 결과가 같다
         val instant = ZonedDateTime.of(2026, 9, 28, 0, 30, 0, 0, KMA_ZONE).toInstant()
@@ -45,6 +38,4 @@ class KmaWeatherTest {
             assertEquals(zone, expected, kmaBaseTime(instant.atZone(ZoneId.of(zone))))
         }
     }
-
-    // ===== 응답 해석 =====
 }

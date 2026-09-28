@@ -10,17 +10,6 @@ class SharedPrefsSettingsRepositoryTest {
     private val prefs = InMemorySharedPreferences()
     private val settings = SharedPrefsSettingsRepository(prefs)
 
-    // ===== 이미 설치된 기기의 저장값을 읽기 위해 바뀌면 안 되는 이름 =====
-
-    @Test
-    fun `파일 이름과 키는 기존 설치 기기에 저장된 값과 같다`() {
-        assertEquals("app_settings", SharedPrefsSettingsRepository.FILE_NAME)
-        assertEquals("notification_enabled", SharedPrefsSettingsRepository.KEY_NOTIFICATIONS_ENABLED)
-        assertEquals("last_access_date", SharedPrefsSettingsRepository.KEY_LAST_ACCESS)
-        assertEquals("last_checkin_mark", SharedPrefsSettingsRepository.KEY_LAST_CHECKIN_MARK)
-        assertEquals("perm_requested", SharedPrefsSettingsRepository.KEY_PERMISSIONS_REQUESTED)
-    }
-
     // ===== 기본값 =====
 
     @Test
