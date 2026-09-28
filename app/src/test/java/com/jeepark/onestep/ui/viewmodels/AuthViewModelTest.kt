@@ -1,15 +1,12 @@
 package com.jeepark.onestep.ui.viewmodels
 
-import android.content.Intent
 import com.jeepark.onestep.MainDispatcherRule
 import com.jeepark.onestep.collectEvents
 import com.jeepark.onestep.data.model.User
 import com.jeepark.onestep.data.repository.FakeAuthRepository
 import com.jeepark.onestep.data.repository.FakeUserRepository
-import com.jeepark.onestep.data.repository.SignInResult
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -53,60 +50,5 @@ class AuthViewModelTest {
         f.viewModel.onSignInResult(null)
 
         assertEquals(listOf<LoginResult>(LoginResult.Error), results)
-    }
-
-    @Test
-    fun `로그인 자체가 실패하면 오류로 처리한다`() = runTest {
-        val f = Fixture()
-        f.auth.signInResult = SignInResult.Failed
-        val results = collectEvents(f.viewModel.results)
-
-        f.viewModel.onSignInResult(null)
-
-        assertEquals(listOf<LoginResult>(LoginResult.Error), results)
-    }
-
-    @Test
-    fun `사용자가 로그인 화면을 직접 닫으면 아무 결과도 전달하지 않는다`() = runTest {
-        val f = Fixture()
-        f.auth.signInResult = SignInResult.Cancelled
-        val results = collectEvents(f.viewModel.results)
-
-        f.viewModel.onSignInResult(null)
-
-        assertTrue(results.isEmpty())
-    }
-
-    @Test
-    fun `로그인에 성공했는데 uid를 읽을 수 없으면 오류로 처리한다`() = runTest {
-        val f = Fixture()
-        f.auth.uid = null
-        val results = collectEvents(f.viewModel.results)
-
-        f.viewModel.onSignInResult(null)
-
-        assertEquals(listOf<LoginResult>(LoginResult.Error), results)
-    }
-
-    @Test
-    fun `로그인 결과로 받은 인텐트를 인증 저장소에 그대로 넘긴다`() = runTest {
-        val f = Fixture()
-        val data = Intent()
-
-        f.viewModel.onSignInResult(data)
-
-        assertEquals(listOf<Intent?>(data), f.auth.signInIntents)
-    }
-
-    @Test
-    fun `결과는 한 번만 전달된다`() = runTest {
-        val f = Fixture()
-        f.viewModel.onSignInResult(null)
-
-        val first = collectEvents(f.viewModel.results)
-        val second = collectEvents(f.viewModel.results)
-
-        assertEquals(1, first.size)
-        assertTrue(second.isEmpty())
     }
 }

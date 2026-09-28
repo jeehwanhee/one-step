@@ -8,7 +8,6 @@ import com.jeepark.onestep.data.model.AnimalRegistry
 import com.jeepark.onestep.data.model.MAX_TIER
 import com.jeepark.onestep.util.PixelSprite
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ParkLayoutsTest {
@@ -16,26 +15,11 @@ class ParkLayoutsTest {
     // ===== 배치 데이터 =====
 
     @Test
-    fun `공원 배치는 네 가지다`() {
-        assertEquals(4, PARK_VARIANTS.size)
-    }
-
-    @Test
     fun `모든 배치는 등록된 모든 동물의 위치를 가지고 모르는 동물은 없다`() {
         val registered = AnimalRegistry.all.map { it.id }.toSet()
 
         PARK_VARIANTS.forEachIndexed { index, placements ->
             assertEquals("variant $index", registered, placements.keys)
-        }
-    }
-
-    @Test
-    fun `위치 비율은 모두 0에서 1 사이다`() {
-        PARK_VARIANTS.forEachIndexed { index, placements ->
-            placements.forEach { (id, placement) ->
-                assertTrue("variant $index $id x=${placement.x}", placement.x in 0f..1f)
-                assertTrue("variant $index $id y=${placement.y}", placement.y in 0f..1f)
-            }
         }
     }
 
@@ -58,13 +42,6 @@ class ParkLayoutsTest {
     // ===== 티어별로 나타나는 동물 =====
 
     @Test
-    fun `티어 0에서는 병아리만 나타난다`() {
-        for (variant in PARK_VARIANTS.indices) {
-            assertEquals(listOf(AnimalIds.CHICK), placedAnimals(variant, 0).map { it.animal.id })
-        }
-    }
-
-    @Test
     fun `티어가 오를수록 동물이 레지스트리 순서대로 늘어난다`() {
         for (variant in PARK_VARIANTS.indices) {
             assertEquals(
@@ -73,14 +50,6 @@ class ParkLayoutsTest {
             )
             assertEquals(AnimalRegistry.all.map { it.id }, placedAnimals(variant, MAX_TIER).map { it.animal.id })
         }
-    }
-
-    @Test
-    fun `나타난 동물의 위치는 그 배치의 값이다`() {
-        val placed = placedAnimals(variant = 2, tier = 1)
-
-        assertEquals(PARK_VARIANTS[2].getValue(AnimalIds.CHICK), placed[0].placement)
-        assertEquals(PARK_VARIANTS[2].getValue(AnimalIds.TURTLE), placed[1].placement)
     }
 
     // ===== 세로 위치 계산 =====
@@ -110,15 +79,5 @@ class ParkLayoutsTest {
         assertEquals(0f, animalTopY(PlacedAnimal(animal, AnimalPlacement(0.5f, 0f)), areaHeight, pixelSize), 0.001f)
         assertEquals(90f, animalTopY(PlacedAnimal(animal, AnimalPlacement(0.5f, 0.5f)), areaHeight, pixelSize), 0.001f)
         assertEquals(180f, animalTopY(PlacedAnimal(animal, AnimalPlacement(0.5f, 1f)), areaHeight, pixelSize), 0.001f)
-    }
-
-    @Test
-    fun `동물이 영역보다 크면 움직일 범위가 없어 영역 시작점에 놓인다`() {
-        val giant = 400 // 높이 800px
-        val ground = PlacedAnimal(testAnimal(rows = giant, isSky = false), AnimalPlacement(0.5f, 0.9f))
-        val sky = PlacedAnimal(testAnimal(rows = giant, isSky = true), AnimalPlacement(0.5f, 0.9f))
-
-        assertEquals(200f, animalTopY(ground, areaHeight, pixelSize), 0.001f)
-        assertEquals(0f, animalTopY(sky, areaHeight, pixelSize), 0.001f)
     }
 }

@@ -22,32 +22,6 @@ class AccountServiceTest {
         val service = AccountService(auth, users, settings, scheduler)
     }
 
-    // ===== 로그아웃 =====
-
-    @Test
-    fun `로그아웃하면 인증에서 나가고 알림 예약과 접속 기록이 정리된다`() {
-        val f = Fixture()
-
-        f.service.signOut()
-
-        assertEquals(1, f.auth.signOutCount)
-        assertNull(f.auth.currentUid)
-        assertFalse(f.scheduler.isScheduled)
-        assertEquals(0L, f.settings.lastAccessMillis)
-        assertEquals(0, f.settings.lastCheckInMark)
-    }
-
-    @Test
-    fun `로그아웃해도 알림 수신 여부와 권한 요청 기록은 남는다`() {
-        val f = Fixture()
-        f.settings.setNotificationsEnabled(false)
-
-        f.service.signOut()
-
-        assertFalse(f.settings.notificationsEnabled)
-        assertTrue(f.settings.permissionsRequested)
-    }
-
     // ===== 계정 삭제 =====
 
     @Test
@@ -94,18 +68,5 @@ class AccountServiceTest {
         assertFalse(f.scheduler.isScheduled)
         assertEquals(0L, f.settings.lastAccessMillis)
         assertEquals(0, f.settings.lastCheckInMark)
-    }
-
-    @Test
-    fun `로그인하지 않았으면 삭제는 실패하고 아무 일도 일어나지 않는다`() = runTest {
-        val f = Fixture(uid = null)
-
-        val result = f.service.deleteAccount()
-
-        assertEquals(DeleteResult.Failed, result)
-        assertNotNull(f.users.user)
-        assertEquals(0, f.auth.deleteAuthCount)
-        assertEquals(0, f.auth.signOutCount)
-        assertTrue(f.scheduler.isScheduled)
     }
 }

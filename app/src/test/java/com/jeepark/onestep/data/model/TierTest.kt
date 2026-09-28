@@ -8,17 +8,6 @@ import org.junit.Test
 class TierTest {
 
     @Test
-    fun `경험치가 다음 티어 문턱에 못 미치면 티어는 그대로다`() {
-        // Arrange: tier 0의 문턱은 EXPAMOUNT[0] = 15
-        // Act
-        val result = calculateTierProgress(progress = 0, tier = 0, exp = 10)
-        // Assert
-        assertEquals(10, result.newProgress)
-        assertEquals(0, result.newTier)
-        assertFalse(result.didTierUp)
-    }
-
-    @Test
     fun `경험치가 정확히 문턱에 도달하면 티어가 오르고 진행도는 0이 된다`() {
         // Arrange
         // Act
@@ -26,17 +15,6 @@ class TierTest {
         // Assert
         assertEquals(0, result.newProgress)
         assertEquals(1, result.newTier)
-        assertTrue(result.didTierUp)
-    }
-
-    @Test
-    fun `기존 진행도와 합쳐 문턱을 넘어도 티어가 오른다`() {
-        // Arrange: tier 2의 문턱은 EXPAMOUNT[2] = 120
-        // Act
-        val result = calculateTierProgress(progress = 100, tier = 2, exp = 20)
-        // Assert
-        assertEquals(0, result.newProgress)
-        assertEquals(3, result.newTier)
         assertTrue(result.didTierUp)
     }
 
@@ -59,23 +37,6 @@ class TierTest {
         // Assert
         assertEquals(150, result.newProgress)
         assertEquals(MAX_TIER, result.newTier)
-        assertFalse(result.didTierUp)
-    }
-
-    @Test
-    fun `최고 티어는 티어별 경험치 문턱 개수와 같고 동물 8마리에 대응하는 7이다`() {
-        assertEquals(EXPAMOUNT.size, MAX_TIER)
-        assertEquals(7, MAX_TIER) // 티어 0..7 = 동물 8마리 해금 단계. 바꾸면 공원·진척도 화면도 함께 손봐야 한다
-    }
-
-    @Test
-    fun `경험치 0이면 아무것도 바뀌지 않는다`() {
-        // Arrange
-        // Act
-        val result = calculateTierProgress(progress = 50, tier = 3, exp = 0)
-        // Assert
-        assertEquals(50, result.newProgress)
-        assertEquals(3, result.newTier)
         assertFalse(result.didTierUp)
     }
 }

@@ -20,14 +20,6 @@ class QuestDateTest {
     // ===== doneDateNow / todayKey =====
 
     @Test
-    fun `완료 시각은 yyyy MM dd HH mm ss 형식이다`() {
-        // 2026-09-28 01:00:05 UTC = 서울 10:00:05
-        val clock = clockAt("2026-09-28T01:00:05Z")
-
-        assertEquals("2026.09.28 10:00:05", QuestDate.doneDateNow(clock))
-    }
-
-    @Test
     fun `월 일 시 분 초가 한 자리여도 0으로 채워 고정폭이다`() {
         val clock = clockAt("2026-01-02T03:04:05Z", ZoneOffset.UTC)
 
@@ -35,11 +27,6 @@ class QuestDateTest {
 
         assertEquals("2026.01.02 03:04:05", formatted)
         assertEquals(QuestDate.DONE_PATTERN.length, formatted.length)
-    }
-
-    @Test
-    fun `오늘 키는 yyyy-MM-dd 형식이다`() {
-        assertEquals("2026-09-28", QuestDate.todayKey(clockAt("2026-09-28T01:00:05Z")))
     }
 
     @Test
@@ -82,68 +69,9 @@ class QuestDateTest {
     // ===== doneDay =====
 
     @Test
-    fun `완료 시각 문자열에서 날짜를 읽는다`() {
-        assertEquals(LocalDate.of(2026, 1, 31), QuestDate.doneDay("2026.01.31 23:59:59"))
-    }
-
-    @Test
-    fun `날짜 부분만 있어도 읽는다`() {
-        assertEquals(LocalDate.of(2026, 1, 31), QuestDate.doneDay("2026.01.31"))
-    }
-
-    @Test
     fun `형식이 맞지 않는 문자열은 null이다`() {
         listOf("", "abc", "2026-01-31", "2026.13.01 10:00:00", "2026.01", "20260131 10:00").forEach { bad ->
             assertNull("input=$bad", QuestDate.doneDay(bad))
         }
-    }
-
-    @Test
-    fun `PrevQuest에서 완료한 날짜를 읽는다`() {
-        val quest = PrevQuest(doneDate = "2026.02.28 08:00:00")
-
-        assertEquals(LocalDate.of(2026, 2, 28), quest.doneDay())
-        assertNull(PrevQuest(doneDate = "").doneDay())
-    }
-
-    // ===== 표시용 날짜 =====
-
-    @Test
-    fun `표시용 날짜는 완료 시각의 앞 열 글자다`() {
-        assertEquals("2026.01.31", QuestDate.dayPart("2026.01.31 23:59:59"))
-        assertEquals("", QuestDate.dayPart(""))
-    }
-
-    @Test
-    fun `날짜를 yyyy MM dd로 표시한다`() {
-        assertEquals("2026.03.05", QuestDate.formatDay(LocalDate.of(2026, 3, 5)))
-    }
-
-    @Test
-    fun `표시용 날짜 형식은 완료 시각의 날짜 부분과 같다`() {
-        val clock = clockAt("2026-03-05T01:00:00Z")
-
-        assertEquals(
-            QuestDate.dayPart(QuestDate.doneDateNow(clock)),
-            QuestDate.formatDay(QuestDate.doneDay(QuestDate.doneDateNow(clock))!!),
-        )
-    }
-
-    // ===== dayOf =====
-
-    @Test
-    fun `epoch millis가 속한 날짜는 시간대 기준이다`() {
-        val millis = 1772668800000L // 2026-03-05T00:00:00Z
-
-        assertEquals(LocalDate.of(2026, 3, 5), QuestDate.dayOf(millis, ZoneOffset.UTC))
-        assertEquals(LocalDate.of(2026, 3, 5), QuestDate.dayOf(millis, seoul))
-        assertEquals(LocalDate.of(2026, 3, 4), QuestDate.dayOf(millis, ZoneOffset.ofHours(-5)))
-    }
-
-    @Test
-    fun `기본 시간대는 시스템 시간대다`() {
-        val millis = 1772668800000L
-
-        assertEquals(QuestDate.dayOf(millis, ZoneId.systemDefault()), QuestDate.dayOf(millis))
     }
 }

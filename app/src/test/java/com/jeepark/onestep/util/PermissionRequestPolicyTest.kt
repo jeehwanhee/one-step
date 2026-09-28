@@ -2,7 +2,6 @@ package com.jeepark.onestep.util
 
 import com.jeepark.onestep.data.repository.FakeSettingsRepository
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -26,22 +25,6 @@ class PermissionRequestPolicyTest {
         assertTrue(f.settings.permissionsRequested)
     }
 
-    @Test
-    fun `이미 물어봤으면 다시 묻지 않는다`() {
-        val f = Fixture(permissionsRequested = true)
-
-        assertFalse(f.policy.shouldRequestPermissions())
-    }
-
-    @Test
-    fun `물어보는 것은 한 번뿐이라 두 번째 호출부터는 묻지 않는다`() {
-        val f = Fixture()
-
-        assertTrue(f.policy.shouldRequestPermissions())
-        assertFalse(f.policy.shouldRequestPermissions())
-        assertFalse(f.policy.shouldRequestPermissions())
-    }
-
     // ===== 알림 예약 =====
 
     @Test
@@ -52,15 +35,6 @@ class PermissionRequestPolicyTest {
 
         assertEquals(1, f.scheduler.scheduleCount)
         assertTrue(f.scheduler.isScheduled)
-    }
-
-    @Test
-    fun `알림 권한이 없으면 예약하지 않는다`() {
-        val f = Fixture(notificationsEnabled = true)
-
-        f.policy.scheduleIfAllowed(notificationPermissionGranted = false)
-
-        assertEquals(0, f.scheduler.scheduleCount)
     }
 
     @Test

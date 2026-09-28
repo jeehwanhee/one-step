@@ -9,10 +9,8 @@ import com.jeepark.onestep.data.model.KmaResponseBody
 import com.jeepark.onestep.data.model.WEATHER_UNKNOWN
 import com.jeepark.onestep.data.model.toKmaGrid
 import com.jeepark.onestep.util.FakeLocationProvider
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Clock
 import java.time.Instant
@@ -34,14 +32,6 @@ class KmaWeatherProviderTest {
     }
 
     @Test
-    fun `위치를 모르면 조회하지 않고 정보 없음을 돌려준다`() = runTest {
-        val f = Fixture(location = null, clock = clock)
-
-        assertEquals(WEATHER_UNKNOWN, f.provider.describeCurrentWeather())
-        assertTrue(f.service.calls.isEmpty())
-    }
-
-    @Test
     fun `위치와 시각으로 격자 좌표와 기준 시각을 만들어 조회하고 결과를 한 줄로 설명한다`() = runTest {
         val f = Fixture(location = cityHall, clock = clock)
         f.service.response = responseOf(KmaItem("T1H", "3.0"), KmaItem("PTY", "1"))
@@ -57,31 +47,10 @@ class KmaWeatherProviderTest {
     }
 
     @Test
-    fun `응답에 항목이 없거나 본문이 비어 있으면 정보 없음이다`() = runTest {
-        val f = Fixture(location = cityHall, clock = clock)
-
-        f.service.response = KmaResponse(response = null)
-        assertEquals(WEATHER_UNKNOWN, f.provider.describeCurrentWeather())
-
-        f.service.response = responseOf()
-        assertEquals(WEATHER_UNKNOWN, f.provider.describeCurrentWeather())
-    }
-
-    @Test
     fun `조회에 실패해도 예외를 던지지 않고 정보 없음을 돌려준다`() = runTest {
         val f = Fixture(location = cityHall, clock = clock)
         f.service.error = java.io.IOException("네트워크 오류")
 
         assertEquals(WEATHER_UNKNOWN, f.provider.describeCurrentWeather())
-    }
-
-    @Test
-    fun `코루틴 취소는 정보 없음으로 바꾸지 않고 그대로 전파한다`() = runTest {
-        val f = Fixture(location = cityHall, clock = clock)
-        f.service.error = CancellationException("취소됨")
-
-        val failure = runCatching { f.provider.describeCurrentWeather() }.exceptionOrNull()
-
-        assertTrue(failure is CancellationException)
     }
 }

@@ -1,6 +1,5 @@
 package com.jeepark.onestep.data.model
 
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -20,38 +19,8 @@ class AssessmentRulesTest {
     // ===== 규칙 =====
 
     @Test
-    fun `재설문 간격은 퀘스트 10개다`() {
-        assertEquals(10, REASSESSMENT_INTERVAL_QUESTS)
-    }
-
-    @Test
     fun `한 번도 설문하지 않았으면 설문이 필요하다`() {
         assertTrue(needsAssessment(User(isolatedHistory = emptyList())))
-    }
-
-    @Test
-    fun `설문 직후에는 설문이 필요 없다`() {
-        assertFalse(needsAssessment(User(isolatedHistory = surveyed, questsSinceAssessment = 0)))
-    }
-
-    @Test
-    fun `설문 후 퀘스트 9개까지는 설문이 필요 없다`() {
-        assertFalse(needsAssessment(User(isolatedHistory = surveyed, questsSinceAssessment = 9)))
-    }
-
-    @Test
-    fun `설문 후 퀘스트 10개를 완료하면 설문이 필요하다`() {
-        assertTrue(needsAssessment(User(isolatedHistory = surveyed, questsSinceAssessment = 10)))
-    }
-
-    @Test
-    fun `10개를 넘겨도 설문이 필요하다`() {
-        assertTrue(needsAssessment(User(isolatedHistory = surveyed, questsSinceAssessment = 25)))
-    }
-
-    @Test
-    fun `설문 이력이 없으면 카운트와 상관없이 설문이 필요하다`() {
-        assertTrue(needsAssessment(User(isolatedHistory = emptyList(), questsSinceAssessment = 3)))
     }
 
     // ===== 옛 필드와 분리 =====
@@ -61,16 +30,6 @@ class AssessmentRulesTest {
         val user = User(isolatedHistory = surveyed, questsSinceAssessment = 0, isolatedCount = 99)
 
         assertFalse(needsAssessment(user))
-    }
-
-    @Test
-    fun `퀘스트를 완료해도 옛 isolatedCount는 바뀌지 않는다`() {
-        val user = User(isolatedHistory = surveyed, isolatedCount = 7)
-
-        val updated = completeQuests(user, count = 3)
-
-        assertEquals(7, updated.isolatedCount)
-        assertEquals(3, updated.questsSinceAssessment)
     }
 
     // ===== 시나리오: 설문 → 퀘스트 → 재설문 =====

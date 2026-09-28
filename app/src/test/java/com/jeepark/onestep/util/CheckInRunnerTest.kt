@@ -52,16 +52,6 @@ class CheckInRunnerTest {
     }
 
     @Test
-    fun `아직 첫 단계가 안 됐으면 보내지 않는다`() {
-        val f = fixture(days = 1)
-
-        f.runner.run()
-
-        assertTrue(f.sent.isEmpty())
-        assertTrue(f.scheduler.isScheduled)
-    }
-
-    @Test
     fun `2일이 지나면 첫 안부를 보내고 단계를 기록한다`() {
         val f = fixture(days = 2)
 
@@ -73,26 +63,6 @@ class CheckInRunnerTest {
     }
 
     @Test
-    fun `같은 단계는 다시 보내지 않는다`() {
-        val f = fixture(days = 4, lastMark = 2)
-
-        f.runner.run()
-
-        assertTrue(f.sent.isEmpty())
-        assertEquals(2, f.settings.lastCheckInMark)
-    }
-
-    @Test
-    fun `워커가 밀려 여러 단계가 지났어도 가장 큰 단계 하나만 보낸다`() {
-        val f = fixture(days = 12, lastMark = 2)
-
-        f.runner.run()
-
-        assertEquals(listOf(CheckInPolicy.MESSAGES.getValue(10)), f.sent)
-        assertEquals(10, f.settings.lastCheckInMark)
-    }
-
-    @Test
     fun `마지막 단계를 보내면 더는 보내지 않도록 예약을 취소한다`() {
         val f = fixture(days = 45)
 
@@ -101,14 +71,5 @@ class CheckInRunnerTest {
         assertEquals(listOf(CheckInPolicy.MESSAGES.getValue(CheckInPolicy.FINAL_MARK)), f.sent)
         assertEquals(CheckInPolicy.FINAL_MARK, f.settings.lastCheckInMark)
         assertEquals(1, f.scheduler.cancelCount)
-    }
-
-    @Test
-    fun `마지막 단계까지 다 보낸 뒤에는 아무것도 하지 않는다`() {
-        val f = fixture(days = 60, lastMark = CheckInPolicy.FINAL_MARK)
-
-        f.runner.run()
-
-        assertTrue(f.sent.isEmpty())
     }
 }

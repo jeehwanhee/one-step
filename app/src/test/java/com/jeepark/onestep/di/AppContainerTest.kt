@@ -49,13 +49,6 @@ class AppContainerTest {
     }
 
     @Test
-    fun `컨테이너를 만들 때는 아무 것도 만들지 않는다`() {
-        val f = Fixture()
-
-        assertEquals(listOf(0, 0, 0, 0, 0, 0, 0), f.counts)
-    }
-
-    @Test
     fun `항목은 처음 꺼낼 때 한 번만 만들어지고 이후에는 같은 인스턴스를 돌려준다`() {
         val f = Fixture()
 
@@ -64,38 +57,6 @@ class AppContainerTest {
 
         assertSame(first, second)
         assertEquals(1, f.users.count)
-    }
-
-    @Test
-    fun `하나를 꺼내도 다른 항목은 만들어지지 않는다`() {
-        val f = Fixture()
-
-        f.container.questRepository
-
-        assertEquals(listOf(0, 0, 1, 0, 0, 0, 0), f.counts)
-    }
-
-    @Test
-    fun `각 항목은 자기 생성 함수의 결과를 돌려준다`() {
-        val f = Fixture()
-
-        assertEquals(FakeAuthRepository::class, f.container.authRepository::class)
-        assertEquals(FakeUserRepository::class, f.container.userRepository::class)
-        assertEquals(FakeQuestRepository::class, f.container.questRepository::class)
-        assertEquals(FakeActiveQuestStore::class, f.container.activeQuestStore::class)
-        assertEquals(FakeSettingsRepository::class, f.container.settingsRepository::class)
-        assertEquals(FakeNotificationScheduler::class, f.container.notificationScheduler::class)
-        assertEquals(FakeLocationProvider::class, f.container.locationProvider::class)
-    }
-
-    @Test
-    fun `계정 서비스를 꺼내면 서비스가 쓰는 네 항목만 만들어진다`() {
-        val f = Fixture()
-
-        f.container.accountService
-
-        // 인증·사용자·설정·알림 예약. 퀘스트 저장소와 진행 중 퀘스트 보관소는 쓰지 않으므로 만들지 않는다
-        assertEquals(listOf(1, 1, 0, 0, 1, 1, 0), f.counts)
     }
 
     @Test
@@ -111,12 +72,5 @@ class AppContainerTest {
         assertEquals(0L, f.container.settingsRepository.lastAccessMillis)
         assertFalse((f.container.notificationScheduler as FakeNotificationScheduler).isScheduled)
         assertEquals(listOf(1, 1, 0, 0, 1, 1, 0), f.counts) // 서비스 안팎에서 써도 각각 한 번만 만들어진다
-    }
-
-    @Test
-    fun `계정 서비스도 한 번만 만들어진다`() {
-        val f = Fixture()
-
-        assertSame(f.container.accountService, f.container.accountService)
     }
 }

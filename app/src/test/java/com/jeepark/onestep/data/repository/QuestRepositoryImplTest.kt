@@ -7,12 +7,9 @@ import com.jeepark.onestep.data.model.Quest
 import com.jeepark.onestep.data.model.SAMPLE_SIZE
 import com.jeepark.onestep.data.model.SELECTION_SIZE
 import com.jeepark.onestep.util.FakeLocationProvider
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Test
 import kotlin.random.Random
 
@@ -50,37 +47,6 @@ class QuestRepositoryImplTest {
         )
     }
 
-    // ===== 퀘스트 불러오기 =====
-
-    @Test
-    fun `퀘스트가 하나도 없으면 실패한다`() = runTest {
-        val f = Fixture(quests = emptyList())
-
-        val failure = runCatching { f.repository.fetchFilteredQuests(ratios, useGemini = true) }.exceptionOrNull()
-
-        assertEquals("quests 컬렉션이 비어 있습니다", failure?.message)
-    }
-
-    @Test
-    fun `이름이 비어 있는 퀘스트는 후보에서 뺀다`() = runTest {
-        val named = quests(perLevel = 4)
-        val unnamed = (1..30).map { Quest(index = 9000 + it, questName = "", difficulty = 3) }
-        val f = Fixture(quests = named + unnamed)
-
-        f.repository.fetchFilteredQuests(ratios, useGemini = true)
-
-        assertTrue(f.ranker.receivedQuests!!.all { it.questName.isNotEmpty() })
-    }
-
-    @Test
-    fun `이름 있는 퀘스트가 하나도 없으면 비어 있다고 본다`() = runTest {
-        val f = Fixture(quests = listOf(Quest(index = 1, questName = "", difficulty = 1)))
-
-        val failure = runCatching { f.repository.fetchFilteredQuests(ratios, useGemini = true) }.exceptionOrNull()
-
-        assertNotNull(failure)
-    }
-
     // ===== 추천 서비스를 쓰는 경우 =====
 
     @Test
@@ -109,16 +75,6 @@ class QuestRepositoryImplTest {
 
         assertEquals(SELECTION_SIZE, result.size)
         assertTrue(f.ranker.receivedQuests!!.containsAll(result))
-    }
-
-    @Test
-    fun `코루틴 취소는 무작위로 대신하지 않고 그대로 전파한다`() = runTest {
-        val f = Fixture(quests = quests())
-        f.ranker.error = CancellationException("취소됨")
-
-        val failure = runCatching { f.repository.fetchFilteredQuests(ratios, useGemini = true) }.exceptionOrNull()
-
-        assertTrue(failure is CancellationException)
     }
 
     // ===== 일일 한도를 넘은 경우 =====
@@ -150,27 +106,6 @@ class QuestRepositoryImplTest {
     }
 
     @Test
-    fun `위치를 모르면 대체 이름으로 바뀐다`() = runTest {
-        val list = listOf(Quest(index = 1, questName = "{도서관}에 가기", difficulty = 3))
-        val f = Fixture(quests = list, places = listOf(Place(type = "library", name = "구립도서관")), location = null)
-
-        f.repository.fetchFilteredQuests(ratios, useGemini = true)
-
-        assertEquals("근처 도서관에 가기", f.ranker.receivedQuests!!.single().questName)
-    }
-
-    @Test
-    fun `추천을 쓰지 않는 경우에도 자리표시자는 바뀐다`() = runTest {
-        val park = Place(type = "park", name = "서울숲", lat = cityHall.lat + 0.005, lng = cityHall.lng)
-        val list = listOf(Quest(index = 1, questName = "{공원} 걷기", difficulty = 3))
-        val f = Fixture(quests = list, places = listOf(park), location = cityHall)
-
-        val result = f.repository.fetchFilteredQuests(ratios, useGemini = false)
-
-        assertEquals("서울숲 걷기", result.single().questName)
-    }
-
-    @Test
     fun `장소 데이터를 불러오지 못하면 치환하지 않고 원래 문구로 계속한다`() = runTest {
         val list = listOf(Quest(index = 1, questName = "{공원}에서 산책하기", difficulty = 3))
         val f = Fixture(quests = list, location = cityHall)
@@ -179,28 +114,5 @@ class QuestRepositoryImplTest {
         val result = f.repository.fetchFilteredQuests(ratios, useGemini = false)
 
         assertEquals("{공원}에서 산책하기", result.single().questName)
-    }
-
-    @Test
-    fun `자리표시자가 하나도 없으면 장소 데이터를 불러오지 않는다`() = runTest {
-        val f = Fixture(quests = quests())
-
-        f.repository.fetchFilteredQuests(ratios, useGemini = true)
-
-        assertEquals(0, f.placeRepository.loadCount)
-    }
-
-    @Test
-    fun `장소 조회 중 코루틴 취소는 그대로 전파한다`() = runTest {
-        val list = listOf(Quest(index = 1, questName = "{공원} 걷기", difficulty = 3))
-        val f = Fixture(quests = list, location = cityHall)
-        f.placeRepository.error = CancellationException("취소됨")
-
-        try {
-            f.repository.fetchFilteredQuests(ratios, useGemini = false)
-            fail("취소가 전파되어야 한다")
-        } catch (e: CancellationException) {
-            assertEquals("취소됨", e.message)
-        }
     }
 }

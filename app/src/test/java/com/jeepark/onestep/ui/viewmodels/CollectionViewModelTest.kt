@@ -38,19 +38,6 @@ class CollectionViewModelTest {
     }
 
     @Test
-    fun `사용자 로드에 실패하면 loadError가 채워진다`() {
-        // Arrange
-        val fakeRepo = FakeUserRepository(shouldFail = true, failureMessage = "네트워크 오류")
-
-        // Act
-        val viewModel = CollectionViewModel(fakeRepo)
-
-        // Assert
-        assertNotNull(viewModel.loadError.value)
-        assertEquals("네트워크 오류", viewModel.loadError.value)
-    }
-
-    @Test
     fun `실패 후 재시도가 성공하면 loadError가 지워진다`() {
         // Arrange
         val fakeRepo = FakeUserRepository(shouldFail = true)

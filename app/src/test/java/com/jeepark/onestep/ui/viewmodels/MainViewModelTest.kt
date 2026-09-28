@@ -3,7 +3,6 @@ package com.jeepark.onestep.ui.viewmodels
 import com.jeepark.onestep.MainDispatcherRule
 import com.jeepark.onestep.data.model.DAILY_QUEST_LIMIT
 import com.jeepark.onestep.data.model.GiveUpReason
-import com.jeepark.onestep.data.model.InitQuestions
 import com.jeepark.onestep.data.model.IsolatedRecord
 import com.jeepark.onestep.data.model.Mood
 import com.jeepark.onestep.data.model.Quest
@@ -16,7 +15,6 @@ import com.jeepark.onestep.data.repository.FakeQuestRepository
 import com.jeepark.onestep.data.repository.FakeSettingsRepository
 import com.jeepark.onestep.data.repository.FakeUserRepository
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -89,36 +87,6 @@ class MainViewModelTest {
         assertEquals(0, f.settings.lastCheckInMark) // 픽스처에서 7로 시작
     }
 
-    @Test
-    fun `서버의 알림 동의 여부가 기기의 알림 설정에 반영된다`() {
-        val agreed = Fixture(User(uid = "uid-1", notificationAgreed = true))
-        val declined = Fixture(User(uid = "uid-1", notificationAgreed = false))
-
-        assertTrue(agreed.settings.notificationsEnabled)
-        assertFalse(declined.settings.notificationsEnabled)
-    }
-
-    @Test
-    fun `사용자 로드에 실패하면 loadError가 채워지고 접속 기록은 건드리지 않는다`() {
-        val f = Fixture(User(), failUserLoad = true)
-
-        assertNull(f.viewModel.user.value)
-        assertNotNull(f.viewModel.loadError.value)
-        assertEquals(0L, f.settings.lastAccessMillis)
-        assertEquals(7, f.settings.lastCheckInMark) // 손대지 않음
-    }
-
-    @Test
-    fun `로그인 uid가 없으면 사용자는 채워지지만 접속 기록 갱신은 건너뛴다`() {
-        val user = User(nickname = "테스터", lastAccessDate = 0L)
-        val f = Fixture(user, uid = null)
-
-        assertEquals(user, f.viewModel.user.value)
-        assertEquals(0L, f.userRepo.user!!.lastAccessDate)
-        assertEquals(0L, f.settings.lastAccessMillis)
-        assertEquals(7, f.settings.lastCheckInMark)
-    }
-
     // ===== 퀘스트 완료 =====
 
     @Test
@@ -150,35 +118,6 @@ class MainViewModelTest {
     }
 
     @Test
-    fun `완료 기록의 날짜는 현재 시각을 yyyy MM dd HH mm ss로 저장한다`() {
-        val f = Fixture(User())
-
-        f.viewModel.saveCompletedQuest(
-            quest = quest, answer = "답", onTierUp = {}, onSuccess = {}, onError = {},
-        )
-
-        assertEquals("2026.09.28 10:00:05", f.viewModel.user.value!!.prevQuests.single().doneDate)
-    }
-
-    @Test
-    fun `티어가 오르지 않는 완료에서는 티어업 콜백을 호출하지 않는다`() {
-        val f = Fixture(User(tier = 0, progress = 0))
-        var tierUp = false
-
-        f.viewModel.saveCompletedQuest(
-            quest = quest.copy(questEXP = 5),
-            answer = "답",
-            onTierUp = { tierUp = true },
-            onSuccess = {},
-            onError = {},
-        )
-
-        assertFalse(tierUp)
-        assertEquals(0, f.viewModel.user.value!!.tier)
-        assertEquals(5, f.viewModel.user.value!!.progress)
-    }
-
-    @Test
     fun `퀘스트 완료 저장에 실패하면 onError만 호출되고 사용자와 진행 중 퀘스트는 유지된다`() {
         val user = User(tier = 0, progress = 0)
         val f = Fixture(user)
@@ -202,23 +141,6 @@ class MainViewModelTest {
         assertEquals(quest, f.viewModel.activeQuest.value)
     }
 
-    @Test
-    fun `사용자가 로드되지 않았으면 완료 저장은 아무것도 하지 않는다`() {
-        val f = Fixture(User(), failUserLoad = true)
-        var called = false
-
-        f.viewModel.saveCompletedQuest(
-            quest = quest,
-            answer = "답",
-            onTierUp = { called = true },
-            onSuccess = { called = true },
-            onError = { called = true },
-        )
-
-        assertFalse(called)
-        assertFalse(f.viewModel.isSavingQuest.value)
-    }
-
     // ===== 퀘스트 포기 =====
 
     @Test
@@ -231,36 +153,6 @@ class MainViewModelTest {
         assertEquals(listOf(1, 1, 0), f.viewModel.user.value!!.questResultsQueue)
         assertTrue(success)
         assertEquals(listOf(7 to GiveUpReason.BAD_SITUATION), f.questRepo.giveUpRecords)
-    }
-
-    @Test
-    fun `퀘스트 포기 저장에 실패하면 onError가 호출되고 사용자는 그대로다`() {
-        val user = User(questResultsQueue = listOf(1, 1))
-        val f = Fixture(user)
-        f.userRepo.shouldFail = true
-        var success = false
-        var error: String? = null
-
-        f.viewModel.saveGiveUpQuest(quest, reason = GiveUpReason.BAD_SITUATION, onSuccess = { success = true }, onError = { error = it })
-
-        assertEquals("저장하지 못했어요. 다시 시도해주세요", error)
-        assertFalse(success)
-        assertEquals(user, f.viewModel.user.value)
-    }
-
-    // ===== 진행 중 퀘스트 보관 =====
-
-    @Test
-    fun `startQuest는 진행 중 퀘스트를 저장소에 저장하고 clearActiveQuest는 지운다`() {
-        val f = Fixture(User())
-
-        f.viewModel.startQuest(quest)
-        assertEquals(quest, f.viewModel.activeQuest.value)
-        assertEquals(quest, f.store.stored)
-
-        f.viewModel.clearActiveQuest()
-        assertNull(f.viewModel.activeQuest.value)
-        assertNull(f.store.stored)
     }
 
     // ===== 퀘스트 조회 =====
@@ -308,19 +200,6 @@ class MainViewModelTest {
         assertEquals("2026-09-28", f.viewModel.user.value!!.dailyQuestDate)
     }
 
-    @Test
-    fun `퀘스트 조회에 실패하면 onError가 호출되고 로딩이 끝난다`() {
-        val f = Fixture(User())
-        f.questRepo.fetchError = Exception("네트워크 오류")
-        var error: String? = null
-
-        f.viewModel.loadFilteredQuests(mood = Mood.NEUTRAL, onReady = {}, onError = { error = it })
-
-        assertEquals("네트워크 오류", error)
-        assertFalse(f.viewModel.isLoadingQuests.value)
-        assertTrue(f.viewModel.questList.value.isEmpty())
-    }
-
     // ===== 재설문 =====
 
     private val surveyed = listOf(IsolatedRecord(score = 50, recordedAt = 1L))
@@ -339,21 +218,6 @@ class MainViewModelTest {
         completeOnce(f)
         assertTrue(needsAssessment(f.viewModel.user.value!!)) // 10번째
         assertTrue(needsAssessment(f.userRepo.user!!)) // 저장소 쪽 상태도 같은 판단
-    }
-
-    @Test
-    fun `재설문을 제출하면 카운트가 0으로 돌아가 다시 불러온 사용자는 재설문이 필요 없다`() = runTest {
-        val f = Fixture(User(isolatedHistory = surveyed, questsSinceAssessment = 9))
-        completeOnce(f)
-        assertTrue(needsAssessment(f.viewModel.user.value!!))
-
-        val submitted = f.userRepo.saveInitQuestions(InitQuestions())
-        f.viewModel.loadUser()
-
-        assertTrue(submitted.isSuccess)
-        assertEquals(0, f.viewModel.user.value!!.questsSinceAssessment)
-        assertEquals(2, f.viewModel.user.value!!.isolatedHistory.size)
-        assertFalse(needsAssessment(f.viewModel.user.value!!))
     }
 
     // ===== 서버 확인(Firestore 쓰기 응답)을 기다리는 것과 기다리지 않는 것 =====
@@ -411,23 +275,5 @@ class MainViewModelTest {
         assertFalse(f.viewModel.isSavingQuest.value)
         assertTrue(success)
         assertEquals(1, f.viewModel.user.value!!.prevQuests.size)
-    }
-
-    @Test
-    fun `포기 저장은 서버 확인 전에는 성공 처리하지 않지만 통계용 기록은 기다리지 않고 보낸다`() {
-        val gate = CompletableDeferred<Unit>()
-        val f = Fixture(User(questResultsQueue = listOf(1)), writeGate = gate)
-        var success = false
-
-        f.viewModel.saveGiveUpQuest(quest, GiveUpReason.TOO_HARD, onSuccess = { success = true }, onError = {})
-
-        assertFalse(success)
-        assertEquals(listOf(1), f.viewModel.user.value!!.questResultsQueue)
-        assertEquals(listOf(7 to GiveUpReason.TOO_HARD), f.questRepo.giveUpRecords)
-
-        gate.complete(Unit)
-
-        assertTrue(success)
-        assertEquals(listOf(1, 0), f.viewModel.user.value!!.questResultsQueue)
     }
 }

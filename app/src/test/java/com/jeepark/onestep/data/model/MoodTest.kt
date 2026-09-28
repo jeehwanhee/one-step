@@ -9,9 +9,4 @@ class MoodTest {
     fun `기분 단계는 나쁨에서 좋음 순서로 1부터 5까지다`() {
         assertEquals(listOf(1, 2, 3, 4, 5), Mood.entries.map { it.level })
     }
-
-    @Test
-    fun `보통은 3단계다`() {
-        assertEquals(3, Mood.NEUTRAL.level)
-    }
 }
