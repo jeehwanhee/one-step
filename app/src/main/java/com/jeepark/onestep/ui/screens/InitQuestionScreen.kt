@@ -239,15 +239,17 @@ fun InitQuestionScreen(
                             enabled  = !isLoading,
                             onClick  = {
                                 isLoading = true
-                                onClickSubmit(
-                                    onNavigateToMain = onNavigateToMain,
-                                    onNavigateToInit = {
-                                        isLoading = false
-                                        onNavigateToInit()
-                                    },
-                                    answers    = answers,
-                                    repository = repository
-                                )
+                                scope.launch {
+                                    onClickSubmit(
+                                        onNavigateToMain = onNavigateToMain,
+                                        onNavigateToInit = {
+                                            isLoading = false
+                                            onNavigateToInit()
+                                        },
+                                        answers    = answers,
+                                        repository = repository
+                                    )
+                                }
                             },
                         ) {
                             if (isLoading) {
@@ -274,7 +276,7 @@ fun InitQuestionScreen(
     }
 }
 
-fun onClickSubmit(
+suspend fun onClickSubmit(
     onNavigateToMain: () -> Unit,
     onNavigateToInit: () -> Unit,
     answers: List<Int>,
@@ -289,8 +291,7 @@ fun onClickSubmit(
         activeTime = answers[5],
     )
 
-    repository.saveInitQuestions(
-        data      = initQ,
+    repository.saveInitQuestions(initQ).fold(
         onSuccess = { onNavigateToMain() },
         onFailure = { onNavigateToInit() },
     )

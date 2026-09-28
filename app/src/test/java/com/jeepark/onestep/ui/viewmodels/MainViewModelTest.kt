@@ -15,6 +15,8 @@ import com.jeepark.onestep.data.repository.FakeAuthRepository
 import com.jeepark.onestep.data.repository.FakeQuestRepository
 import com.jeepark.onestep.data.repository.FakeSettingsRepository
 import com.jeepark.onestep.data.repository.FakeUserRepository
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -47,8 +49,9 @@ class MainViewModelTest {
         failUserLoad: Boolean = false,
         activeQuest: Quest? = null,
         uid: String? = "uid-1",
+        writeGate: CompletableDeferred<Unit>? = null,
     ) {
-        val userRepo = FakeUserRepository(user = user, shouldFail = failUserLoad)
+        val userRepo = FakeUserRepository(user = user, shouldFail = failUserLoad).also { it.writeGate = writeGate }
         val questRepo = FakeQuestRepository()
         val store = FakeActiveQuestStore(activeQuest)
         val auth = FakeAuthRepository(uid = uid)
@@ -339,18 +342,92 @@ class MainViewModelTest {
     }
 
     @Test
-    fun `재설문을 제출하면 카운트가 0으로 돌아가 다시 불러온 사용자는 재설문이 필요 없다`() {
+    fun `재설문을 제출하면 카운트가 0으로 돌아가 다시 불러온 사용자는 재설문이 필요 없다`() = runTest {
         val f = Fixture(User(isolatedHistory = surveyed, questsSinceAssessment = 9))
         completeOnce(f)
         assertTrue(needsAssessment(f.viewModel.user.value!!))
 
-        var submitted = false
-        f.userRepo.saveInitQuestions(InitQuestions(), onSuccess = { submitted = true }, onFailure = {})
+        val submitted = f.userRepo.saveInitQuestions(InitQuestions())
         f.viewModel.loadUser()
 
-        assertTrue(submitted)
+        assertTrue(submitted.isSuccess)
         assertEquals(0, f.viewModel.user.value!!.questsSinceAssessment)
         assertEquals(2, f.viewModel.user.value!!.isolatedHistory.size)
         assertFalse(needsAssessment(f.viewModel.user.value!!))
+    }
+
+    // ===== 서버 확인(Firestore 쓰기 응답)을 기다리는 것과 기다리지 않는 것 =====
+    // 게이트를 열지 않으면 서버가 응답하지 않는 상황(오프라인·지연)이다. Firestore 쓰기는 서버가 확인해야 끝난다.
+
+    @Test
+    fun `서버 확인이 오지 않아도 사용자 로드는 끝나고 이 기기의 접속 기록은 갱신된다`() {
+        val gate = CompletableDeferred<Unit>()
+        val f = Fixture(User(uid = "uid-1", lastAccessDate = 0L), writeGate = gate)
+
+        assertNotNull(f.viewModel.user.value)
+        assertNull(f.viewModel.loadError.value)
+        assertEquals(fixedClock.millis(), f.settings.lastAccessMillis) // 기기 기록은 바로
+        assertEquals(0L, f.userRepo.user!!.lastAccessDate) // 서버 기록은 아직
+
+        gate.complete(Unit)
+
+        assertEquals(fixedClock.millis(), f.userRepo.user!!.lastAccessDate)
+    }
+
+    @Test
+    fun `일일 카운트의 서버 확인이 늦어도 퀘스트 목록은 바로 표시되고 확인이 오면 카운트가 오른다`() {
+        val gate = CompletableDeferred<Unit>()
+        val f = Fixture(User(), writeGate = gate)
+        f.questRepo.quests = listOf(quest)
+        var ready: List<Quest>? = null
+
+        f.viewModel.loadFilteredQuests(mood = Mood.NEUTRAL, onReady = { ready = it }, onError = {})
+
+        assertEquals(listOf(quest), ready)
+        assertFalse(f.viewModel.isLoadingQuests.value)
+        assertEquals(0, f.viewModel.user.value!!.dailyQuestCount) // 서버 확인 전에는 반영하지 않는다
+
+        gate.complete(Unit)
+
+        assertEquals(1, f.viewModel.user.value!!.dailyQuestCount)
+    }
+
+    @Test
+    fun `완료 저장은 서버 확인이 올 때까지 저장 중으로 기다리고 확인이 오면 반영한다`() {
+        val gate = CompletableDeferred<Unit>()
+        val f = Fixture(User(tier = 0), writeGate = gate)
+        var success = false
+
+        f.viewModel.saveCompletedQuest(
+            quest = quest, answer = "답", onTierUp = {}, onSuccess = { success = true }, onError = {},
+        )
+
+        assertTrue(f.viewModel.isSavingQuest.value)
+        assertFalse(success)
+        assertTrue(f.viewModel.user.value!!.prevQuests.isEmpty())
+
+        gate.complete(Unit)
+
+        assertFalse(f.viewModel.isSavingQuest.value)
+        assertTrue(success)
+        assertEquals(1, f.viewModel.user.value!!.prevQuests.size)
+    }
+
+    @Test
+    fun `포기 저장은 서버 확인 전에는 성공 처리하지 않지만 통계용 기록은 기다리지 않고 보낸다`() {
+        val gate = CompletableDeferred<Unit>()
+        val f = Fixture(User(questResultsQueue = listOf(1)), writeGate = gate)
+        var success = false
+
+        f.viewModel.saveGiveUpQuest(quest, GiveUpReason.TOO_HARD, onSuccess = { success = true }, onError = {})
+
+        assertFalse(success)
+        assertEquals(listOf(1), f.viewModel.user.value!!.questResultsQueue)
+        assertEquals(listOf(7 to GiveUpReason.TOO_HARD), f.questRepo.giveUpRecords)
+
+        gate.complete(Unit)
+
+        assertTrue(success)
+        assertEquals(listOf(1, 0), f.viewModel.user.value!!.questResultsQueue)
     }
 }

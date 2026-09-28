@@ -60,21 +60,27 @@ class MainViewModel(
 
     fun loadUser() {
         _loadError.value = null
-        repo.getUser(
-            onSuccess = { user ->
-                _user.value = user
-                val uid = authRepository.currentUid ?: return@getUser
-                val now = clock.millis()
-                repo.updateLastAccessDate(uid, now)
-                // 이 기기의 안부 알림 기준: 접속 시각을 갱신하고, 서버에 저장된 알림 동의 여부를 기기 설정에 맞춘다
-                settingsRepository.recordAccess(now)
-                settingsRepository.setNotificationsEnabled(user.notificationAgreed)
-            },
-            onFailure = { e ->
-                android.util.Log.e("MainViewModel", "사용자 정보 로드 실패", e)
-                _loadError.value = e.message ?: "정보를 불러오지 못했어요"
-            }
-        )
+        viewModelScope.launch {
+            repo.getUser().fold(
+                onSuccess = { user ->
+                    _user.value = user
+                    val uid = authRepository.currentUid ?: return@fold
+                    val now = clock.millis()
+                    // 서버 확인을 기다리지 않는다: 오프라인이어도 화면과 기기 기록은 그대로 진행돼야 한다
+                    launch {
+                        repo.updateLastAccessDate(uid, now)
+                            .onFailure { android.util.Log.w("MainViewModel", "접속일 갱신 실패", it) }
+                    }
+                    // 이 기기의 안부 알림 기준: 접속 시각을 갱신하고, 서버에 저장된 알림 동의 여부를 기기 설정에 맞춘다
+                    settingsRepository.recordAccess(now)
+                    settingsRepository.setNotificationsEnabled(user.notificationAgreed)
+                },
+                onFailure = { e ->
+                    android.util.Log.e("MainViewModel", "사용자 정보 로드 실패", e)
+                    _loadError.value = e.message ?: "정보를 불러오지 못했어요"
+                }
+            )
+        }
     }
 
     fun isDailyLimitReached(): Boolean = hasReachedDailyLimit(_user.value, QuestDate.todayKey(clock))
@@ -85,9 +91,11 @@ class MainViewModel(
         val today = QuestDate.todayKey(clock)
         val sameDay = currentUser.dailyQuestDate == today
 
-        // 같은 날이면 원자적 증가(race-free), 날짜가 바뀌었으면 1로 리셋
-        repo.incrementDailyQuestCount(uid, sameDay, today) {
-            _user.value = incrementedDailyCount(currentUser, today)
+        // 같은 날이면 원자적 증가(race-free), 날짜가 바뀌었으면 1로 리셋.
+        // 퀘스트 목록 표시가 서버 확인을 기다리지 않도록 별도 코루틴으로 띄운다.
+        viewModelScope.launch {
+            repo.incrementDailyQuestCount(uid, sameDay, today)
+                .onSuccess { _user.value = incrementedDailyCount(currentUser, today) }
         }
     }
 
@@ -138,26 +146,29 @@ class MainViewModel(
 
         val completion = computeQuestCompletion(currentUser, quest, answer, QuestDate.doneDateNow(clock))
 
-        repo.applyQuestCompletion(
-            uid             = uid,
-            progress        = completion.newProgress,
-            tier            = completion.newTier,
-            difficultyQueue = completion.newDifficultyQueue,
-            resultsQueue    = completion.newResultsQueue,
-            prevQuestMap    = completion.toPrevQuestMap(),
-            onSuccess = {
-                _user.value = completion.applyTo(currentUser)
-                _isSavingQuest.value = false
-                if (completion.didTierUp) onTierUp()
-                onSuccess()
-            },
-            onFailure = { e ->
-                android.util.Log.e("MainViewModel", "saveCompletedQuest failed", e)
-                _isSavingQuest.value = false
-                // activeQuest를 지우지 않아 재시도 가능하게 유지
-                onError("저장하지 못했어요. 다시 시도해주세요")
-            }
-        )
+        viewModelScope.launch {
+            repo.applyQuestCompletion(
+                uid             = uid,
+                progress        = completion.newProgress,
+                tier            = completion.newTier,
+                difficultyQueue = completion.newDifficultyQueue,
+                resultsQueue    = completion.newResultsQueue,
+                prevQuestMap    = completion.toPrevQuestMap(),
+            ).fold(
+                onSuccess = {
+                    _user.value = completion.applyTo(currentUser)
+                    _isSavingQuest.value = false
+                    if (completion.didTierUp) onTierUp()
+                    onSuccess()
+                },
+                onFailure = { e ->
+                    android.util.Log.e("MainViewModel", "saveCompletedQuest failed", e)
+                    _isSavingQuest.value = false
+                    // activeQuest를 지우지 않아 재시도 가능하게 유지
+                    onError("저장하지 못했어요. 다시 시도해주세요")
+                }
+            )
+        }
     }
 
     fun startQuest(quest: Quest) {
@@ -187,19 +198,22 @@ class MainViewModel(
         )
 
         // users 문서: 실패 이력 + 포기 사유 추가 (이게 성공해야 activeQuest를 지움)
-        repo.applyGiveUp(
-            uid          = uid,
-            resultsQueue = newResultsQueue,
-            giveUpEntry  = giveUpEntry,
-            onSuccess = {
-                _user.value = currentUser.copy(questResultsQueue = newResultsQueue)
-                onSuccess()
-            },
-            onFailure = { e ->
-                android.util.Log.e("MainViewModel", "saveGiveUpQuest user update failed", e)
-                onError("저장하지 못했어요. 다시 시도해주세요")
-            }
-        )
+        viewModelScope.launch {
+            repo.applyGiveUp(
+                uid          = uid,
+                resultsQueue = newResultsQueue,
+                giveUpEntry  = giveUpEntry,
+            ).fold(
+                onSuccess = {
+                    _user.value = currentUser.copy(questResultsQueue = newResultsQueue)
+                    onSuccess()
+                },
+                onFailure = { e ->
+                    android.util.Log.e("MainViewModel", "saveGiveUpQuest user update failed", e)
+                    onError("저장하지 못했어요. 다시 시도해주세요")
+                }
+            )
+        }
 
         // quests 문서: 해당 퀘스트의 포기 사유 추가 (통계용, 실패해도 위 흐름과 무관)
         questRepository.recordGiveUp(quest.index, reason) { e ->

@@ -1,5 +1,6 @@
 package com.jeepark.onestep.ui.viewmodels
 
+import com.jeepark.onestep.MainDispatcherRule
 import com.jeepark.onestep.data.model.AnimalIds
 import com.jeepark.onestep.data.model.PrevQuest
 import com.jeepark.onestep.data.model.User
@@ -7,9 +8,13 @@ import com.jeepark.onestep.data.repository.FakeUserRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Rule
 import org.junit.Test
 
 class CollectionViewModelTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     @Test
     fun `사용자 로드에 성공하면 user와 완료 퀘스트, 해금 동물이 채워진다`() {

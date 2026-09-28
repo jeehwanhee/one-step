@@ -49,16 +49,15 @@ fun InitScreen(
             return@LaunchedEffect
         }
 
-        repository.getUserFromServer(
-            uid = uid,
-            onResult = { user ->
+        repository.getUserFromServer(uid).fold(
+            onSuccess = { user ->
                 when {
                     user == null            -> onNavigateToAuth()
                     needsAssessment(user)   -> onNavigateToInitQuestion()
                     else                    -> onNavigateToMain()
                 }
             },
-            onError = { onNavigateToAuth() }
+            onFailure = { onNavigateToAuth() }
         )
     }
 

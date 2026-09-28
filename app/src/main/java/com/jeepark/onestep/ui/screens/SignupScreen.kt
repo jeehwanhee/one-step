@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,6 +52,7 @@ import com.jeepark.onestep.ui.theme.CreamBackground
 import com.jeepark.onestep.ui.theme.MutedText
 import com.jeepark.onestep.ui.theme.PrimaryGreen
 import com.jeepark.onestep.ui.theme.SecondaryBorder
+import kotlinx.coroutines.launch
 
 @Composable
 fun SignupScreen(
@@ -60,6 +62,7 @@ fun SignupScreen(
     repository: UserRepository = LocalContext.current.appContainer.userRepository
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     var nickname       by remember { mutableStateOf("") }
     var age            by remember { mutableIntStateOf(0) }
@@ -172,15 +175,17 @@ fun SignupScreen(
                     .height(54.dp),
                 text    = "프로필 만들기",
                 onClick = {
-                    saveUserInFirebase(
-                        nickname,
-                        age,
-                        gender,
-                        repository,
-                        onNavigateToInitQuestion,
-                        onNavigateToInit,
-                        context
-                    )
+                    scope.launch {
+                        saveUserInFirebase(
+                            nickname,
+                            age,
+                            gender,
+                            repository,
+                            onNavigateToInitQuestion,
+                            onNavigateToInit,
+                            context
+                        )
+                    }
                 },
                 enabled = enabled,
             )
@@ -234,7 +239,7 @@ private fun ConsentRow(
     }
 }
 
-fun saveUserInFirebase(
+suspend fun saveUserInFirebase(
     nickname: String,
     age: Int,
     gender: Gender,
@@ -243,10 +248,7 @@ fun saveUserInFirebase(
     onNavigateToInit: () -> Unit,
     context: android.content.Context
 ) {
-    repository.saveInitUser(
-        nickname  = nickname,
-        age       = age,
-        gender    = gender,
+    repository.saveInitUser(nickname = nickname, age = age, gender = gender).fold(
         onSuccess = { onNavigateToInitQuestion() },
         onFailure = { e ->
             Toast.makeText(context, "회원가입에 실패했습니다: ${e.message}", Toast.LENGTH_SHORT).show()

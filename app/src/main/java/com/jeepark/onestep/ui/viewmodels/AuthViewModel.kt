@@ -43,11 +43,10 @@ class AuthViewModel(
                 SignInResult.Success -> {
                     val uid = authRepository.currentUid ?: run { onError(); return@launch }
                     // isNewUser 대신 Firestore 문서 존재 여부로 신규 유저 판별
-                    userRepository.getUserFromServer(
-                        uid = uid,
-                        onResult = { user -> if (user != null) onExistingUser() else onNewUser() },
+                    userRepository.getUserFromServer(uid).fold(
+                        onSuccess = { user -> if (user != null) onExistingUser() else onNewUser() },
                         // 네트워크 실패를 신규 유저로 오판하지 않도록 onError 호출
-                        onError = { onError() }
+                        onFailure = { onError() }
                     )
                 }
             }

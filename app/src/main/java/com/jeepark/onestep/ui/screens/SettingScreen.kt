@@ -35,6 +35,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +51,7 @@ import com.jeepark.onestep.data.repository.UserRepository
 import com.jeepark.onestep.appContainer
 import com.jeepark.onestep.ui.viewmodels.AuthViewModel
 import com.jeepark.onestep.util.NotificationScheduler
+import kotlinx.coroutines.launch
 
 private val S_BG      = Color(0xFFFDF8F0)
 private val S_CARD    = Color(0xFFFFFFFF)
@@ -67,6 +69,7 @@ fun SettingScreen(
     scheduler: NotificationScheduler = LocalContext.current.appContainer.notificationScheduler
 ) {
     val context = LocalContext.current
+    val scope   = rememberCoroutineScope()
 
     var nickname      by remember { mutableStateOf("") }
     var email         by remember { mutableStateOf("") }
@@ -76,10 +79,7 @@ fun SettingScreen(
 
     LaunchedEffect(Unit) {
         email = authVm.currentEmail ?: ""
-        repository.getUser(
-            onSuccess = { user -> nickname = user.nickname },
-            onFailure = {}
-        )
+        repository.getUser().onSuccess { user -> nickname = user.nickname }
     }
 
     Column(
@@ -145,7 +145,8 @@ fun SettingScreen(
                     notifEnabled = enabled
                     settings.setNotificationsEnabled(enabled)
                     authVm.currentUid?.let { uid ->
-                        repository.updateNotificationAgreed(uid, enabled)
+                        // 서버 확인을 기다리지 않는다(오프라인이어도 토글은 바로 반영). 실패해도 화면은 그대로 둔다.
+                        scope.launch { repository.updateNotificationAgreed(uid, enabled) }
                     }
                     if (enabled) scheduler.schedule() else scheduler.cancel()
                 }

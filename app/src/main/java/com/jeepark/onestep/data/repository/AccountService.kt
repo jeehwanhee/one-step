@@ -1,8 +1,6 @@
 package com.jeepark.onestep.data.repository
 
 import com.jeepark.onestep.util.NotificationScheduler
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
 
 /** 계정 삭제의 결과. */
 enum class DeleteResult {
@@ -39,7 +37,7 @@ class AccountService(
      */
     suspend fun deleteAccount(): DeleteResult {
         val uid = auth.currentUid ?: return DeleteResult.Failed
-        if (!users.deleteUserData(uid)) return DeleteResult.Failed
+        if (users.deleteUser(uid).isFailure) return DeleteResult.Failed
 
         val authDeleted = auth.deleteAuthAccount().isSuccess
         signOut()
@@ -50,14 +48,4 @@ class AccountService(
         scheduler.cancel()
         settings.clearAccessRecord()
     }
-
-    // 콜백 기반 UserRepository.deleteUser를 suspend로 감싼다 (UserRepository가 suspend가 되면 사라진다)
-    private suspend fun UserRepository.deleteUserData(uid: String): Boolean =
-        suspendCancellableCoroutine { continuation ->
-            deleteUser(
-                uid = uid,
-                onSuccess = { continuation.resume(true) },
-                onFailure = { continuation.resume(false) },
-            )
-        }
 }

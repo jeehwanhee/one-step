@@ -2,6 +2,7 @@ package com.jeepark.onestep.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.jeepark.onestep.data.model.Animal
@@ -13,6 +14,7 @@ import com.jeepark.onestep.oneStepApp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class CollectionViewModel(
     private val repo: UserRepository
@@ -36,17 +38,19 @@ class CollectionViewModel(
 
     fun loadUser() {
         _loadError.value = null
-        repo.getUser(
-            onSuccess = { user ->
-                _user.value = user
-                _completedQuests.value = user.prevQuests.sortedByDescending { it.doneDate }
-                _unlockedAnimals.value = AnimalRegistry.unlockedAt(user.tier)
-            },
-            onFailure = { e ->
-                android.util.Log.e("CollectionVM", "사용자 정보 로드 실패", e)
-                _loadError.value = e.message ?: "정보를 불러오지 못했어요"
-            }
-        )
+        viewModelScope.launch {
+            repo.getUser().fold(
+                onSuccess = { user ->
+                    _user.value = user
+                    _completedQuests.value = user.prevQuests.sortedByDescending { it.doneDate }
+                    _unlockedAnimals.value = AnimalRegistry.unlockedAt(user.tier)
+                },
+                onFailure = { e ->
+                    android.util.Log.e("CollectionVM", "사용자 정보 로드 실패", e)
+                    _loadError.value = e.message ?: "정보를 불러오지 못했어요"
+                }
+            )
+        }
     }
 
     companion object {
