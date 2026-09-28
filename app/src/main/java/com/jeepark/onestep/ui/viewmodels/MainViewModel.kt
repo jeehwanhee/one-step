@@ -20,10 +20,8 @@ import com.jeepark.onestep.data.model.hasReachedDailyLimit
 import com.jeepark.onestep.data.model.incrementedDailyCount
 import com.jeepark.onestep.data.repository.ActiveQuestStore
 import com.jeepark.onestep.data.repository.QuestRepository
-import com.jeepark.onestep.data.repository.QuestRepositoryImpl
-import com.jeepark.onestep.data.repository.SharedPrefsActiveQuestStore
 import com.jeepark.onestep.data.repository.UserRepository
-import com.jeepark.onestep.data.repository.UserRepositoryImpl
+import com.jeepark.onestep.oneStepApp
 import com.jeepark.onestep.util.NotificationHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -211,13 +209,14 @@ class MainViewModel(
     }
 
     companion object {
-        /** 실제 구현체(Firestore/SharedPreferences/FirebaseAuth)를 연결한 ViewModel 팩토리. */
-        fun factory(app: Application): ViewModelProvider.Factory = viewModelFactory {
+        /** 앱 컨테이너의 실제 구현체를 연결한 ViewModel 팩토리. */
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
+                val app = oneStepApp()
                 MainViewModel(
-                    repo             = UserRepositoryImpl(),
-                    questRepository  = QuestRepositoryImpl(app),
-                    activeQuestStore = SharedPrefsActiveQuestStore(app),
+                    repo             = app.container.userRepository,
+                    questRepository  = app.container.questRepository,
+                    activeQuestStore = app.container.activeQuestStore,
                     currentUid       = { Firebase.auth.currentUser?.uid },
                     onUserLoaded     = { user -> syncNotificationSettings(app, user) },
                 )

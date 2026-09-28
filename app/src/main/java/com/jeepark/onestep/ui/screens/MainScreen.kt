@@ -71,9 +71,7 @@ fun MainScreen(
     onNavigateToInitQuestion: () -> Unit = {},
 ) {
     val context = LocalContext.current
-    val vm: MainViewModel = viewModel(
-        factory = MainViewModel.factory(context.applicationContext as android.app.Application)
-    )
+    val vm: MainViewModel = viewModel(factory = MainViewModel.Factory)
     val user by vm.user.collectAsState()
     val questList by vm.questList.collectAsState()
     val isLoadingQuests by vm.isLoadingQuests.collectAsState()

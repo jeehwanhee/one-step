@@ -39,6 +39,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -47,7 +48,7 @@ import com.jeepark.onestep.data.model.InitQuestions
 import com.jeepark.onestep.ui.components.PagerNavigationButton
 import com.jeepark.onestep.ui.components.TextInput
 import com.jeepark.onestep.data.repository.UserRepository
-import com.jeepark.onestep.data.repository.UserRepositoryImpl
+import com.jeepark.onestep.appContainer
 import com.jeepark.onestep.ui.theme.CreamBackground
 import com.jeepark.onestep.ui.theme.HeadingText
 import com.jeepark.onestep.ui.theme.PrimaryGreen
@@ -61,7 +62,7 @@ fun InitQuestionScreen(
     modifier: Modifier = Modifier,
     onNavigateToMain: () -> Unit,
     onNavigateToInit: () -> Unit,
-    repository: UserRepository = remember { UserRepositoryImpl() }
+    repository: UserRepository = LocalContext.current.appContainer.userRepository
 ) {
     // 뒤로가기 완전 차단 — 설문 완료 전까지 이탈 불가
     BackHandler { /* 막기 */ }

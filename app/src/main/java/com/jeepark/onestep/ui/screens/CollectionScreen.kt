@@ -72,7 +72,7 @@ import com.jeepark.onestep.util.findAnimalUnlockDate
 @Composable
 fun CollectionScreen(
     modifier: Modifier = Modifier,
-    vm: CollectionViewModel = viewModel(),
+    vm: CollectionViewModel = viewModel(factory = CollectionViewModel.Factory),
 ) {
     val user             by vm.user.collectAsState()
     val completedQuests  by vm.completedQuests.collectAsState()

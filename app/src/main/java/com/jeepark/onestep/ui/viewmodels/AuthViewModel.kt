@@ -3,6 +3,9 @@ package com.jeepark.onestep.ui.viewmodels
 import android.content.Context
 import android.content.Intent
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -12,10 +15,10 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
 import com.jeepark.onestep.R
 import com.jeepark.onestep.data.repository.UserRepository
-import com.jeepark.onestep.data.repository.UserRepositoryImpl
+import com.jeepark.onestep.oneStepApp
 
 class AuthViewModel(
-    private val userRepository: UserRepository = UserRepositoryImpl()
+    private val userRepository: UserRepository
 ) : ViewModel() {
     private val auth = Firebase.auth
 
@@ -90,5 +93,12 @@ class AuthViewModel(
             },
             onFailure = { onFailure() }
         )
+    }
+
+    companion object {
+        /** 앱 컨테이너의 실제 구현체를 연결한 ViewModel 팩토리. */
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer { AuthViewModel(oneStepApp().container.userRepository) }
+        }
     }
 }

@@ -50,7 +50,7 @@ import java.time.LocalDate
 @Composable
 fun FootprintsScreen(
     modifier: Modifier = Modifier,
-    vm: CollectionViewModel = viewModel(),
+    vm: CollectionViewModel = viewModel(factory = CollectionViewModel.Factory),
     selectedTab: Int = 1, // 0 = 이전 퀘스트, 1 = 통계 (기본값: 발자취 진입 시 통계가 먼저 보임)
     onTabChange: (Int) -> Unit = {},
 ) {

@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -29,7 +30,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.jeepark.onestep.data.model.needsAssessment
 import com.jeepark.onestep.data.repository.UserRepository
-import com.jeepark.onestep.data.repository.UserRepositoryImpl
+import com.jeepark.onestep.appContainer
 import kotlinx.coroutines.delay
 
 @Composable
@@ -37,7 +38,7 @@ fun InitScreen(
     onNavigateToAuth: () -> Unit,
     onNavigateToMain: () -> Unit,
     onNavigateToInitQuestion: () -> Unit,
-    repository: UserRepository = remember { UserRepositoryImpl() }
+    repository: UserRepository = LocalContext.current.appContainer.userRepository
 ) {
     LaunchedEffect(Unit) {
         val currentUser = Firebase.auth.currentUser

@@ -1,18 +1,21 @@
 package com.jeepark.onestep.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.jeepark.onestep.data.model.Animal
 import com.jeepark.onestep.data.model.AnimalRegistry
 import com.jeepark.onestep.data.model.PrevQuest
 import com.jeepark.onestep.data.model.User
 import com.jeepark.onestep.data.repository.UserRepository
-import com.jeepark.onestep.data.repository.UserRepositoryImpl
+import com.jeepark.onestep.oneStepApp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class CollectionViewModel(
-    private val repo: UserRepository = UserRepositoryImpl()
+    private val repo: UserRepository
 ) : ViewModel() {
 
     private val _user = MutableStateFlow<User?>(null)
@@ -44,5 +47,12 @@ class CollectionViewModel(
                 _loadError.value = e.message ?: "정보를 불러오지 못했어요"
             }
         )
+    }
+
+    companion object {
+        /** 앱 컨테이너의 실제 구현체를 연결한 ViewModel 팩토리. */
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer { CollectionViewModel(oneStepApp().container.userRepository) }
+        }
     }
 }

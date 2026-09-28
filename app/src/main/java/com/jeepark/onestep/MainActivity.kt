@@ -29,7 +29,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.google.firebase.FirebaseApp
 import com.jeepark.onestep.util.LocationHelper
 import com.jeepark.onestep.util.NotificationHelper
 import com.jeepark.onestep.ui.components.OneStepBottomBar
@@ -46,8 +45,6 @@ import com.jeepark.onestep.ui.theme.OneStepTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        FirebaseApp.initializeApp(this)
-        NotificationHelper.createChannel(this)
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowCompat.getInsetsController(window, window.decorView).apply {

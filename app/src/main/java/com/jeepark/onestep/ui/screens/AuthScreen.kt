@@ -41,7 +41,7 @@ import kotlinx.coroutines.launch
 fun AuthScreen(
     onNavigateToMain: () -> Unit,
     onNavigateToSignup: () -> Unit,
-    screenModel: AuthViewModel = viewModel()
+    screenModel: AuthViewModel = viewModel(factory = AuthViewModel.Factory)
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }

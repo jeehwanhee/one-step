@@ -46,7 +46,7 @@ import com.jeepark.onestep.ui.components.InputWithWarning
 import com.jeepark.onestep.ui.components.SelectButton
 import com.jeepark.onestep.ui.components.TextInput
 import com.jeepark.onestep.data.repository.UserRepository
-import com.jeepark.onestep.data.repository.UserRepositoryImpl
+import com.jeepark.onestep.appContainer
 import com.jeepark.onestep.ui.theme.CreamBackground
 import com.jeepark.onestep.ui.theme.MutedText
 import com.jeepark.onestep.ui.theme.PrimaryGreen
@@ -57,7 +57,7 @@ fun SignupScreen(
     modifier: Modifier = Modifier,
     onNavigateToInitQuestion: () -> Unit,
     onNavigateToInit: () -> Unit,
-    repository: UserRepository = remember { UserRepositoryImpl() }
+    repository: UserRepository = LocalContext.current.appContainer.userRepository
 ) {
     val context = LocalContext.current
 
