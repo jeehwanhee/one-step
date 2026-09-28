@@ -33,15 +33,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jeepark.onestep.data.model.PrevQuest
+import com.jeepark.onestep.data.model.QuestDate
+import com.jeepark.onestep.data.model.computeQuestStats
 import com.jeepark.onestep.ui.components.FlatCard
 import com.jeepark.onestep.ui.screens.footprints.QuestActivityCalendar
 import com.jeepark.onestep.ui.screens.footprints.StatsColumn
-import com.jeepark.onestep.ui.screens.footprints.calcAvgDifficulty
-import com.jeepark.onestep.ui.screens.footprints.calcDday
-import com.jeepark.onestep.ui.screens.footprints.calcMaxStreakDays
-import com.jeepark.onestep.ui.screens.footprints.calcStartDate
-import com.jeepark.onestep.ui.screens.footprints.calcStreakDays
-import com.jeepark.onestep.ui.screens.footprints.calcTotalExp
 import com.jeepark.onestep.ui.theme.AmberText
 import com.jeepark.onestep.ui.theme.CardSurface
 import com.jeepark.onestep.ui.theme.CreamBackground
@@ -49,6 +45,7 @@ import com.jeepark.onestep.ui.theme.CreamSurface
 import com.jeepark.onestep.ui.theme.HeadingText
 import com.jeepark.onestep.ui.theme.MutedText
 import com.jeepark.onestep.ui.viewmodels.CollectionViewModel
+import java.time.LocalDate
 
 @Composable
 fun FootprintsScreen(
@@ -185,7 +182,7 @@ private fun CompletedQuestCard(quest: PrevQuest, modifier: Modifier = Modifier) 
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text     = quest.doneDate.take(10),
+                    text     = QuestDate.dayPart(quest.doneDate),
                     fontSize = 11.sp,
                     color    = MutedText
                 )
@@ -241,14 +238,15 @@ private fun StatsTab(
 
         Spacer(Modifier.height(14.dp))
 
+        val stats = remember(completedQuests) { computeQuestStats(completedQuests, LocalDate.now()) }
         StatsColumn(
-            completedCount = completedQuests.size,
-            streakDays     = calcStreakDays(completedQuests),
-            maxStreakDays  = calcMaxStreakDays(completedQuests),
-            startDate      = calcStartDate(completedQuests),
-            dday           = calcDday(completedQuests),
-            totalExp       = calcTotalExp(completedQuests),
-            avgDifficulty  = calcAvgDifficulty(completedQuests)
+            completedCount = stats.completedCount,
+            streakDays     = stats.currentStreakDays,
+            maxStreakDays  = stats.maxStreakDays,
+            startDate      = stats.startDate?.let(QuestDate::formatDay).orEmpty(),
+            dday           = stats.daysSinceStart,
+            totalExp       = stats.totalExp,
+            avgDifficulty  = stats.avgDifficulty
         )
 
         Spacer(Modifier.height(24.dp))

@@ -12,6 +12,7 @@ import com.google.firebase.auth.auth
 import com.jeepark.onestep.data.model.GiveUpReason
 import com.jeepark.onestep.data.model.Mood
 import com.jeepark.onestep.data.model.Quest
+import com.jeepark.onestep.data.model.QuestDate
 import com.jeepark.onestep.data.model.User
 import com.jeepark.onestep.data.model.computeQuestCompletion
 import com.jeepark.onestep.data.model.giveUpResultsQueue
@@ -28,9 +29,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.time.Clock
 
 class MainViewModel(
     private val repo: UserRepository,
@@ -38,6 +37,7 @@ class MainViewModel(
     private val activeQuestStore: ActiveQuestStore,
     private val currentUid: () -> String?,
     private val onUserLoaded: (User) -> Unit = {},
+    private val clock: Clock = Clock.systemDefaultZone(),
 ) : ViewModel() {
 
     private val _user = MutableStateFlow<User?>(null)
@@ -70,7 +70,7 @@ class MainViewModel(
                 _user.value = user
                 // 접속일 갱신
                 val uid = currentUid() ?: return@getUser
-                repo.updateLastAccessDate(uid, System.currentTimeMillis())
+                repo.updateLastAccessDate(uid, clock.millis())
                 onUserLoaded(user)
             },
             onFailure = { e ->
@@ -80,14 +80,12 @@ class MainViewModel(
         )
     }
 
-    private fun todayDate() = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
-
-    fun isDailyLimitReached(): Boolean = hasReachedDailyLimit(_user.value, todayDate())
+    fun isDailyLimitReached(): Boolean = hasReachedDailyLimit(_user.value, QuestDate.todayKey(clock))
 
     private fun incrementDailyCount() {
         val currentUser = _user.value ?: return
         val uid = currentUid() ?: return
-        val today = todayDate()
+        val today = QuestDate.todayKey(clock)
         val sameDay = currentUser.dailyQuestDate == today
 
         // 같은 날이면 원자적 증가(race-free), 날짜가 바뀌었으면 1로 리셋
@@ -141,8 +139,7 @@ class MainViewModel(
 
         _isSavingQuest.value = true
 
-        val doneDate   = SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault()).format(Date())
-        val completion = computeQuestCompletion(currentUser, quest, answer, doneDate)
+        val completion = computeQuestCompletion(currentUser, quest, answer, QuestDate.doneDateNow(clock))
 
         repo.applyQuestCompletion(
             uid             = uid,

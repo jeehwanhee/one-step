@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jeepark.onestep.data.model.PrevQuest
+import com.jeepark.onestep.data.model.doneDay
 import com.jeepark.onestep.ui.components.FlatCard
 import com.jeepark.onestep.ui.theme.CardSurface
 import com.jeepark.onestep.ui.theme.HeadingText
@@ -41,7 +42,6 @@ import com.jeepark.onestep.ui.theme.PrimaryGreen
 import com.jeepark.onestep.ui.theme.PrimaryGreenShadow
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 
 // 5단계: 0 / 1 / 2 / 3~4 / 5+
 private val LEVEL_0 = Color(0xFFEDE4CE)
@@ -60,7 +60,6 @@ private val LEGEND_STEPS = listOf(
     LegendStep("5+", LEVEL_4),
 )
 
-private val DONE_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
 private val WEEKDAY_LABELS = listOf("일", "월", "화", "수", "목", "금", "토")
 
 private fun levelColorFor(count: Int): Color = when {
@@ -73,9 +72,6 @@ private fun levelColorFor(count: Int): Color = when {
 
 private fun textColorFor(count: Int): Color = if (count >= 3) Color.White else HeadingText
 
-private fun PrevQuest.doneLocalDateOrNull(): LocalDate? =
-    runCatching { LocalDate.parse(doneDate.take(10), DONE_DATE_FORMAT) }.getOrNull()
-
 /** "퀘스트 완료 기록" 캘린더 히트맵: 월별로 하루당 완료 개수를 4단계 색으로 표시한다. */
 @Composable
 fun QuestActivityCalendar(
@@ -86,7 +82,7 @@ fun QuestActivityCalendar(
 
     val countsByDate = remember(completedQuests, displayedMonth) {
         completedQuests
-            .mapNotNull { it.doneLocalDateOrNull() }
+            .mapNotNull { it.doneDay() }
             .filter { YearMonth.from(it) == displayedMonth }
             .groupingBy { it }
             .eachCount()

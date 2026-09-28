@@ -4,6 +4,7 @@ import com.jeepark.onestep.data.model.PrevQuest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import java.time.ZoneOffset
 
 class AnimalUnlockDateTest {
 
@@ -22,9 +23,23 @@ class AnimalUnlockDateTest {
         // Arrange: 2026-03-05 00:00:00 UTC
         val joinDateMillis = 1772668800000L
         // Act
-        val result = findAnimalUnlockDate(animalIndex = 0, prevQuests = emptyList(), joinDateMillis = joinDateMillis)
+        val result = findAnimalUnlockDate(
+            animalIndex = 0, prevQuests = emptyList(), joinDateMillis = joinDateMillis, zone = ZoneOffset.UTC
+        )
         // Assert
-        assertEquals(java.text.SimpleDateFormat("yyyy.MM.dd", java.util.Locale.getDefault()).format(java.util.Date(joinDateMillis)), result)
+        assertEquals("2026.03.05", result)
+    }
+
+    @Test
+    fun `가입일은 지정한 시간대의 날짜로 표시한다`() {
+        // Arrange: 같은 순간이 UTC-5에서는 전날 19시
+        val joinDateMillis = 1772668800000L
+        // Act
+        val result = findAnimalUnlockDate(
+            animalIndex = 0, prevQuests = emptyList(), joinDateMillis = joinDateMillis, zone = ZoneOffset.ofHours(-5)
+        )
+        // Assert
+        assertEquals("2026.03.04", result)
     }
 
     @Test

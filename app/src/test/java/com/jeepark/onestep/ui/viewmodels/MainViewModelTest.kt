@@ -5,6 +5,7 @@ import com.jeepark.onestep.data.model.DAILY_QUEST_LIMIT
 import com.jeepark.onestep.data.model.GiveUpReason
 import com.jeepark.onestep.data.model.Mood
 import com.jeepark.onestep.data.model.Quest
+import com.jeepark.onestep.data.model.QuestDate
 import com.jeepark.onestep.data.model.User
 import com.jeepark.onestep.data.repository.FakeActiveQuestStore
 import com.jeepark.onestep.data.repository.FakeQuestRepository
@@ -16,9 +17,9 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneId
 
 class MainViewModelTest {
 
@@ -33,7 +34,10 @@ class MainViewModelTest {
         questEXP = 15,
     )
 
-    private class Fixture(
+    // 서울 기준 2026-09-28 10:00:05
+    private val fixedClock: Clock = Clock.fixed(Instant.parse("2026-09-28T01:00:05Z"), ZoneId.of("Asia/Seoul"))
+
+    private inner class Fixture(
         user: User?,
         failUserLoad: Boolean = false,
         activeQuest: Quest? = null,
@@ -49,11 +53,11 @@ class MainViewModelTest {
             activeQuestStore = store,
             currentUid = { uid },
             onUserLoaded = { loadedUsers.add(it) },
+            clock = fixedClock,
         )
     }
 
-    private fun todayDate(): String =
-        SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+    private fun todayDate(): String = QuestDate.todayKey(fixedClock)
 
     // ===== 초기화 / 사용자 로딩 =====
 
@@ -66,7 +70,7 @@ class MainViewModelTest {
         assertEquals(quest, f.viewModel.activeQuest.value)
         assertNull(f.viewModel.loadError.value)
         assertEquals(listOf(user), f.loadedUsers)
-        assertTrue(f.userRepo.user!!.lastAccessDate > 0L) // 접속일 갱신
+        assertEquals(fixedClock.millis(), f.userRepo.user!!.lastAccessDate) // 접속일 갱신
     }
 
     @Test
@@ -114,6 +118,17 @@ class MainViewModelTest {
         assertTrue(tierUp)
         assertTrue(success)
         assertNull(error)
+    }
+
+    @Test
+    fun `완료 기록의 날짜는 현재 시각을 yyyy MM dd HH mm ss로 저장한다`() {
+        val f = Fixture(User())
+
+        f.viewModel.saveCompletedQuest(
+            quest = quest, answer = "답", onTierUp = {}, onSuccess = {}, onError = {},
+        )
+
+        assertEquals("2026.09.28 10:00:05", f.viewModel.user.value!!.prevQuests.single().doneDate)
     }
 
     @Test
@@ -249,6 +264,19 @@ class MainViewModelTest {
         assertEquals(false, f.questRepo.lastUseGemini)
         assertEquals(DAILY_QUEST_LIMIT, f.viewModel.user.value!!.dailyQuestCount)
         assertTrue(ready)
+    }
+
+    @Test
+    fun `어제 한도에 도달했어도 날짜가 바뀌면 한도가 풀리고 오늘 카운트는 1부터 시작한다`() {
+        val f = Fixture(User(dailyQuestDate = "2026-09-27", dailyQuestCount = DAILY_QUEST_LIMIT))
+        f.questRepo.quests = listOf(quest)
+
+        assertFalse(f.viewModel.isDailyLimitReached())
+        f.viewModel.loadFilteredQuests(mood = Mood.NEUTRAL, onReady = {}, onError = {})
+
+        assertEquals(true, f.questRepo.lastUseGemini)
+        assertEquals(1, f.viewModel.user.value!!.dailyQuestCount)
+        assertEquals("2026-09-28", f.viewModel.user.value!!.dailyQuestDate)
     }
 
     @Test
