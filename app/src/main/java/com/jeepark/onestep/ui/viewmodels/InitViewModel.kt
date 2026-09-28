@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.jeepark.onestep.data.model.assessmentState
 import com.jeepark.onestep.data.model.needsAssessment
 import com.jeepark.onestep.data.repository.AuthRepository
 import com.jeepark.onestep.data.repository.UserRepository
@@ -54,7 +55,7 @@ class InitViewModel(
             onSuccess = { user ->
                 when {
                     user == null          -> StartDestination.Auth
-                    needsAssessment(user) -> StartDestination.InitQuestion
+                    needsAssessment(user.assessmentState()) -> StartDestination.InitQuestion
                     else                  -> StartDestination.Main
                 }
             },

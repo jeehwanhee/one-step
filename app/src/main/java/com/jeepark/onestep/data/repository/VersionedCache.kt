@@ -4,6 +4,7 @@ import android.content.SharedPreferences
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
+import com.jeepark.onestep.data.model.FirestorePaths
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -83,7 +84,7 @@ class VersionedCache<T>(
     }
 }
 
-/** Firestore 컬렉션 하나와 그 버전 문서(`meta/{metaDocId}`의 `version` 필드)를 읽는 구현. */
+/** Firestore 컬렉션 하나와 그 버전 문서(`meta/{metaDocId}`의 `version` 필드, [FirestorePaths])를 읽는 구현. */
 class FirestoreCollectionSource<T>(
     private val db: FirebaseFirestore,
     private val collection: String,     // 예: "quests", "places"
@@ -92,7 +93,7 @@ class FirestoreCollectionSource<T>(
 ) : CollectionSource<T> {
 
     override suspend fun fetchServerVersion(): Long? =
-        db.collection("meta").document(metaDocId).get().await().getLong("version")
+        db.collection(FirestorePaths.META).document(metaDocId).get().await().getLong(FirestorePaths.META_VERSION_FIELD)
 
     override suspend fun downloadAll(): List<T> =
         db.collection(collection).get().await().documents.mapNotNull(::parseOrNull)

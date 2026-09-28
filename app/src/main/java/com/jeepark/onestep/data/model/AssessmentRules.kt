@@ -11,5 +11,5 @@ const val REASSESSMENT_INTERVAL_QUESTS = 10
  * 한 번도 설문하지 않았거나(이력 없음), 마지막 설문 이후 퀘스트를 [REASSESSMENT_INTERVAL_QUESTS]개
  * 이상 완료했으면 true. 설문을 제출하면 `questsSinceAssessment`가 0으로 돌아간다.
  */
-fun needsAssessment(user: User): Boolean =
-    user.isolatedHistory.isEmpty() || user.questsSinceAssessment >= REASSESSMENT_INTERVAL_QUESTS
+fun needsAssessment(state: AssessmentState): Boolean =
+    !state.hasAssessed || state.questsSinceAssessment >= REASSESSMENT_INTERVAL_QUESTS

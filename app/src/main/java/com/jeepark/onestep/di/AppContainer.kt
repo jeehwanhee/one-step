@@ -6,6 +6,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.firestore
 import com.jeepark.onestep.BuildConfig
+import com.jeepark.onestep.data.model.FirestorePaths
 import com.jeepark.onestep.data.model.GeminiClient
 import com.jeepark.onestep.data.model.NetworkClient
 import com.jeepark.onestep.data.model.Place
@@ -84,9 +85,13 @@ class AppContainer(
                 createUserRepository = { UserRepositoryImpl(auth) },
                 createQuestRepository = {
                     QuestRepositoryImpl(
-                        questsCache = versionedCache("quests", "quests_meta") { it.toObject(Quest::class.java) },
+                        questsCache = versionedCache(FirestorePaths.QUESTS, FirestorePaths.QUESTS_META_DOC) {
+                            it.toObject(Quest::class.java)
+                        },
                         places = PlaceRepositoryImpl(
-                            versionedCache("places", "places_meta") { it.toObject(Place::class.java) }
+                            versionedCache(FirestorePaths.PLACES, FirestorePaths.PLACES_META_DOC) {
+                                it.toObject(Place::class.java)
+                            }
                         ),
                         location = location,
                         weather = KmaWeatherProvider(location, NetworkClient.kmaService, BuildConfig.KMA_API_KEY),

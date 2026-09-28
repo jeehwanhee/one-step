@@ -1,10 +1,17 @@
 package com.jeepark.onestep.data.model
 
+import com.google.firebase.firestore.IgnoreExtraProperties
+
+@IgnoreExtraProperties
 data class IsolatedRecord(
     val score: Int = 0,
     val recordedAt: Long = System.currentTimeMillis(),
 )
 
+// 필드 이름은 [UserFields]와 같고 저장 형식이라 바꾸면 안 된다.
+// `users` 문서에는 앱이 쓰기만 하는 통계용 필드 giveUpReasons가 있다([UserFields.GIVE_UP_REASONS]).
+// 읽을 필요가 없어 모델에 두지 않고, @IgnoreExtraProperties로 모델에 없는 필드는 조용히 넘어간다.
+@IgnoreExtraProperties
 data class User(
     val uid: String = "",
     val email: String = "",

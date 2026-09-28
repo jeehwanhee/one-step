@@ -3,8 +3,10 @@ package com.jeepark.onestep.data.repository
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.firestore
+import com.jeepark.onestep.data.model.FirestorePaths
 import com.jeepark.onestep.data.model.GiveUpReason
 import com.jeepark.onestep.data.model.Quest
+import com.jeepark.onestep.data.model.QuestFields
 import com.jeepark.onestep.data.model.SAMPLE_SIZE
 import com.jeepark.onestep.data.model.findNearestPlace
 import com.jeepark.onestep.data.model.hasPlaceholders
@@ -81,12 +83,12 @@ class QuestRepositoryImpl(
 
     /** 해당 퀘스트 문서에 포기 사유를 기록 (통계용, 실패해도 유저 쪽 기록에는 영향 없음). */
     override fun recordGiveUp(questIndex: Int, reason: GiveUpReason, onFailure: (Exception) -> Unit) {
-        db.collection("quests")
-            .whereEqualTo("index", questIndex)
+        db.collection(FirestorePaths.QUESTS)
+            .whereEqualTo(QuestFields.INDEX, questIndex)
             .get()
             .addOnSuccessListener { snapshot ->
                 snapshot.documents.firstOrNull()?.reference?.update(
-                    "giveUpReasons", FieldValue.arrayUnion(reason.code)
+                    QuestFields.GIVE_UP_REASONS, FieldValue.arrayUnion(reason.code)
                 )?.addOnFailureListener { onFailure(it) }
             }.addOnFailureListener { onFailure(it) }
     }

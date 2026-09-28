@@ -13,7 +13,13 @@ class QuestRulesTest {
     @Test
     fun `오늘 20개면 한도에 도달한다`() {
         val user = User(dailyQuestDate = today, dailyQuestCount = DAILY_QUEST_LIMIT)
-        assertTrue(hasReachedDailyLimit(user, today))
+        assertTrue(hasReachedDailyLimit(user.dailyQuota(), today))
+    }
+
+    @Test
+    fun `날짜가 바뀌면 카운트를 1로 되돌리고 같은 날이면 하나 늘린다`() {
+        assertEquals(DailyQuota(today, 1), incrementedDailyCount(DailyQuota("2026-09-27", 20), today))
+        assertEquals(DailyQuota(today, 4), incrementedDailyCount(DailyQuota(today, 3), today))
     }
 
     // ===== 퀘스트 완료 계산 =====
@@ -32,7 +38,7 @@ class QuestRulesTest {
             difficultyQueue = List(10) { 1.0 },
             questResultsQueue = List(10) { 0 },
         )
-        val completion = computeQuestCompletion(user, quest, "답", "2026.09.28 10:00:00")
+        val completion = computeQuestCompletion(user.progression(), quest, "답", "2026.09.28 10:00:00")
         assertEquals(10, completion.newDifficultyQueue.size)
         assertEquals(3.0, completion.newDifficultyQueue.last(), 0.0)
         assertEquals(10, completion.newResultsQueue.size)
@@ -41,7 +47,7 @@ class QuestRulesTest {
 
     @Test
     fun `Firestore용 Map과 로컬 기록이 같은 완료 시각을 쓴다`() {
-        val completion = computeQuestCompletion(User(), quest, "답", "2026.09.28 10:00:00")
+        val completion = computeQuestCompletion(User().progression(), quest, "답", "2026.09.28 10:00:00")
         val map = completion.toPrevQuestMap()
         assertEquals(completion.prevQuest.doneDate, map["doneDate"])
         assertEquals("공원 벤치에 앉기", map["questName"])
@@ -55,7 +61,7 @@ class QuestRulesTest {
     fun `완료 결과를 사용자에 적용하면 기록이 추가되고 카운트가 오른다`() {
         val existing = PrevQuest(questName = "이전 퀘스트")
         val user = User(nickname = "테스터", prevQuests = listOf(existing), questsSinceAssessment = 4, isolatedCount = 4)
-        val completion = computeQuestCompletion(user, quest, "답", "2026.09.28 10:00:00")
+        val completion = computeQuestCompletion(user.progression(), quest, "답", "2026.09.28 10:00:00")
 
         val updated = completion.applyTo(user)
 

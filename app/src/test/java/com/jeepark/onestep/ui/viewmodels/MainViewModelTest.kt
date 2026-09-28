@@ -8,6 +8,7 @@ import com.jeepark.onestep.data.model.Mood
 import com.jeepark.onestep.data.model.Quest
 import com.jeepark.onestep.data.model.QuestDate
 import com.jeepark.onestep.data.model.User
+import com.jeepark.onestep.data.model.assessmentState
 import com.jeepark.onestep.data.model.needsAssessment
 import com.jeepark.onestep.data.repository.FakeActiveQuestStore
 import com.jeepark.onestep.data.repository.FakeAuthRepository
@@ -179,11 +180,11 @@ class MainViewModelTest {
         val f = Fixture(User(isolatedHistory = surveyed, questsSinceAssessment = 8))
 
         completeOnce(f)
-        assertFalse(needsAssessment(f.viewModel.user.value!!)) // 9번째
+        assertFalse(needsAssessment(f.viewModel.user.value!!.assessmentState())) // 9번째
 
         completeOnce(f)
-        assertTrue(needsAssessment(f.viewModel.user.value!!)) // 10번째
-        assertTrue(needsAssessment(f.userRepo.user!!)) // 저장소 쪽 상태도 같은 판단
+        assertTrue(needsAssessment(f.viewModel.user.value!!.assessmentState())) // 10번째
+        assertTrue(needsAssessment(f.userRepo.user!!.assessmentState())) // 저장소 쪽 상태도 같은 판단
     }
 
     // ===== 서버 확인(Firestore 쓰기 응답)을 기다리는 것과 기다리지 않는 것 =====

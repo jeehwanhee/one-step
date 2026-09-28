@@ -1,5 +1,8 @@
 package com.jeepark.onestep.data.model
 
+import com.google.firebase.firestore.IgnoreExtraProperties
+
+@IgnoreExtraProperties
 data class Place(
     val type: String = "",       // park, library, gym
     val name: String = "",

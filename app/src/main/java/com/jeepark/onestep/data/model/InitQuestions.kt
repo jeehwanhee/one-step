@@ -1,5 +1,8 @@
 package com.jeepark.onestep.data.model
 
+import com.google.firebase.firestore.IgnoreExtraProperties
+
+@IgnoreExtraProperties
 data class InitQuestions(
     val shower: Int = 0,
     val meal: Int = 0,

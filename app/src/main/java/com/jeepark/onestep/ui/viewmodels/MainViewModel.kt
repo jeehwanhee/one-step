@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.jeepark.onestep.data.model.GiveUpEntryFields
 import com.jeepark.onestep.data.model.GiveUpReason
 import com.jeepark.onestep.data.model.Mood
 import com.jeepark.onestep.data.model.Quest
@@ -13,7 +14,10 @@ import com.jeepark.onestep.data.model.User
 import com.jeepark.onestep.data.model.computeQuestCompletion
 import com.jeepark.onestep.data.model.giveUpResultsQueue
 import com.jeepark.onestep.data.model.hasReachedDailyLimit
+import com.jeepark.onestep.data.model.dailyQuota
 import com.jeepark.onestep.data.model.incrementedDailyCount
+import com.jeepark.onestep.data.model.progression
+import com.jeepark.onestep.data.model.withDailyQuota
 import com.jeepark.onestep.data.repository.ActiveQuestStore
 import com.jeepark.onestep.data.repository.AuthRepository
 import com.jeepark.onestep.data.repository.QuestRepository
@@ -83,7 +87,8 @@ class MainViewModel(
         }
     }
 
-    fun isDailyLimitReached(): Boolean = hasReachedDailyLimit(_user.value, QuestDate.todayKey(clock))
+    fun isDailyLimitReached(): Boolean =
+        _user.value?.let { hasReachedDailyLimit(it.dailyQuota(), QuestDate.todayKey(clock)) } ?: false
 
     private fun incrementDailyCount() {
         val currentUser = _user.value ?: return
@@ -95,7 +100,9 @@ class MainViewModel(
         // 퀘스트 목록 표시가 서버 확인을 기다리지 않도록 별도 코루틴으로 띄운다.
         viewModelScope.launch {
             repo.incrementDailyQuestCount(uid, sameDay, today)
-                .onSuccess { _user.value = incrementedDailyCount(currentUser, today) }
+                .onSuccess {
+                    _user.value = currentUser.withDailyQuota(incrementedDailyCount(currentUser.dailyQuota(), today))
+                }
         }
     }
 
@@ -144,7 +151,9 @@ class MainViewModel(
 
         _isSavingQuest.value = true
 
-        val completion = computeQuestCompletion(currentUser, quest, answer, QuestDate.doneDateNow(clock))
+        val completion = computeQuestCompletion(
+            currentUser.progression(), quest, answer, QuestDate.doneDateNow(clock),
+        )
 
         viewModelScope.launch {
             repo.applyQuestCompletion(
@@ -190,11 +199,11 @@ class MainViewModel(
         val currentUser = _user.value ?: return
         val uid = authRepository.currentUid ?: return
 
-        val newResultsQueue = giveUpResultsQueue(currentUser)
+        val newResultsQueue = giveUpResultsQueue(currentUser.progression())
 
         val giveUpEntry = mapOf(
-            "questName" to quest.questName,
-            "reason"    to reason.code
+            GiveUpEntryFields.QUEST_NAME to quest.questName,
+            GiveUpEntryFields.REASON     to reason.code
         )
 
         // users 문서: 실패 이력 + 포기 사유 추가 (이게 성공해야 activeQuest를 지움)
