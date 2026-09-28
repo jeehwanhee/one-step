@@ -43,45 +43,10 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.jeepark.onestep.util.BEAR_COLORS
-import com.jeepark.onestep.util.BEAR_PIXELS
-import com.jeepark.onestep.util.BLUEBIRD_COLORS
-import com.jeepark.onestep.util.BLUEBIRD_PIXELS
-import com.jeepark.onestep.util.CAT_COLORS
-import com.jeepark.onestep.util.CAT_PIXELS
-import com.jeepark.onestep.util.CHICK_COLORS
-import com.jeepark.onestep.util.CHICK_PIXELS
-import com.jeepark.onestep.util.DOG_COLORS
-import com.jeepark.onestep.util.DOG_PIXELS
-import com.jeepark.onestep.util.DOLPHIN_COLORS
-import com.jeepark.onestep.util.DOLPHIN_PIXELS
-import com.jeepark.onestep.util.HORSE_COLORS
-import com.jeepark.onestep.util.HORSE_PIXELS
-import com.jeepark.onestep.util.TURTLE_COLORS
-import com.jeepark.onestep.util.TURTLE_PIXELS
-import com.jeepark.onestep.util.animalMessages
+import com.jeepark.onestep.util.PixelAnimalRenderer
 import kotlinx.coroutines.delay
 
 // ===== 드로잉 헬퍼 =====
-
-internal fun DrawScope.drawPixelArt(
-    pixels: Array<IntArray>,
-    colors: List<Color>,
-    topLeft: Offset,
-    pixelSize: Float
-) {
-    pixels.forEachIndexed { row, cols ->
-        cols.forEachIndexed { col, ci ->
-            if (ci > 0 && ci < colors.size) {
-                drawRect(
-                    color   = colors[ci],
-                    topLeft = Offset(topLeft.x + col * pixelSize, topLeft.y + row * pixelSize),
-                    size    = Size(pixelSize, pixelSize)
-                )
-            }
-        }
-    }
-}
 
 internal fun DrawScope.drawTree(centerX: Float, bottomY: Float, density: Density) {
     val trunkW = with(density) { 12.dp.toPx() }
@@ -125,68 +90,8 @@ internal fun tierSkyColor(tier: Int): Color = when (tier) {
     else -> Color(0xFFF5E5A0)
 }
 
-// ===== 동물 데이터 =====
-
-private data class AnimalSpec(
-    val idx: Int,
-    val unlockTier: Int,
-    val x: Float,        // 가로 비율 0..1
-    val y: Float,        // 영역 내 세로 비율 0..1
-    val isSky: Boolean,
-    val pixels: Array<IntArray>,
-    val colors: List<Color>
-)
-
-private val variants = listOf(
-    // variant 0
-    listOf(
-        AnimalSpec(0, 0, 0.68f, 0.42f, false, CHICK_PIXELS,    CHICK_COLORS),
-        AnimalSpec(1, 1, 0.06f, 0.64f, false, TURTLE_PIXELS,   TURTLE_COLORS),
-        AnimalSpec(2, 2, 0.10f, 0.15f, false, CAT_PIXELS,      CAT_COLORS),
-        AnimalSpec(3, 3, 0.69f, 0.75f, false, DOG_PIXELS,      DOG_COLORS),
-        AnimalSpec(4, 4, 0.25f, 0.40f, true,  BLUEBIRD_PIXELS, BLUEBIRD_COLORS),
-        AnimalSpec(5, 5, 0.40f, 0.90f, false, BEAR_PIXELS,     BEAR_COLORS),
-        AnimalSpec(6, 6, 0.52f, 0.0f,  false, HORSE_PIXELS,    HORSE_COLORS),
-        AnimalSpec(7, 7, 0.12f, 0.45f, false, DOLPHIN_PIXELS,  DOLPHIN_COLORS),
-    ),
-    // variant 1
-    listOf(
-        AnimalSpec(0, 0, 0.48f, 0.58f, false, CHICK_PIXELS,    CHICK_COLORS),
-        AnimalSpec(1, 1, 0.66f, 0.83f, false, TURTLE_PIXELS,   TURTLE_COLORS),
-        AnimalSpec(2, 2, 0.12f, 0.70f, false, CAT_PIXELS,      CAT_COLORS),
-        AnimalSpec(3, 3, 0.69f, 0.15f, false, DOG_PIXELS,      DOG_COLORS),
-        AnimalSpec(4, 4, 0.55f, 0.70f, true,  BLUEBIRD_PIXELS, BLUEBIRD_COLORS),
-        AnimalSpec(5, 5, 0.36f, 0.10f, false, BEAR_PIXELS,     BEAR_COLORS),
-        AnimalSpec(6, 6, 0.12f, 0.0f,  false, HORSE_PIXELS,    HORSE_COLORS),
-        AnimalSpec(7, 7, 0.12f, 0.45f, false, DOLPHIN_PIXELS,  DOLPHIN_COLORS),
-    ),
-    // variant 2
-    listOf(
-        AnimalSpec(0, 0, 0.63f, 0.10f, false, CHICK_PIXELS,    CHICK_COLORS),
-        AnimalSpec(1, 1, 0.42f, 0.45f, false, TURTLE_PIXELS,   TURTLE_COLORS),
-        AnimalSpec(2, 2, 0.73f, 0.78f, false, CAT_PIXELS,      CAT_COLORS),
-        AnimalSpec(3, 3, 0.40f, 0.90f, false, DOG_PIXELS,      DOG_COLORS),
-        AnimalSpec(4, 4, 0.75f, 0.90f, true,  BLUEBIRD_PIXELS, BLUEBIRD_COLORS),
-        AnimalSpec(5, 5, 0.05f, 0.00f, false, BEAR_PIXELS,     BEAR_COLORS),
-        AnimalSpec(6, 6, 0.14f, 0.70f, false, HORSE_PIXELS,    HORSE_COLORS),
-        AnimalSpec(7, 7, 0.12f, 0.25f, false, DOLPHIN_PIXELS,  DOLPHIN_COLORS),
-    ),
-    // variant 3
-    listOf(
-        AnimalSpec(0, 0, 0.06f, 0.0f,  false, CHICK_PIXELS,    CHICK_COLORS),
-        AnimalSpec(1, 1, 0.06f, 0.64f, false, TURTLE_PIXELS,   TURTLE_COLORS),
-        AnimalSpec(2, 2, 0.70f, 0.15f, false, CAT_PIXELS,      CAT_COLORS),
-        AnimalSpec(3, 3, 0.40f, 0.40f, false, DOG_PIXELS,      DOG_COLORS),
-        AnimalSpec(4, 4, 0.40f, 0.80f, true,  BLUEBIRD_PIXELS, BLUEBIRD_COLORS),
-        AnimalSpec(5, 5, 0.64f, 0.64f, false, BEAR_PIXELS,     BEAR_COLORS),
-        AnimalSpec(6, 6, 0.32f, 0.90f, false, HORSE_PIXELS,    HORSE_COLORS),
-        AnimalSpec(7, 7, 0.12f, 0.25f, false, DOLPHIN_PIXELS,  DOLPHIN_COLORS),
-    ),
-)
-
-// 동물 대사(animalMessages)는 util/AnimalInfo.kt로 이동 — 진척도 화면의 동물 프로필과 공유
-
-private val parkVariant = (0..3).random()
+// 앱을 켤 때마다 배치 4종 중 하나가 무작위로 골라진다 (배치 데이터는 ParkLayouts.kt)
+private val parkVariant = PARK_VARIANTS.indices.random()
 
 // 말풍선 모양 (아래쪽 꼬리 포함)
 private class SpeechBubbleShape(
@@ -223,30 +128,16 @@ private class SpeechBubbleShape(
     }
 }
 
-private fun calcAnimalY(spec: AnimalSpec, h: Float, pxSz: Float): Float {
-    val animalH = spec.pixels.size * pxSz
-    val skyZoneBottom    = h / 3f
-    val groundZoneTop    = h / 3f
-    val groundZoneBottom = h * 0.88f
-    return if (spec.isSky) {
-        val range = (skyZoneBottom - animalH).coerceAtLeast(0f)
-        spec.y * range
-    } else {
-        val range = (groundZoneBottom - animalH - groundZoneTop).coerceAtLeast(0f)
-        groundZoneTop + spec.y * range
-    }
-}
-
 // ===== 공원 배경 Canvas =====
 
 @Composable
 internal fun ParkBackground(tier: Int, modifier: Modifier = Modifier) {
     val density = LocalDensity.current
-    val animals = variants[parkVariant]
+    val animals = remember(tier) { placedAnimals(parkVariant, tier) }
     val pxSz    = with(density) { 3.5.dp.toPx() }
 
     var canvasSize    by remember { mutableStateOf(Size.Zero) }
-    var tappedIdx     by remember { mutableStateOf<Int?>(null) }
+    var tappedId      by remember { mutableStateOf<String?>(null) }
     var bubbleText    by remember { mutableStateOf("") }
     var tapTrigger    by remember { mutableStateOf(0) }
     var lastTapTime   by remember { mutableStateOf(0L) }
@@ -274,7 +165,7 @@ internal fun ParkBackground(tier: Int, modifier: Modifier = Modifier) {
         delay(2000)
         if (tapTrigger == triggered) {
             bubbleAlpha.animateTo(0f, animationSpec = tween(180))
-            if (tapTrigger == triggered) tappedIdx = null
+            if (tapTrigger == triggered) tappedId = null
         }
     }
 
@@ -292,18 +183,17 @@ internal fun ParkBackground(tier: Int, modifier: Modifier = Modifier) {
                         val w = size.width.toFloat()
                         val h = size.height.toFloat()
                         animals
-                            .filter { tier >= it.unlockTier }
-                            .firstOrNull { spec ->
-                                val animalH = spec.pixels.size * pxSz
-                                val animalW = (spec.pixels.firstOrNull()?.size ?: 0) * pxSz
-                                val xPx = w * spec.x
-                                val yPx = calcAnimalY(spec, h, pxSz)
+                            .firstOrNull { placed ->
+                                val animalH = placed.animal.sprite.height * pxSz
+                                val animalW = placed.animal.sprite.width * pxSz
+                                val xPx = w * placed.placement.x
+                                val yPx = animalTopY(placed, h, pxSz)
                                 offset.x in xPx..(xPx + animalW) &&
                                 offset.y in yPx..(yPx + animalH)
-                            }?.let { spec ->
+                            }?.let { placed ->
                                 lastTapTime = now
-                                tappedIdx   = spec.idx
-                                bubbleText  = animalMessages[spec.idx]?.random() ?: ""
+                                tappedId    = placed.animal.id
+                                bubbleText  = placed.animal.messages.randomOrNull() ?: ""
                                 tapTrigger += 1
                             }
                     }
@@ -369,24 +259,24 @@ internal fun ParkBackground(tier: Int, modifier: Modifier = Modifier) {
             }
 
             // 동물 그리기 (탭한 동물은 점프)
-            animals
-                .filter { tier >= it.unlockTier }
-                .forEach { spec ->
-                    val xPx = w * spec.x
-                    val yPx = calcAnimalY(spec, h, pxSz)
-                    val offsetY = if (spec.idx == tappedIdx) bounceY.value else 0f
-                    drawPixelArt(spec.pixels, spec.colors, Offset(xPx, yPx + offsetY), pxSz)
+            animals.forEach { placed ->
+                val xPx = w * placed.placement.x
+                val yPx = animalTopY(placed, h, pxSz)
+                val offsetY = if (placed.animal.id == tappedId) bounceY.value else 0f
+                with(PixelAnimalRenderer) {
+                    drawSprite(placed.animal.sprite, Offset(xPx, yPx + offsetY), pxSz)
                 }
+            }
         }
 
         // 말풍선 오버레이
-        val tappedSpec = animals.firstOrNull { it.idx == tappedIdx }
-        if (tappedSpec != null && canvasSize.width > 0f) {
+        val tapped = animals.firstOrNull { it.animal.id == tappedId }
+        if (tapped != null && canvasSize.width > 0f) {
             val w = canvasSize.width
             val h = canvasSize.height
-            val animalW = (tappedSpec.pixels.firstOrNull()?.size ?: 0) * pxSz
-            val animalCenterX = w * tappedSpec.x + animalW / 2f
-            val animalTopY    = calcAnimalY(tappedSpec, h, pxSz) + bounceY.value
+            val animalW = tapped.animal.sprite.width * pxSz
+            val animalCenterX = w * tapped.placement.x + animalW / 2f
+            val bubbleAnchorY = animalTopY(tapped, h, pxSz) + bounceY.value
             val bubbleShape   = remember { SpeechBubbleShape() }
 
             Box(
@@ -396,7 +286,7 @@ internal fun ParkBackground(tier: Int, modifier: Modifier = Modifier) {
                         val halfW = bubbleWidthPx / 2
                         val maxX  = (w.toInt() - bubbleWidthPx - edge).coerceAtLeast(edge)
                         val rawX  = (animalCenterX.toInt() - halfW)
-                        val rawY  = (animalTopY - 70.dp.toPx() + bubbleSlideY.value).toInt()
+                        val rawY  = (bubbleAnchorY - 70.dp.toPx() + bubbleSlideY.value).toInt()
                         IntOffset(
                             x = if (bubbleWidthPx == 0) -9999 else rawX.coerceIn(edge, maxX),
                             y = rawY.coerceAtLeast(edge)

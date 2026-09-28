@@ -6,8 +6,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 
 // =============================================
-// 동물 순서: 0병아리 1거북이 2고양이 3강아지 4파랑새 5곰 6말 7돌고래
-// 픽셀 크기: 25×25
+// 동물 스프라이트(픽셀 아트) 데이터.
+// 어떤 동물이 있는지·이름·대사·프로필·해금 티어는 data/model/AnimalRegistry.kt에서,
+// 공원 안 위치는 ui/screens/ParkLayouts.kt에서 관리한다.
+//
+// ★ 새 동물의 스프라이트 추가 ★
+//   아래 형식으로 X_COLORS / X_PIXELS를 만들고, 파일 아래쪽에 X_SPRITE를 추가한다.
+//   (X_COLORS / X_PIXELS는 private — 밖에서는 X_SPRITE만 쓴다)
 //
 // ★ 색상 지정법 ★
 //   COLORS 리스트에 Color를 원하는 순서대로 추가
@@ -18,8 +23,8 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 // ★ 픽셀 찍는법 ★
 //   PIXELS 2차원 배열의 각 숫자 = COLORS 인덱스
 //   0 = 투명(빈칸),  1 = 첫 번째 색,  2 = 두 번째 색 ...
-//   배열 구조: 25행(row) × 25열(col) — 위→아래, 왼→오른쪽
-//   행 추가/삭제 시 반드시 25행을 유지할 것
+//   배열 구조: 행(row) × 열(col) — 위→아래, 왼→오른쪽
+//   크기는 동물마다 달라도 되지만, 한 스프라이트 안에서 모든 행의 열 수는 같아야 한다
 //
 // ★ 열 가이드 (col 번호) ★
 //   0         1         2
@@ -30,7 +35,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 // 0: 병아리 (25×25)
 // 색상: 0=투명 1=노랑 2=황금 3=검정 4=주황빨강 5=밝은노랑 6=진주황
 // --------------------------------------------------
-val CHICK_COLORS = listOf(
+private val CHICK_COLORS = listOf(
     Color.Transparent,   // 0 투명
     Color(0xFF000000),   // 1 노랑
     Color(0xFFa82a27),   // 2 황금
@@ -40,7 +45,7 @@ val CHICK_COLORS = listOf(
     Color(0xFFffe751),   // 6 진주황
     Color(0xFFfff2a3),   // 6 진주황
 )
-val CHICK_PIXELS = arrayOf(
+private val CHICK_PIXELS = arrayOf(
     //   0         1         2
     //   0123456789012345678901234
     intArrayOf(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),
@@ -69,7 +74,7 @@ val CHICK_PIXELS = arrayOf(
 // 1: 거북이 (25×25)
 // 색상: 0=투명 1=초록 2=진초록 3=검정 4=진갈색셸 5=중간갈색 6=주황갈색 7=밝은하이라이트
 // --------------------------------------------------
-val TURTLE_COLORS = listOf(
+private val TURTLE_COLORS = listOf(
     Color.Transparent,   // 0 투명
     Color(0xFF000000),   // 1 초록
     Color(0xFFa24501),   // 2 진초록
@@ -79,7 +84,7 @@ val TURTLE_COLORS = listOf(
     Color(0xFF349700),   // 6 주황갈색
     Color(0xFF45c800),   // 7 밝은하이라이트
 )
-val TURTLE_PIXELS = arrayOf(
+private val TURTLE_PIXELS = arrayOf(
     //   0         1         2
     //   0123456789012345678901234
     intArrayOf(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),
@@ -108,7 +113,7 @@ val TURTLE_PIXELS = arrayOf(
 // 2: 고양이 (25×25)
 // 색상: 0=투명 1=주황갈색 2=진갈색 3=검정 4=크림 5=중간갈색 6=핑크 7=줄무늬
 // --------------------------------------------------
-val CAT_COLORS = listOf(
+private val CAT_COLORS = listOf(
     Color.Transparent,   // 0 투명
     Color(0xFF000000),   // 1 주황갈색
     Color(0xFFfcb384),   // 2 진갈색
@@ -117,7 +122,7 @@ val CAT_COLORS = listOf(
     Color(0xFF975a00),   // 5 중간갈색
     Color(0xFFfea3c9),   // 6 핑크
 )
-val CAT_PIXELS = arrayOf(
+private val CAT_PIXELS = arrayOf(
     //   0         1         2
     //   0123456789012345678901234
     intArrayOf(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),
@@ -146,7 +151,7 @@ val CAT_PIXELS = arrayOf(
 // 3: 강아지 (25×25)
 // 색상: 0=투명 1=황금 2=진갈색 3=검정 4=크림 5=중간황금 6=핑크혀 7=밝은배
 // --------------------------------------------------
-val DOG_COLORS = listOf(
+private val DOG_COLORS = listOf(
     Color.Transparent,   // 0 투명
     Color(0xFF000000),   // 1 황금
     Color(0xFFbe7f0e),   // 2 진갈색
@@ -155,7 +160,7 @@ val DOG_COLORS = listOf(
     Color(0xFFffdd9f),   // 5 중간황금
     Color(0xFFca599c),   // 6 핑크혀
 )
-val DOG_PIXELS = arrayOf(
+private val DOG_PIXELS = arrayOf(
     //   0         1         2
     //   0123456789012345678901234
     intArrayOf(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,0,0,0,0,0),
@@ -187,7 +192,7 @@ val DOG_PIXELS = arrayOf(
 // 4: 파랑새 (25×25)
 // 색상: 0=투명 1=파랑 2=진파랑 3=검정 4=흰색 5=노랑부리 6=밝은파랑
 // --------------------------------------------------
-val BLUEBIRD_COLORS = listOf(
+private val BLUEBIRD_COLORS = listOf(
     Color.Transparent,   // 0 투명
     Color(0xFF000000),   // 1 파랑
     Color(0xFFffffff),   // 2 진파랑
@@ -196,7 +201,7 @@ val BLUEBIRD_COLORS = listOf(
     Color(0xFF4568ff),   // 5 노랑부리
     Color(0xFF90a5ff),   // 6 밝은파랑
 )
-val BLUEBIRD_PIXELS = arrayOf(
+private val BLUEBIRD_PIXELS = arrayOf(
     //   0         1         2
     //   0123456789012345678901234
     intArrayOf(0,4,4,4,4,0,0,0,0,0,0,0,4,4,4,4,0,0,0,0),
@@ -225,7 +230,7 @@ val BLUEBIRD_PIXELS = arrayOf(
 // 5: 곰 (25×25)
 // 색상: 0=투명 1=밝은갈색 2=진갈색빨강 3=검정 4=매우진 5=연갈색 6=크림주둥이 7=청남색눈
 // --------------------------------------------------
-val BEAR_COLORS = listOf(
+private val BEAR_COLORS = listOf(
     Color.Transparent,   // 0 투명
     Color(0xFF000000),   // 1 밝은갈색
     Color(0xFF462400),   // 3 검정
@@ -234,7 +239,7 @@ val BEAR_COLORS = listOf(
     Color(0xFFbe5f00),   // 6 크림주둥이
     Color(0xFFeda55c),   // 7 청남색눈
 )
-val BEAR_PIXELS = arrayOf(
+private val BEAR_PIXELS = arrayOf(
     //   0         1         2
     //   0123456789012345678901234
     intArrayOf(0,0,0,3,3,0,0,0,0,0,0,0,0,3,3,0,0,0,0,0),
@@ -263,7 +268,7 @@ val BEAR_PIXELS = arrayOf(
 // 6: 말 (25×25)
 // 색상: 0=투명 1=체스넛 2=진갈색 3=검정 4=크림흰색 5=중간체스넛 6=발굽 7=더진체스넛
 // --------------------------------------------------
-val HORSE_COLORS = listOf(
+private val HORSE_COLORS = listOf(
     Color.Transparent,
     Color(0xFF000000),
     Color(0xFF821313),
@@ -273,7 +278,7 @@ val HORSE_COLORS = listOf(
     Color(0xFFdadada),
     Color(0xFF7d4706),
 )
-val HORSE_PIXELS = arrayOf(
+private val HORSE_PIXELS = arrayOf(
     //   0         1         2
     //   0123456789012345678901234
     intArrayOf(0,0,0,0,0,0,7,7,0,0,0,0,0,0,0,0,0,0,0,0),
@@ -303,7 +308,7 @@ val HORSE_PIXELS = arrayOf(
 // 색상: 0=투명 1=밝은퍼리윙클 2=진청남 3=중간청보라 4=청록 5=연라벤더 6=진네이비아웃라인 7=중간어두운청
 // ★ 색상 추가: DOLPHIN_COLORS 리스트 끝에 Color(...) 추가 → 자동으로 8, 9... 번호 부여
 // --------------------------------------------------
-val DOLPHIN_COLORS = listOf(
+private val DOLPHIN_COLORS = listOf(
     Color.Transparent,   // 0 투명
     Color(0xFF201D82),   // 1 밝은 퍼리윙클 (lighter body)
     Color(0xFF403d91),   // 2 진한 청남 (deep shadow)
@@ -316,7 +321,7 @@ val DOLPHIN_COLORS = listOf(
     Color(0xFF6a68a6),
     Color(0xFF7270a8)
 )
-val DOLPHIN_PIXELS = arrayOf(
+private val DOLPHIN_PIXELS = arrayOf(
     //   0         1         2
     //   0123456789012345678901234
     intArrayOf(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,10,1,1,1,5,0,0,0,0), // row 0
@@ -342,30 +347,40 @@ val DOLPHIN_PIXELS = arrayOf(
 )
 
 // =============================================
-// 공통 렌더러
+// 스프라이트
 // =============================================
 
-private val allPixels = listOf(
-    CHICK_PIXELS, TURTLE_PIXELS, CAT_PIXELS, DOG_PIXELS,
-    BLUEBIRD_PIXELS, BEAR_PIXELS, HORSE_PIXELS, DOLPHIN_PIXELS
-)
-private val allColors = listOf(
-    CHICK_COLORS, TURTLE_COLORS, CAT_COLORS, DOG_COLORS,
-    BLUEBIRD_COLORS, BEAR_COLORS, HORSE_COLORS, DOLPHIN_COLORS
-)
+/**
+ * 픽셀 아트 한 장. [pixels]의 각 숫자는 [colors]의 인덱스이고 0은 투명이다.
+ * 한 스프라이트 안에서 모든 행의 열 수는 같아야 한다.
+ */
+class PixelSprite(val pixels: Array<IntArray>, val colors: List<Color>) {
+    val width: Int get() = pixels.firstOrNull()?.size ?: 0
+    val height: Int get() = pixels.size
+}
 
-val ANIMAL_NAMES = listOf("병아리", "거북이", "고양이", "강아지", "파랑새", "곰", "말", "돌고래")
+internal val CHICK_SPRITE    = PixelSprite(CHICK_PIXELS, CHICK_COLORS)
+internal val TURTLE_SPRITE   = PixelSprite(TURTLE_PIXELS, TURTLE_COLORS)
+internal val CAT_SPRITE      = PixelSprite(CAT_PIXELS, CAT_COLORS)
+internal val DOG_SPRITE      = PixelSprite(DOG_PIXELS, DOG_COLORS)
+internal val BLUEBIRD_SPRITE = PixelSprite(BLUEBIRD_PIXELS, BLUEBIRD_COLORS)
+internal val BEAR_SPRITE     = PixelSprite(BEAR_PIXELS, BEAR_COLORS)
+internal val HORSE_SPRITE    = PixelSprite(HORSE_PIXELS, HORSE_COLORS)
+internal val DOLPHIN_SPRITE  = PixelSprite(DOLPHIN_PIXELS, DOLPHIN_COLORS)
+
+// =============================================
+// 공통 렌더러 (공원·진척도 화면이 함께 사용)
+// =============================================
 
 object PixelAnimalRenderer {
 
-    fun DrawScope.drawAnimal(index: Int, topLeft: Offset, pixelSize: Float) {
-        val pixels = allPixels[index]
-        val colors = allColors[index]
-        pixels.forEachIndexed { r, row ->
+    /** [topLeft]에서 시작해 픽셀 한 칸을 [pixelSize] 정사각형으로 그린다. */
+    fun DrawScope.drawSprite(sprite: PixelSprite, topLeft: Offset, pixelSize: Float) {
+        sprite.pixels.forEachIndexed { r, row ->
             row.forEachIndexed { c, ci ->
-                if (ci > 0 && ci < colors.size) {
+                if (ci > 0 && ci < sprite.colors.size) {
                     drawRect(
-                        color   = colors[ci],
+                        color   = sprite.colors[ci],
                         topLeft = Offset(topLeft.x + c * pixelSize, topLeft.y + r * pixelSize),
                         size    = Size(pixelSize, pixelSize)
                     )
@@ -374,16 +389,11 @@ object PixelAnimalRenderer {
         }
     }
 
-    fun DrawScope.drawAnimalInBox(index: Int, topLeft: Offset, boxSize: Float) {
-        val pixels = allPixels[index]
-        val cols   = pixels[0].size
-        val rows   = pixels.size
-        val pixSz  = minOf(boxSize / cols, boxSize / rows)
-        val startX = topLeft.x + (boxSize - cols * pixSz) / 2f
-        val startY = topLeft.y + (boxSize - rows * pixSz) / 2f
-        drawAnimal(index, Offset(startX, startY), pixSz)
+    /** 정사각형 [boxSize] 안에 비율을 유지하며 가운데 정렬로 그린다. */
+    fun DrawScope.drawSpriteInBox(sprite: PixelSprite, topLeft: Offset, boxSize: Float) {
+        val pixSz  = minOf(boxSize / sprite.width, boxSize / sprite.height)
+        val startX = topLeft.x + (boxSize - sprite.width * pixSz) / 2f
+        val startY = topLeft.y + (boxSize - sprite.height * pixSz) / 2f
+        drawSprite(sprite, Offset(startX, startY), pixSz)
     }
-
-    fun pixelWidth(index: Int)  = allPixels[index][0].size
-    fun pixelHeight(index: Int) = allPixels[index].size
 }

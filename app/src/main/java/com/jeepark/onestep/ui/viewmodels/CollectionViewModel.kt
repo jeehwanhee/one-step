@@ -1,6 +1,8 @@
 package com.jeepark.onestep.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
+import com.jeepark.onestep.data.model.Animal
+import com.jeepark.onestep.data.model.AnimalRegistry
 import com.jeepark.onestep.data.model.PrevQuest
 import com.jeepark.onestep.data.model.User
 import com.jeepark.onestep.data.repository.UserRepository
@@ -8,9 +10,6 @@ import com.jeepark.onestep.data.repository.UserRepositoryImpl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-
-// 티어별 해금 동물: 0=병아리(0티어), 1=거북이(1), 2=고양이(2), 3=강아지(3), 4=파랑새(4), 5=곰(5), 6=말(6), 7=돌고래(7)
-private val UNLOCK_TIER = listOf(0, 1, 2, 3, 4, 5, 6, 7)
 
 class CollectionViewModel(
     private val repo: UserRepository = UserRepositoryImpl()
@@ -22,8 +21,8 @@ class CollectionViewModel(
     private val _completedQuests = MutableStateFlow<List<PrevQuest>>(emptyList())
     val completedQuests: StateFlow<List<PrevQuest>> = _completedQuests.asStateFlow()
 
-    private val _unlockedAnimals = MutableStateFlow<List<Int>>(emptyList())
-    val unlockedAnimals: StateFlow<List<Int>> = _unlockedAnimals.asStateFlow()
+    private val _unlockedAnimals = MutableStateFlow<List<Animal>>(emptyList())
+    val unlockedAnimals: StateFlow<List<Animal>> = _unlockedAnimals.asStateFlow()
 
     private val _loadError = MutableStateFlow<String?>(null)
     val loadError: StateFlow<String?> = _loadError.asStateFlow()
@@ -38,10 +37,7 @@ class CollectionViewModel(
             onSuccess = { user ->
                 _user.value = user
                 _completedQuests.value = user.prevQuests.sortedByDescending { it.doneDate }
-                _unlockedAnimals.value = UNLOCK_TIER
-                    .mapIndexedNotNull { idx, requiredTier ->
-                        if (user.tier >= requiredTier) idx else null
-                    }
+                _unlockedAnimals.value = AnimalRegistry.unlockedAt(user.tier)
             },
             onFailure = { e ->
                 android.util.Log.e("CollectionVM", "사용자 정보 로드 실패", e)

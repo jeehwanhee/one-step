@@ -21,24 +21,22 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jeepark.onestep.data.model.Animal
 import com.jeepark.onestep.ui.components.FlatCard
 import com.jeepark.onestep.ui.theme.HeadingText
 import com.jeepark.onestep.ui.theme.MutedText
 import com.jeepark.onestep.ui.theme.SecondaryBackground
-import com.jeepark.onestep.util.ANIMAL_NAMES
 import com.jeepark.onestep.util.PixelAnimalRenderer
-import com.jeepark.onestep.util.animalMessages
-import com.jeepark.onestep.util.animalProfiles
 
 /** 진척도 화면에서 선택된 해금 동물의 프로필을 보여주는 카드. */
 @Composable
 fun AnimalProfileCard(
-    animalIndex: Int,
+    animal: Animal,
     metDateLabel: String,
     modifier: Modifier = Modifier
 ) {
-    val profile = animalProfiles[animalIndex] ?: return
-    val quote = animalMessages[animalIndex]?.firstOrNull() ?: ""
+    val profile = animal.profile
+    val quote = animal.messages.firstOrNull() ?: ""
 
     FlatCard(modifier = modifier.fillMaxWidth(), cornerRadius = 26.dp) {
         Column(modifier = Modifier.padding(20.dp)) {
@@ -47,14 +45,14 @@ fun AnimalProfileCard(
                 Box(modifier = Modifier.size(56.dp)) {
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         with(PixelAnimalRenderer) {
-                            drawAnimalInBox(animalIndex, Offset.Zero, size.width)
+                            drawSpriteInBox(animal.sprite, Offset.Zero, size.width)
                         }
                     }
                 }
                 Box(modifier = Modifier.width(14.dp))
                 Column {
                     Text(
-                        text = ANIMAL_NAMES.getOrElse(animalIndex) { "???" },
+                        text = animal.name,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = HeadingText

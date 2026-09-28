@@ -52,6 +52,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jeepark.onestep.data.model.Animal
+import com.jeepark.onestep.data.model.AnimalRegistry
 import com.jeepark.onestep.data.model.EXPAMOUNT
 import com.jeepark.onestep.data.model.MAX_TIER
 import com.jeepark.onestep.ui.components.flatShadow
@@ -64,7 +66,6 @@ import com.jeepark.onestep.ui.theme.MutedText
 import com.jeepark.onestep.ui.theme.PrimaryGreen
 import com.jeepark.onestep.ui.theme.SecondaryBackground
 import com.jeepark.onestep.ui.viewmodels.CollectionViewModel
-import com.jeepark.onestep.util.ANIMAL_NAMES
 import com.jeepark.onestep.util.PixelAnimalRenderer
 import com.jeepark.onestep.util.findAnimalUnlockDate
 
@@ -85,8 +86,9 @@ fun CollectionScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     // 기본값: 가장 최근에 해금된 동물. 사용자가 직접 고르면 그 선택을 유지한다.
-    var manuallySelected by remember { mutableStateOf<Int?>(null) }
-    val selectedIndex = manuallySelected ?: unlockedAnimals.maxOrNull() ?: 0
+    var manuallySelectedId by remember { mutableStateOf<String?>(null) }
+    val selectedAnimal: Animal? =
+        manuallySelectedId?.let { AnimalRegistry.get(it) } ?: AnimalRegistry.latestUnlocked(tier)
 
     LaunchedEffect(loadError) {
         if (loadError != null) {
@@ -129,8 +131,8 @@ fun CollectionScreen(
 
                 AnimalGrid(
                     unlockedAnimals = unlockedAnimals,
-                    selectedIndex   = selectedIndex,
-                    onSelect        = { manuallySelected = it },
+                    selectedId      = selectedAnimal?.id,
+                    onSelect        = { manuallySelectedId = it.id },
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth()
@@ -138,11 +140,13 @@ fun CollectionScreen(
 
                 Spacer(Modifier.height(14.dp))
 
-                AnimalProfileCard(
-                    animalIndex  = selectedIndex,
-                    metDateLabel = findAnimalUnlockDate(selectedIndex, completedQuests, user?.agreedAt) ?: "-",
-                    modifier     = Modifier.padding(horizontal = 16.dp)
-                )
+                selectedAnimal?.let { animal ->
+                    AnimalProfileCard(
+                        animal       = animal,
+                        metDateLabel = findAnimalUnlockDate(animal, completedQuests, user?.agreedAt) ?: "-",
+                        modifier     = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
 
                 Spacer(Modifier.height(24.dp))   // 하단 여백
             }
@@ -257,12 +261,13 @@ private fun CollectionHeader(
 
 @Composable
 private fun AnimalGrid(
-    unlockedAnimals: List<Int>,
-    selectedIndex: Int,
-    onSelect: (Int) -> Unit,
+    unlockedAnimals: List<Animal>,
+    selectedId: String?,
+    onSelect: (Animal) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val allAnimals = ANIMAL_NAMES.indices.toList()
+    val allAnimals = AnimalRegistry.all
+    val unlockedIds = unlockedAnimals.map { it.id }.toSet()
 
     LazyVerticalGrid(
         columns            = GridCells.Fixed(4),
@@ -272,20 +277,20 @@ private fun AnimalGrid(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         userScrollEnabled  = false
     ) {
-        items(allAnimals) { index ->
-            val unlocked = index in unlockedAnimals
+        items(allAnimals) { animal ->
+            val unlocked = animal.id in unlockedIds
             AnimalCard(
-                index    = index,
+                animal   = animal,
                 unlocked = unlocked,
-                selected = unlocked && index == selectedIndex,
-                onClick  = { onSelect(index) }
+                selected = unlocked && animal.id == selectedId,
+                onClick  = { onSelect(animal) }
             )
         }
     }
 }
 
 @Composable
-private fun AnimalCard(index: Int, unlocked: Boolean, selected: Boolean, onClick: () -> Unit) {
+private fun AnimalCard(animal: Animal, unlocked: Boolean, selected: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(14.dp)
     Box(
         modifier = Modifier
@@ -308,7 +313,7 @@ private fun AnimalCard(index: Int, unlocked: Boolean, selected: Boolean, onClick
                 if (unlocked) {
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         with(PixelAnimalRenderer) {
-                            drawAnimalInBox(index, Offset.Zero, size.width)
+                            drawSpriteInBox(animal.sprite, Offset.Zero, size.width)
                         }
                     }
                 } else {
@@ -322,7 +327,7 @@ private fun AnimalCard(index: Int, unlocked: Boolean, selected: Boolean, onClick
             }
             Spacer(Modifier.height(2.dp))
             Text(
-                text     = if (unlocked) ANIMAL_NAMES[index] else "???",
+                text     = if (unlocked) animal.name else "???",
                 fontSize = 10.sp,
                 color    = if (unlocked) HeadingText else MutedText
             )
