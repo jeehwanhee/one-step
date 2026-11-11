@@ -1,7 +1,5 @@
 package com.jeepark.onestep.domain.rules
 
-import com.jeepark.onestep.domain.model.DailyQuota
-import com.jeepark.onestep.domain.model.PrevQuest
 import com.jeepark.onestep.domain.model.Quest
 import com.jeepark.onestep.domain.model.User
 import com.jeepark.onestep.domain.model.dailyQuota
@@ -20,12 +18,6 @@ class QuestRulesTest {
     fun `오늘 20개면 한도에 도달한다`() {
         val user = User(dailyQuestDate = today, dailyQuestCount = DAILY_QUEST_LIMIT)
         assertTrue(hasReachedDailyLimit(user.dailyQuota(), today))
-    }
-
-    @Test
-    fun `날짜가 바뀌면 카운트를 1로 되돌리고 같은 날이면 하나 늘린다`() {
-        assertEquals(DailyQuota(today, 1), incrementedDailyCount(DailyQuota("2026-09-27", 20), today))
-        assertEquals(DailyQuota(today, 4), incrementedDailyCount(DailyQuota(today, 3), today))
     }
 
     // ===== 퀘스트 완료 계산 =====
@@ -61,21 +53,5 @@ class QuestRulesTest {
         assertEquals(setOf(
             "questName", "questEXP", "difficulty", "confirmQuestion", "confirmAnswer", "doneDate"
         ), map.keys)
-    }
-
-    @Test
-    fun `완료 결과를 사용자에 적용하면 기록이 추가되고 카운트가 오른다`() {
-        val existing = PrevQuest(questName = "이전 퀘스트")
-        val user = User(nickname = "테스터", prevQuests = listOf(existing), questsSinceAssessment = 4, isolatedCount = 4)
-        val completion = computeQuestCompletion(user.progression(), quest, "답", "2026.09.28 10:00:00")
-
-        val updated = completion.applyTo(user)
-
-        assertEquals(2, updated.prevQuests.size)
-        assertEquals(completion.prevQuest, updated.prevQuests.last())
-        assertEquals(5, updated.questsSinceAssessment)
-        assertEquals(4, updated.isolatedCount) // 레거시 필드는 건드리지 않는다
-        assertEquals(completion.newTier, updated.tier)
-        assertEquals("테스터", updated.nickname) // 관련 없는 필드는 그대로
     }
 }

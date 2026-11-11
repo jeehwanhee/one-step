@@ -4,6 +4,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.firestore
+import com.google.firebase.firestore.snapshots
 import com.jeepark.onestep.domain.model.FirestorePaths
 import com.jeepark.onestep.domain.model.Gender
 import com.jeepark.onestep.domain.model.InitQuestions
@@ -11,6 +12,11 @@ import com.jeepark.onestep.domain.model.IsolatedRecordFields
 import com.jeepark.onestep.domain.model.User
 import com.jeepark.onestep.domain.model.UserFields
 import com.jeepark.onestep.domain.service.isolationScore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.filterNot
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 
 class UserRepositoryImpl(private val auth: AuthRepository) : UserRepository {
@@ -39,6 +45,16 @@ class UserRepositoryImpl(private val auth: AuthRepository) : UserRepository {
         val uid = requireUid()
         val document = userDoc(uid).get().await()
         document.toObject(User::class.java) ?: throw Exception("User null")
+    }
+
+    override fun observeUser(): Flow<User> = flow {
+        val uid = requireUid()
+        emitAll(
+            userDoc(uid).snapshots()
+                // 계정 삭제 중에는 문서가 서버 확인 전에 먼저 사라진다. 삭제가 거절되면 되살아나므로 구독을 끝내지 않는다.
+                .filterNot { !it.exists() && it.metadata.hasPendingWrites() }
+                .map { snapshot -> snapshot.toObject(User::class.java) ?: throw IllegalStateException("User null") }
+        )
     }
 
     override suspend fun saveInitQuestions(data: InitQuestions): Result<Unit> = suspendRunCatching {

@@ -3,6 +3,7 @@ package com.jeepark.onestep.data.repository
 import com.jeepark.onestep.domain.model.Gender
 import com.jeepark.onestep.domain.model.InitQuestions
 import com.jeepark.onestep.domain.model.User
+import kotlinx.coroutines.flow.Flow
 
 /**
  * 사용자 데이터 접근 인터페이스. ViewModel은 이 인터페이스에만 의존하고,
@@ -18,6 +19,13 @@ interface UserRepository {
 
     /** 로그인한 사용자의 문서. 로그인하지 않았거나 문서를 읽을 수 없으면 실패한다. */
     suspend fun getUser(): Result<User>
+
+    /**
+     * 로그인한 사용자 문서를 계속 지켜보며 바뀔 때마다 내보낸다. 화면들이 같은 사용자 상태를 보게 하는 단일 출처다.
+     * 이 기기에서 쓴 내용은 서버 확인 전에도(오프라인이어도) 바로 반영된다.
+     * 로그인하지 않았거나 문서가 없거나 읽을 수 없으면 예외로 끝난다.
+     */
+    fun observeUser(): Flow<User>
 
     /**
      * 고립도 설문 제출: 답변·고립도 점수·점수 이력을 저장하고 `questsSinceAssessment`를 0으로 되돌린다

@@ -18,11 +18,7 @@ const val RECENT_QUEUE_SIZE = 10
 fun hasReachedDailyLimit(quota: DailyQuota, today: String): Boolean =
     quota.date == today && quota.count >= DAILY_QUEST_LIMIT
 
-/** 같은 날이면 카운트 +1, 날짜가 바뀌었으면 오늘로 바꾸고 1로 리셋한 값을 반환. */
-fun incrementedDailyCount(quota: DailyQuota, today: String): DailyQuota =
-    if (quota.date == today) quota.copy(count = quota.count + 1) else DailyQuota(date = today, count = 1)
-
-/** 퀘스트 완료 시 계산된 결과 묶음. Firestore 저장용 Map과 로컬 사용자 갱신을 모두 제공한다. */
+/** 퀘스트 완료 시 계산된 결과 묶음. 저장소에 넘길 값과 Firestore 저장용 완료 기록 Map을 제공한다. */
 data class QuestCompletion(
     val newProgress: Int,
     val newTier: Int,
@@ -39,21 +35,9 @@ data class QuestCompletion(
         PrevQuestFields.CONFIRM_ANSWER   to prevQuest.confirmAnswer,
         PrevQuestFields.DONE_DATE        to prevQuest.doneDate,
     )
-
-    fun applyTo(user: User): User = user.copy(
-        progress              = newProgress,
-        tier                  = newTier,
-        difficultyQueue       = newDifficultyQueue,
-        questResultsQueue     = newResultsQueue,
-        prevQuests            = user.prevQuests + prevQuest,
-        questsSinceAssessment = user.questsSinceAssessment + 1,
-    )
 }
 
-/**
- * 퀘스트 완료 후의 진행도·티어·최근 큐·완료 기록을 계산한다.
- * [doneDate]를 한 번만 받아 Firestore용 Map과 로컬 기록이 항상 같은 시각을 쓰도록 한다.
- */
+/** 퀘스트 완료 후의 진행도·티어·최근 큐·완료 기록을 계산한다. */
 fun computeQuestCompletion(
     progression: Progression,
     quest: Quest,

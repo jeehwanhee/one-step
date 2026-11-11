@@ -109,8 +109,9 @@ fun MainScreen(
     }
 
     // 설문 후 퀘스트 10개를 채우면 재설문으로 이동. 카운트 리셋은 설문 제출(저장소)에서 한 번에 처리된다.
-    LaunchedEffect(user) {
-        if (user?.let { needsAssessment(it.assessmentState()) } == true) onNavigateToInitQuestion()
+    // 완료 기록은 저장 확인 전에 사용자 상태로 먼저 돌아오므로, 저장이 끝난 뒤(완료 처리·티어업 안내 후)에 이동한다.
+    LaunchedEffect(user, isSavingQuest) {
+        if (!isSavingQuest && user?.let { needsAssessment(it.assessmentState()) } == true) onNavigateToInitQuestion()
     }
 
     Box(modifier = modifier.fillMaxSize().background(CreamBackground)) {

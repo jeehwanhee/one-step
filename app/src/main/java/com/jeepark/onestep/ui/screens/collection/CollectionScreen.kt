@@ -9,7 +9,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -18,9 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -136,7 +132,7 @@ fun CollectionScreen(
                         .fillMaxWidth()
                 )
 
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(20.dp))
 
                 selectedAnimal?.let { animal ->
                     AnimalProfileCard(
@@ -264,28 +260,34 @@ private fun AnimalGrid(
     onSelect: (Animal) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val allAnimals = AnimalRegistry.all
     val unlockedIds = unlockedAnimals.map { it.id }.toSet()
 
-    LazyVerticalGrid(
-        columns            = GridCells.Fixed(4),
-        modifier           = modifier.height((((allAnimals.size + 3) / 4) * 88).dp),
-        contentPadding     = PaddingValues(4.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        userScrollEnabled  = false
+    // 카드는 화면 폭에 맞춰 커지는 정사각형이라 높이를 고정하면 넓은 화면에서 아랫줄이 잘린다. 내용 높이를 그대로 쓴다.
+    Column(
+        modifier            = modifier.padding(4.dp),
+        verticalArrangement = Arrangement.spacedBy(GRID_SPACING)
     ) {
-        items(allAnimals) { animal ->
-            val unlocked = animal.id in unlockedIds
-            AnimalCard(
-                animal   = animal,
-                unlocked = unlocked,
-                selected = unlocked && animal.id == selectedId,
-                onClick  = { onSelect(animal) }
-            )
+        AnimalRegistry.all.chunked(GRID_COLUMNS).forEach { rowAnimals ->
+            Row(horizontalArrangement = Arrangement.spacedBy(GRID_SPACING)) {
+                rowAnimals.forEach { animal ->
+                    val unlocked = animal.id in unlockedIds
+                    Box(Modifier.weight(1f)) {
+                        AnimalCard(
+                            animal   = animal,
+                            unlocked = unlocked,
+                            selected = unlocked && animal.id == selectedId,
+                            onClick  = { onSelect(animal) }
+                        )
+                    }
+                }
+                repeat(GRID_COLUMNS - rowAnimals.size) { Spacer(Modifier.weight(1f)) }
+            }
         }
     }
 }
+
+private const val GRID_COLUMNS = 4
+private val GRID_SPACING = 6.dp
 
 @Composable
 private fun AnimalCard(animal: Animal, unlocked: Boolean, selected: Boolean, onClick: () -> Unit) {

@@ -11,9 +11,11 @@ import com.jeepark.onestep.domain.model.User
 import com.jeepark.onestep.oneStepApp
 import com.jeepark.onestep.ui.animal.Animal
 import com.jeepark.onestep.ui.animal.AnimalRegistry
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
 class CollectionViewModel(
@@ -32,24 +34,27 @@ class CollectionViewModel(
     private val _loadError = MutableStateFlow<String?>(null)
     val loadError: StateFlow<String?> = _loadError.asStateFlow()
 
+    private var userJob: Job? = null
+
     init {
         loadUser()
     }
 
+    /** 사용자 문서 구독을 (다시) 시작한다. 탭을 오가도 이 ViewModel이 남아 있으므로 한 번 읽기로는 갱신이 안 된다. */
     fun loadUser() {
         _loadError.value = null
-        viewModelScope.launch {
-            repo.getUser().fold(
-                onSuccess = { user ->
-                    _user.value = user
-                    _completedQuests.value = user.prevQuests.sortedByDescending { it.doneDate }
-                    _unlockedAnimals.value = AnimalRegistry.unlockedAt(user.tier)
-                },
-                onFailure = { e ->
+        userJob?.cancel()
+        userJob = viewModelScope.launch {
+            repo.observeUser()
+                .catch { e ->
                     android.util.Log.e("CollectionVM", "사용자 정보 로드 실패", e)
                     _loadError.value = e.message ?: "정보를 불러오지 못했어요"
                 }
-            )
+                .collect { user ->
+                    _user.value = user
+                    _completedQuests.value = user.prevQuests.sortedByDescending { it.doneDate }
+                    _unlockedAnimals.value = AnimalRegistry.unlockedAt(user.tier)
+                }
         }
     }
 

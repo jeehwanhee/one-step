@@ -15,8 +15,8 @@ android {
         applicationId = "com.jeepark.onestep"
         minSdk = 28
         targetSdk = 36
-        versionCode = 12
-        versionName = "2.0"
+        versionCode = 13
+        versionName = "3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
