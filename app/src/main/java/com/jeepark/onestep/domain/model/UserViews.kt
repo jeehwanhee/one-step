@@ -21,9 +21,6 @@ data class Progression(
 
 fun User.dailyQuota(): DailyQuota = DailyQuota(date = dailyQuestDate, count = dailyQuestCount)
 
-fun User.withDailyQuota(quota: DailyQuota): User =
-    copy(dailyQuestDate = quota.date, dailyQuestCount = quota.count)
-
 fun User.assessmentState(): AssessmentState =
     AssessmentState(hasAssessed = isolatedHistory.isNotEmpty(), questsSinceAssessment = questsSinceAssessment)
 
