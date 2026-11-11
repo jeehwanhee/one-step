@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,25 +50,26 @@ internal fun SpeechBubble(
     alpha: () -> Float,
     slideY: () -> Float,
 ) {
-    var bubbleWidthPx by remember { mutableStateOf(0) }
+    var bubbleSize by remember { mutableStateOf(IntSize.Zero) }
     val shape = remember { SpeechBubbleShape() }
 
     Box(
         modifier = Modifier
             .offset {
                 val edge = 8.dp.toPx().toInt()
-                val halfW = bubbleWidthPx / 2
-                val maxX  = (containerWidthPx.toInt() - bubbleWidthPx - edge).coerceAtLeast(edge)
+                val halfW = bubbleSize.width / 2
+                val maxX  = (containerWidthPx.toInt() - bubbleSize.width - edge).coerceAtLeast(edge)
                 val rawX  = anchorCenterX.toInt() - halfW
-                val rawY  = (anchorTopY - 70.dp.toPx() + slideY()).toInt()
+                // 실제 높이 기준으로 띄운다: 글꼴이 커지거나 대사가 두 줄이 되어도 동물을 가리지 않는다
+                val rawY  = (anchorTopY - bubbleSize.height - BUBBLE_GAP.toPx() + slideY()).toInt()
                 IntOffset(
                     // 너비를 재기 전에는 화면 밖에 두어 잘못된 위치가 깜빡이지 않게 한다
-                    x = if (bubbleWidthPx == 0) -9999 else rawX.coerceIn(edge, maxX),
+                    x = if (bubbleSize.width == 0) -9999 else rawX.coerceIn(edge, maxX),
                     y = rawY.coerceAtLeast(edge)
                 )
             }
             .alpha(alpha())
-            .onSizeChanged { bubbleWidthPx = it.width }
+            .onSizeChanged { bubbleSize = it }
             .shadow(elevation = 6.dp, shape = shape)
             .clip(shape)
             .background(Color.White)
@@ -81,6 +83,8 @@ internal fun SpeechBubble(
         )
     }
 }
+
+private val BUBBLE_GAP = 16.dp
 
 // 말풍선 모양 (아래쪽 꼬리 포함)
 private class SpeechBubbleShape(

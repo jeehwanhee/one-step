@@ -2,7 +2,7 @@ package com.jeepark.onestep.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -31,8 +31,7 @@ fun BottomButton (
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier
-            .fillMaxSize(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(10.dp),
         border = BorderStroke(borderWidth.dp, borderColor),
         colors = ButtonDefaults.buttonColors(

@@ -6,9 +6,8 @@ import android.R.attr.text
 import android.view.View
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,15 +37,12 @@ fun SelectButton(
     isSelectedLeft: Boolean = true,
 
 ) {
-    Row (modifier = modifier
-        .fillMaxWidth()
-        .height(69.dp)
-    ) {
+    Row(modifier = modifier.fillMaxWidth()) {
         Button(
             onClick = leftOnClick,
             modifier = Modifier
                 .weight(1f)
-                .fillMaxHeight(),
+                .heightIn(min = 69.dp),
             shape = RoundedCornerShape(0.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = if (isSelectedLeft) PrimaryGreen else SecondaryBackground,
@@ -64,7 +60,7 @@ fun SelectButton(
             onClick = rightOnClick,
             modifier = Modifier
                 .weight(1f)
-                .fillMaxHeight(),
+                .heightIn(min = 69.dp),
             shape = RoundedCornerShape(0.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = if (!isSelectedLeft) PrimaryGreen else SecondaryBackground,

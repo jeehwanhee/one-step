@@ -1,5 +1,9 @@
 package com.jeepark.onestep.ui.components.dialogs
 
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -10,7 +14,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -46,6 +49,7 @@ import com.jeepark.onestep.ui.theme.SecondaryBorder
 
 // ===== 퀘스트 조건 다이얼로그 =====
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun QuestInputDialog(
     isLoading: Boolean,
@@ -67,7 +71,9 @@ fun QuestInputDialog(
             cornerRadius = 22.dp
         ) {
             Column(
-                modifier = Modifier.padding(horizontal = 18.dp, vertical = 22.dp),
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 18.dp, vertical = 22.dp),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
                 Text(
@@ -81,9 +87,11 @@ fun QuestInputDialog(
                 // 기분 섹션
                 Text("지금 기분", fontSize = 10.sp, color = MutedText, letterSpacing = 1.2.sp,
                     modifier = Modifier.padding(bottom = 7.dp))
-                Row(
+                // 글꼴이 크거나 화면이 좁으면 칩이 다음 줄로 넘어간다
+                FlowRow(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Mood.entries.forEach { mood ->
                         MoodChip(mood.label(), selectedMood == mood) { if (!isLoading) selectedMood = mood }

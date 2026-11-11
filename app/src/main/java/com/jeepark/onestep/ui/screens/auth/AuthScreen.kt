@@ -1,5 +1,7 @@
 package com.jeepark.onestep.ui.screens.auth
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -63,20 +65,22 @@ fun AuthScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        // 하단 카드가 공원 배경과 겹치는 높이. 제목은 카드 윗변 기준으로 띄워야 카드에 가려지지 않는다
+        val cardOverlap = maxHeight * (PARK_HEIGHT_FRACTION - (1f - CARD_HEIGHT_FRACTION))
 
-        // 상단 공원 배경 (화면의 55%)
+        // 상단 공원 배경
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.55f)
+                .fillMaxHeight(PARK_HEIGHT_FRACTION)
         ) {
             ParkBackground(tier = 0)
 
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start = 36.dp, bottom = 28.dp)
+                    .padding(start = 36.dp, bottom = 28.dp + cardOverlap)
             ) {
                 Text(
                     text       = "한걸음,",
@@ -98,7 +102,7 @@ fun AuthScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .fillMaxHeight(0.52f),
+                .fillMaxHeight(CARD_HEIGHT_FRACTION),
             shape  = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
             colors = CardDefaults.cardColors(containerColor = CreamBackground),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
@@ -127,7 +131,7 @@ fun AuthScreen(
                 BottomButton(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(54.dp),
+                        .heightIn(min = 54.dp),
                     text = "Google 로그인",
                     onClick = { googleSignInLauncher.launch(screenModel.googleSignInIntent()) },
                     textColor = HeadingText,
@@ -144,3 +148,6 @@ fun AuthScreen(
         )
     }
 }
+
+private const val PARK_HEIGHT_FRACTION = 0.55f
+private const val CARD_HEIGHT_FRACTION = 0.52f

@@ -1,5 +1,7 @@
 package com.jeepark.onestep.ui.screens.collection
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -11,7 +13,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -292,45 +293,49 @@ private val GRID_SPACING = 6.dp
 @Composable
 private fun AnimalCard(animal: Animal, unlocked: Boolean, selected: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(14.dp)
-    Box(
-        modifier = Modifier
-            .aspectRatio(1f)
-            .let { if (unlocked) it.flatShadow(shape = shape, color = SecondaryBackground, offset = 2.dp) else it }
-            .clip(shape)
-            .background(if (unlocked) CreamSurface else SecondaryBackground.copy(alpha = 0.5f))
-            .let { if (selected) it.border(2.dp, PrimaryGreen, shape) else it }
-            .clickable(enabled = unlocked, onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+    // 기본은 정사각형, 글꼴이 커서 이름이 들어가지 않으면 세로로 늘어난다
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = maxWidth)
+                .let { if (unlocked) it.flatShadow(shape = shape, color = SecondaryBackground, offset = 2.dp) else it }
+                .clip(shape)
+                .background(if (unlocked) CreamSurface else SecondaryBackground.copy(alpha = 0.5f))
+                .let { if (selected) it.border(2.dp, PrimaryGreen, shape) else it }
+                .clickable(enabled = unlocked, onClick = onClick),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier          = Modifier.size(36.dp),
-                contentAlignment  = Alignment.Center
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                if (unlocked) {
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        with(PixelAnimalRenderer) {
-                            drawSpriteInBox(animal.sprite, Offset.Zero, size.width)
+                Box(
+                    modifier          = Modifier.size(36.dp),
+                    contentAlignment  = Alignment.Center
+                ) {
+                    if (unlocked) {
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            with(PixelAnimalRenderer) {
+                                drawSpriteInBox(animal.sprite, Offset.Zero, size.width)
+                            }
                         }
+                    } else {
+                        Icon(
+                            imageVector = Icons.Outlined.Lock,
+                            contentDescription = "잠금",
+                            tint = MutedText,
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
-                } else {
-                    Icon(
-                        imageVector = Icons.Outlined.Lock,
-                        contentDescription = "잠금",
-                        tint = MutedText,
-                        modifier = Modifier.size(24.dp)
-                    )
                 }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text     = if (unlocked) animal.name else "???",
+                    fontSize = 10.sp,
+                    color    = if (unlocked) HeadingText else MutedText
+                )
             }
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text     = if (unlocked) animal.name else "???",
-                fontSize = 10.sp,
-                color    = if (unlocked) HeadingText else MutedText
-            )
         }
     }
 }

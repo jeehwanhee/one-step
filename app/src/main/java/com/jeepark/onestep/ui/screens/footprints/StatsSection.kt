@@ -1,5 +1,6 @@
 package com.jeepark.onestep.ui.screens.footprints
 
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -75,13 +76,16 @@ private fun StatRow(label: String, value: String) {
         Text(
             text     = label,
             fontSize = 13.sp,
-            color    = Color(0xFF6A6058)
+            color    = Color(0xFF6A6058),
+            modifier = Modifier.weight(1f)
         )
         Text(
             text       = value,
             fontSize   = 14.sp,
             fontWeight = FontWeight.SemiBold,
-            color      = Color(0xFF2A2A2A)
+            color      = Color(0xFF2A2A2A),
+            textAlign  = TextAlign.End,
+            modifier   = Modifier.weight(1f)
         )
     }
 }

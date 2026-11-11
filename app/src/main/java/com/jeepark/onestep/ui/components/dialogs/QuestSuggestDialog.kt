@@ -1,5 +1,7 @@
 package com.jeepark.onestep.ui.components.dialogs
 
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
@@ -58,7 +60,9 @@ fun QuestSuggestDialog(
             cornerRadius = 22.dp
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(quest.questName, fontSize = 17.sp, fontWeight = FontWeight.Medium, color = HeadingText, lineHeight = 24.sp,

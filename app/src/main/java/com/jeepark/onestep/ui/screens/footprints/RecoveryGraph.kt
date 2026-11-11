@@ -84,22 +84,23 @@ fun RecoveryGraph(
                 }
             } else {
                 Canvas(modifier = Modifier.fillMaxWidth().height(140.dp)) {
-                    val padL = 4f
-                    val padR = 4f
-                    val padT = 8f
-                    val padB = 8f
+                    // 기기 해상도와 상관없이 같은 굵기로 보이도록 dp 기준
+                    val padL = 2.dp.toPx()
+                    val padR = 2.dp.toPx()
+                    val padT = 4.dp.toPx()
+                    val padB = 4.dp.toPx()
                     val w = size.width  - padL - padR
                     val h = size.height - padT - padB
 
                     // 가이드라인 (0/50/100)
-                    val dash = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
+                    val dash = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 3.dp.toPx()), 0f)
                     listOf(0f, 0.5f, 1f).forEach { f ->
                         val y = padT + h * f
                         drawLine(
                             color       = GRAPH_GRID,
                             start       = Offset(padL, y),
                             end         = Offset(padL + w, y),
-                            strokeWidth = 1.5f,
+                            strokeWidth = 0.6.dp.toPx(),
                             pathEffect  = dash
                         )
                     }
@@ -129,13 +130,13 @@ fun RecoveryGraph(
                     drawPath(
                         path  = linePath,
                         color = GRAPH_LINE,
-                        style = Stroke(width = 4f)
+                        style = Stroke(width = 1.5.dp.toPx())
                     )
 
                     // 점
                     points.forEach { p ->
-                        drawCircle(color = Color.White, radius = 5f, center = p)
-                        drawCircle(color = GRAPH_DOT,   radius = 3.5f, center = p)
+                        drawCircle(color = Color.White, radius = 2.dp.toPx(), center = p)
+                        drawCircle(color = GRAPH_DOT,   radius = 1.4.dp.toPx(), center = p)
                     }
                 }
             }

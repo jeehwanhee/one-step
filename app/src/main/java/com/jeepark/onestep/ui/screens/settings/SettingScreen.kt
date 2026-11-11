@@ -220,7 +220,7 @@ private fun SwitchRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment     = Alignment.CenterVertically
     ) {
-        Text(text = label, fontSize = 15.sp, color = Color(0xFF2A2A2A))
+        Text(text = label, fontSize = 15.sp, color = Color(0xFF2A2A2A), modifier = Modifier.weight(1f))
         Switch(
             checked         = checked,
             onCheckedChange = onCheckedChange,
@@ -248,7 +248,7 @@ private fun ArrowRow(label: String, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment     = Alignment.CenterVertically
     ) {
-        Text(text = label, fontSize = 15.sp, color = Color(0xFF2A2A2A))
+        Text(text = label, fontSize = 15.sp, color = Color(0xFF2A2A2A), modifier = Modifier.weight(1f))
         Icon(
             imageVector        = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,

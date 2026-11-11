@@ -1,7 +1,7 @@
 package com.jeepark.onestep.ui.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -44,7 +44,7 @@ fun TextInput(
         },
         modifier = modifier
             .fillMaxWidth()
-            .height(60.dp),
+            .heightIn(min = 60.dp),
         textStyle = text_Bold_28,
         colors = TextFieldDefaults.colors(
             focusedContainerColor = Color.Transparent,

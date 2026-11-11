@@ -1,5 +1,10 @@
 package com.jeepark.onestep.ui.screens.signup
 
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -77,105 +82,127 @@ fun SignupScreen(
         null                            -> ""
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(CreamBackground)) {
-
-        // 상단 그린 헤더
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp)
-        ) {
-            ParkBackground(tier = 0, modifier = Modifier.fillMaxSize())
-
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(start = 28.dp, bottom = 20.dp)
-            ) {
-                Text(
-                    text       = "프로필 만들기",
-                    fontSize   = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color      = Color.White
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text     = "나에 대해 알려주세요.",
-                    fontSize = 13.sp,
-                    color    = Color.White.copy(alpha = 0.85f)
-                )
-            }
-        }
-
-        // 콘텐츠 영역
+    // 화면이 작거나 글꼴이 커서 넘치면 스크롤된다. 공간이 남으면 약관·버튼은 지금처럼 아래에 붙는다
+    // (스크롤 내용의 최소 높이를 화면 높이로 두면 weight 여백이 남은 공간을 차지하고, 넘치면 0이 된다).
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(CreamBackground)
+            .imePadding()
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 200.dp, start = 28.dp, end = 28.dp, bottom = 24.dp),
-            horizontalAlignment = Alignment.Start
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .heightIn(min = maxHeight),
         ) {
-            InputWithWarning(
-                inputComp = {
-                    TextInput(
-                        placeholder   = "닉네임",
-                        onValueChange = vm::onNicknameChange,
-                        text          = state.nickname,
+            // 상단 그린 헤더
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+            ) {
+                ParkBackground(tier = 0, modifier = Modifier.fillMaxSize())
+
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 28.dp, bottom = 20.dp)
+                ) {
+                    Text(
+                        text       = "프로필 만들기",
+                        fontSize   = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color      = Color.White
                     )
-                },
-                warningText = warning
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            if (state.showAgeField) {
-                TextInput(
-                    isDigit       = true,
-                    placeholder   = "나이",
-                    onValueChange = vm::onAgeChange,
-                    text          = state.age?.toString() ?: "",
-                )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text     = "나에 대해 알려주세요.",
+                        fontSize = 13.sp,
+                        color    = Color.White.copy(alpha = 0.85f)
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            if (state.showGenderField) {
-                SelectButton(
-                    leftText     = "남자",
-                    rightText    = "여자",
-                    leftOnClick  = { vm.onGenderSelected(Gender.MALE) },
-                    rightOnClick = { vm.onGenderSelected(Gender.FEMALE) },
-                    isSelectedLeft = state.gender == Gender.MALE
+            // 입력 영역
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 20.dp, start = 28.dp, end = 28.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                InputWithWarning(
+                    inputComp = {
+                        TextInput(
+                            placeholder   = "닉네임",
+                            onValueChange = vm::onNicknameChange,
+                            text          = state.nickname,
+                        )
+                    },
+                    warningText = warning
                 )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (state.showAgeField) {
+                    TextInput(
+                        isDigit       = true,
+                        placeholder   = "나이",
+                        onValueChange = vm::onAgeChange,
+                        text          = state.age?.toString() ?: "",
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                if (state.showGenderField) {
+                    SelectButton(
+                        leftText     = "남자",
+                        rightText    = "여자",
+                        leftOnClick  = { vm.onGenderSelected(Gender.MALE) },
+                        rightOnClick = { vm.onGenderSelected(Gender.FEMALE) },
+                        isSelectedLeft = state.gender == Gender.MALE
+                    )
+                }
+
             }
 
             Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // 약관 동의
-            ConsentRow(
-                checked  = state.agreeTerms,
-                onToggle = vm::onTermsToggled,
-                label    = "이용약관",
-                url      = "https://marmalade-locket-e42.notion.site/33c74db951cd80249c4dc61ed6817ba6?source=copy_link",
-                context  = context
-            )
-            Spacer(Modifier.height(8.dp))
-            ConsentRow(
-                checked  = state.agreePrivacy,
-                onToggle = vm::onPrivacyToggled,
-                label    = "개인정보 처리방침",
-                url      = "https://marmalade-locket-e42.notion.site/33c74db951cd8022a9c2f5d195d648b7?source=copy_link",
-                context  = context
-            )
-            Spacer(Modifier.height(16.dp))
-
-            BottomButton(
+            // 약관 동의 + 가입 버튼
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(54.dp),
-                text    = "프로필 만들기",
-                onClick = vm::submit,
-                enabled = state.canSubmit,
-            )
+                    .padding(start = 28.dp, end = 28.dp, bottom = 24.dp)
+            ) {
+                // 약관 동의
+                ConsentRow(
+                    checked  = state.agreeTerms,
+                    onToggle = vm::onTermsToggled,
+                    label    = "이용약관",
+                    url      = "https://marmalade-locket-e42.notion.site/33c74db951cd80249c4dc61ed6817ba6?source=copy_link",
+                    context  = context
+                )
+                Spacer(Modifier.height(8.dp))
+                ConsentRow(
+                    checked  = state.agreePrivacy,
+                    onToggle = vm::onPrivacyToggled,
+                    label    = "개인정보 처리방침",
+                    url      = "https://marmalade-locket-e42.notion.site/33c74db951cd8022a9c2f5d195d648b7?source=copy_link",
+                    context  = context
+                )
+                Spacer(Modifier.height(16.dp))
+
+                BottomButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 54.dp),
+                    text    = "프로필 만들기",
+                    onClick = vm::submit,
+                    enabled = state.canSubmit,
+                )
+            }
         }
     }
 }

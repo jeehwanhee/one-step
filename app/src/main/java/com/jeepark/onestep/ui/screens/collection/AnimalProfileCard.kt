@@ -1,5 +1,6 @@
 package com.jeepark.onestep.ui.screens.collection
 
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -93,7 +94,14 @@ private fun ProfileInfoRow(label: String, value: String) {
             .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(text = label, fontSize = 12.5.sp, color = MutedText)
-        Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = HeadingText)
+        Text(text = label, fontSize = 12.5.sp, color = MutedText, modifier = Modifier.weight(1f))
+        Text(
+            text = value,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = HeadingText,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f)
+        )
     }
 }

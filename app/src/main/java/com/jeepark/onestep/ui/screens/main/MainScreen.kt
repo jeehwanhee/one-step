@@ -114,28 +114,52 @@ fun MainScreen(
 
     Box(modifier = modifier.fillMaxSize().background(CreamBackground)) {
 
-        // ===== 공원: 좌우 여백은 버튼(16dp)보다 좁게, 아래는 퀘스트 버튼 영역(PARK_BOTTOM_INSET) 위에서 끝난다 =====
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 8.dp)
-                .padding(top = 76.dp, bottom = PARK_BOTTOM_INSET)
-                .clip(ParkShape)
-        ) {
-            ParkBackground(tier = tier, modifier = Modifier.fillMaxSize())
-        }
+        // 헤더(워드마크·설정) 아래에 공원. 헤더 높이는 글꼴 크기에 따라 늘어나고 공원은 그 아래에서 시작한다.
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "한걸음,",
+                    color = PrimaryGreen,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Default,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(
+                    onClick  = onNavigateToSetting,
+                    colors   = IconButtonDefaults.iconButtonColors(
+                        containerColor = CreamSurface,
+                        contentColor   = HeadingText
+                    ),
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                ) {
+                    Icon(
+                        imageVector        = Icons.Default.Menu,
+                        contentDescription = "설정",
+                        modifier           = Modifier.size(18.dp)
+                    )
+                }
+            }
 
-        // 워드마크
-        Text(
-            text = "한걸음,",
-            color = PrimaryGreen,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = FontFamily.Default,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(top = 32.dp, start = 20.dp)
-        )
+            // ===== 공원: 좌우 여백은 버튼(16dp)보다 좁게, 아래는 퀘스트 버튼 영역(PARK_BOTTOM_INSET) 위에서 끝난다 =====
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 8.dp)
+                    .padding(bottom = PARK_BOTTOM_INSET)
+                    .clip(ParkShape)
+            ) {
+                ParkBackground(tier = tier, modifier = Modifier.fillMaxSize())
+            }
+        }
 
         // 활성 퀘스트가 없을 때만 퀘스트 버튼 표시
         if (activeQuest == null) {
@@ -161,26 +185,6 @@ fun MainScreen(
                     onComplete = { showVerifyDialog = true }
                 )
             }
-        }
-
-        // 우상단 설정 버튼
-        IconButton(
-            onClick  = onNavigateToSetting,
-            colors   = IconButtonDefaults.iconButtonColors(
-                containerColor = CreamSurface,
-                contentColor   = HeadingText
-            ),
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 24.dp, end = 20.dp)
-                .size(40.dp)
-                .clip(CircleShape)
-        ) {
-            Icon(
-                imageVector        = Icons.Default.Menu,
-                contentDescription = "설정",
-                modifier           = Modifier.size(18.dp)
-            )
         }
 
         SnackbarHost(

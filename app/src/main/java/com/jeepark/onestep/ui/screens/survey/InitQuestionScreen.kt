@@ -1,5 +1,7 @@
 package com.jeepark.onestep.ui.screens.survey
 
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -79,7 +81,14 @@ fun InitQuestionScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(CreamBackground)) {
+    // 헤더 · 문항 · 하단 네비게이션을 세로로 쌓는다. 키보드가 올라오면 문항 영역만 줄어들고(스크롤),
+    // 다음 버튼은 항상 키보드 위에 남는다.
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(CreamBackground)
+            .imePadding()
+    ) {
 
         // 상단 공원 헤더
         Box(
@@ -114,20 +123,18 @@ fun InitQuestionScreen(
             progress          = { (state.currentPage + 1) / state.pageCount.toFloat() },
             modifier          = Modifier
                 .fillMaxWidth()
-                .height(4.dp)
-                .padding(top = 160.dp),
+                .height(4.dp),
             color             = PrimaryGreen,
             trackColor        = SecondaryBackground,
             strokeCap         = StrokeCap.Round
         )
 
-        // 콘텐츠
+        // 문항: 글꼴이 크거나 화면이 작아 넘치면 이 영역만 스크롤된다
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 164.dp)
-                .imePadding(),
-            verticalArrangement = Arrangement.Top
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
         ) {
             HorizontalPager(
                 state            = pagerState,
@@ -136,7 +143,6 @@ fun InitQuestionScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(220.dp)
                         .padding(horizontal = 28.dp)
                         .padding(top = 32.dp),
                     horizontalAlignment = Alignment.Start,
@@ -169,74 +175,72 @@ fun InitQuestionScreen(
                     )
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.weight(1f))
+        // 하단 네비게이션
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 28.dp, vertical = 20.dp)
+        ) {
+            if (state.canGoBack) {
+                PagerNavigationButton(
+                    icon      = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                    modifier  = Modifier.align(Alignment.CenterStart),
+                    onClick   = vm::goBack
+                )
+            }
 
-            // 하단 네비게이션
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 28.dp, vertical = 20.dp)
+            // 페이지 도트
+            Row(
+                modifier              = Modifier.align(Alignment.Center),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment     = Alignment.CenterVertically
             ) {
-                if (state.canGoBack) {
-                    PagerNavigationButton(
-                        icon      = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                        modifier  = Modifier.align(Alignment.CenterStart),
-                        onClick   = vm::goBack
+                repeat(state.pageCount) { i ->
+                    val isCurrent = state.currentPage == i
+                    Box(
+                        modifier = Modifier
+                            .size(if (isCurrent) 10.dp else 7.dp)
+                            .clip(CircleShape)
+                            .background(if (isCurrent) PrimaryGreen else SecondaryBorder)
                     )
                 }
+            }
 
-                // 페이지 도트
-                Row(
-                    modifier              = Modifier.align(Alignment.Center),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment     = Alignment.CenterVertically
-                ) {
-                    repeat(state.pageCount) { i ->
-                        val isCurrent = state.currentPage == i
-                        Box(
-                            modifier = Modifier
-                                .size(if (isCurrent) 10.dp else 7.dp)
-                                .clip(CircleShape)
-                                .background(if (isCurrent) PrimaryGreen else SecondaryBorder)
-                        )
-                    }
-                }
-
-                if (state.canGoNext) {
-                    if (!state.isLastPage) {
-                        PagerNavigationButton(
-                            icon     = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            modifier = Modifier.align(Alignment.CenterEnd),
-                            onClick  = vm::goNext
-                        )
-                    } else {
-                        TextButton(
-                            modifier = Modifier.align(Alignment.CenterEnd),
-                            enabled  = !state.isSubmitting,
-                            onClick  = vm::submit,
-                        ) {
-                            if (state.isSubmitting) {
-                                CircularProgressIndicator(
-                                    modifier    = Modifier.size(20.dp),
-                                    color       = PrimaryGreen,
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Text(
-                                    text       = "완료",
-                                    fontSize   = 16.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color      = PrimaryGreen
-                                )
-                            }
+            if (state.canGoNext) {
+                if (!state.isLastPage) {
+                    PagerNavigationButton(
+                        icon     = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        modifier = Modifier.align(Alignment.CenterEnd),
+                        onClick  = vm::goNext
+                    )
+                } else {
+                    TextButton(
+                        modifier = Modifier.align(Alignment.CenterEnd),
+                        enabled  = !state.isSubmitting,
+                        onClick  = vm::submit,
+                    ) {
+                        if (state.isSubmitting) {
+                            CircularProgressIndicator(
+                                modifier    = Modifier.size(20.dp),
+                                color       = PrimaryGreen,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text       = "완료",
+                                fontSize   = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color      = PrimaryGreen
+                            )
                         }
                     }
                 }
             }
-
-            Spacer(Modifier.height(12.dp))
         }
+
+        Spacer(Modifier.height(12.dp))
     }
 }
 

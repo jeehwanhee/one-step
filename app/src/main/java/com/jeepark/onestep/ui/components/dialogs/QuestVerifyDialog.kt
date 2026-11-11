@@ -1,5 +1,7 @@
 package com.jeepark.onestep.ui.components.dialogs
 
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -54,7 +56,9 @@ fun QuestVerifyDialog(
             cornerRadius = 22.dp
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text("퀘스트 완료 확인", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = HeadingText)
