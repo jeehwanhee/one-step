@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -30,11 +31,12 @@ fun PrimaryPillButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     minHeight: Dp = 58.dp,
+    shape: Shape = PillShape,
 ) {
     Button(
         onClick = onClick,
         enabled = enabled,
-        shape = PillShape,
+        shape = shape,
         elevation = ButtonDefaults.buttonElevation(
             defaultElevation = 0.dp,
             pressedElevation = 0.dp,
@@ -49,7 +51,7 @@ fun PrimaryPillButton(
         modifier = modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = minHeight)
-            .flatShadow(shape = PillShape, color = PrimaryGreenShadow)
+            .flatShadow(shape = shape, color = PrimaryGreenShadow)
     ) {
         Text(text = text, fontSize = 15.sp, fontWeight = FontWeight.Bold)
     }
@@ -63,11 +65,12 @@ fun SecondaryPillButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     minHeight: Dp = 58.dp,
+    shape: Shape = PillShape,
 ) {
     Button(
         onClick = onClick,
         enabled = enabled,
-        shape = PillShape,
+        shape = shape,
         elevation = ButtonDefaults.buttonElevation(
             defaultElevation = 0.dp,
             pressedElevation = 0.dp,

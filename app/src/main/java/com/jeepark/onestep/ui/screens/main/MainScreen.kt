@@ -53,14 +53,12 @@ import com.jeepark.onestep.ui.components.dialogs.GiveUpReasonDialog
 import com.jeepark.onestep.ui.components.dialogs.QuestInputDialog
 import com.jeepark.onestep.ui.components.dialogs.QuestSuggestDialog
 import com.jeepark.onestep.ui.components.dialogs.QuestVerifyDialog
-import com.jeepark.onestep.ui.components.flatShadow
 import com.jeepark.onestep.ui.park.ParkBackground
 import com.jeepark.onestep.ui.theme.AmberText
 import com.jeepark.onestep.ui.theme.CreamBackground
 import com.jeepark.onestep.ui.theme.CreamSurface
 import com.jeepark.onestep.ui.theme.HeadingText
 import com.jeepark.onestep.ui.theme.PrimaryGreen
-import com.jeepark.onestep.ui.theme.SecondaryBorder
 import kotlinx.coroutines.launch
 
 // ===== 메인 화면 =====
@@ -116,15 +114,13 @@ fun MainScreen(
 
     Box(modifier = modifier.fillMaxSize().background(CreamBackground)) {
 
-        // ===== 공원 스테이지 카드: 여백 + 라운드 코너 + 하드 섀도 =====
-        // 퀘스트 버튼/카드가 배경과 겹치지 않도록 아래 여백을 항상 넉넉히 둔다.
+        // ===== 공원: 좌우 여백은 버튼(16dp)보다 좁게, 아래는 퀘스트 버튼 영역(PARK_BOTTOM_INSET) 위에서 끝난다 =====
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp)
-                .padding(top = 76.dp, bottom = 96.dp)
-                .flatShadow(shape = RoundedCornerShape(44.dp), color = SecondaryBorder)
-                .clip(RoundedCornerShape(44.dp))
+                .padding(horizontal = 8.dp)
+                .padding(top = 76.dp, bottom = PARK_BOTTOM_INSET)
+                .clip(ParkShape)
         ) {
             ParkBackground(tier = tier, modifier = Modifier.fillMaxSize())
         }
@@ -287,6 +283,12 @@ fun MainScreen(
     }
 }
 
+private val ParkShape = RoundedCornerShape(24.dp)
+
+// 퀘스트 버튼(58dp + 아래 여백 22dp)과 그 위 여유 16dp
+private val PARK_BOTTOM_INSET = 96.dp
+private val MainButtonShape = RoundedCornerShape(16.dp)
+
 // ===== 하단 퀘스트 버튼 =====
 
 @Composable
@@ -294,7 +296,8 @@ private fun QuestButton(limitReached: Boolean, onClick: () -> Unit) {
     PrimaryPillButton(
         text = if (limitReached) "오늘은 여기까지, 내일 시도해 주세요" else "새 퀘스트 받기",
         onClick = onClick,
-        enabled = !limitReached
+        enabled = !limitReached,
+        shape = MainButtonShape
     )
 }
 
@@ -341,13 +344,15 @@ private fun ActiveQuestCard(
                     text = "포기",
                     onClick = onGiveUp,
                     modifier = Modifier.weight(1f),
-                    minHeight = 52.dp
+                    minHeight = 52.dp,
+                    shape = MainButtonShape
                 )
                 PrimaryPillButton(
                     text = "완료했어요",
                     onClick = onComplete,
                     modifier = Modifier.weight(2f),
-                    minHeight = 52.dp
+                    minHeight = 52.dp,
+                    shape = MainButtonShape
                 )
             }
         }

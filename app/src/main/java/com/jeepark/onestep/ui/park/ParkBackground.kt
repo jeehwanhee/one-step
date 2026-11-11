@@ -19,6 +19,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.jeepark.onestep.ui.animal.PixelAnimalRenderer
 import kotlinx.coroutines.delay
@@ -30,9 +31,13 @@ private val parkVariant = PARK_VARIANTS.indices.random()
 // ===== 공원 배경 Canvas =====
 // 장면 그리기는 ParkScenery.kt, 말풍선은 SpeechBubble.kt. 여기서는 동물 배치·탭·애니메이션 상태를 다룬다.
 
+/**
+ * @param bottomInset 아래쪽에서 버튼 등이 덮는 높이. 장면과 동물은 이 위쪽에만 배치하고, 이 영역은 잔디만 이어진다.
+ */
 @Composable
-internal fun ParkBackground(tier: Int, modifier: Modifier = Modifier) {
+internal fun ParkBackground(tier: Int, modifier: Modifier = Modifier, bottomInset: Dp = 0.dp) {
     val density = LocalDensity.current
+    val insetPx = with(density) { bottomInset.toPx() }
     val animals = remember(tier) { placedAnimals(parkVariant, tier) }
     val pxSz    = with(density) { 3.5.dp.toPx() }
 
@@ -75,12 +80,12 @@ internal fun ParkBackground(tier: Int, modifier: Modifier = Modifier) {
                 .onGloballyPositioned {
                     canvasSize = Size(it.size.width.toFloat(), it.size.height.toFloat())
                 }
-                .pointerInput(parkVariant, tier) {
+                .pointerInput(parkVariant, tier, insetPx) {
                     detectTapGestures { offset ->
                         val now = System.currentTimeMillis()
                         if (now - lastTapTime < 1000L) return@detectTapGestures
                         val w = size.width.toFloat()
-                        val h = size.height.toFloat()
+                        val h = size.height.toFloat() - insetPx
                         animals
                             .firstOrNull { placed ->
                                 val animalH = placed.animal.sprite.height * pxSz
@@ -98,12 +103,13 @@ internal fun ParkBackground(tier: Int, modifier: Modifier = Modifier) {
                     }
                 }
         ) {
-            drawParkScenery(tier, density)
+            val sceneH = size.height - insetPx
+            drawParkScenery(tier, density, sceneH)
 
             // 동물 그리기 (탭한 동물은 점프)
             animals.forEach { placed ->
                 val xPx = size.width * placed.placement.x
-                val yPx = animalTopY(placed, size.height, pxSz)
+                val yPx = animalTopY(placed, sceneH, pxSz)
                 val offsetY = if (placed.animal.id == tappedId) bounceY.value else 0f
                 with(PixelAnimalRenderer) {
                     drawSprite(placed.animal.sprite, Offset(xPx, yPx + offsetY), pxSz)
@@ -118,7 +124,7 @@ internal fun ParkBackground(tier: Int, modifier: Modifier = Modifier) {
             SpeechBubble(
                 text             = bubbleText,
                 anchorCenterX    = canvasSize.width * tapped.placement.x + animalW / 2f,
-                anchorTopY       = animalTopY(tapped, canvasSize.height, pxSz) + bounceY.value,
+                anchorTopY       = animalTopY(tapped, canvasSize.height - insetPx, pxSz) + bounceY.value,
                 containerWidthPx = canvasSize.width,
                 alpha            = { bubbleAlpha.value },
                 slideY           = { bubbleSlideY.value },

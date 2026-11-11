@@ -12,10 +12,11 @@ import androidx.compose.ui.unit.dp
 /**
  * 티어에 맞춰 공원 장면을 그린다. 티어가 오를수록 요소가 늘어난다:
  * 왼쪽 나무(1+) · 오른쪽 나무·울타리(2+) · 해·구름(3+) · 연못(4+) · 꽃(5+).
+ * 장면은 위에서부터 [sceneHeight]까지 배치하고, 그 아래(버튼 뒤)는 맨 아래 잔디로 채운다.
  */
-internal fun DrawScope.drawParkScenery(tier: Int, density: Density) {
+internal fun DrawScope.drawParkScenery(tier: Int, density: Density, sceneHeight: Float) {
     val w = size.width
-    val h = size.height
+    val h = sceneHeight
     val skyH    = h * 0.35f
     val grass1  = h * 0.45f
     val grass2  = h * 0.62f
@@ -27,7 +28,7 @@ internal fun DrawScope.drawParkScenery(tier: Int, density: Density) {
     // 잔디 3겹
     drawRect(Color(0xFF6EB04A), topLeft = Offset(0f, skyH),  size = Size(w, grass1 - skyH))
     drawRect(Color(0xFF56A038), topLeft = Offset(0f, grass1), size = Size(w, grass2 - grass1))
-    drawRect(Color(0xFF468028), topLeft = Offset(0f, grass2), size = Size(w, h - grass2))
+    drawRect(Color(0xFF468028), topLeft = Offset(0f, grass2), size = Size(w, size.height - grass2))
 
     // 태양 (티어 3+)
     if (tier >= 3) {
